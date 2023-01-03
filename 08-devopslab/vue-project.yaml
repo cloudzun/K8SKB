@@ -1,0 +1,120 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: vue-project
+  name: vue-project
+  namespace: kubernetes
+spec:
+  ports:
+  - name: web
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: vue-project
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  creationTimestamp: null
+  name: vue-project
+  namespace: kubernetes
+spec:
+  rules:
+  - host: vue-project.test.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: vue-project
+            port: 
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: vue-project
+  name: vue-project
+  namespace: kubernetes
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vue-project
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: vue-project
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - vue-project
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+      containers:
+      - env:
+        - name: TZ
+          value: Asia/Shanghai
+        - name: LANG
+          value: C.UTF-8
+        image: nginx
+        imagePullPolicy: IfNotPresent
+        lifecycle: {}
+        livenessProbe:
+          failureThreshold: 2
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          tcpSocket:
+            port: 80
+          timeoutSeconds: 2
+        name: vue-project
+        ports:
+        - containerPort: 80
+          name: web
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 2
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          tcpSocket:
+            port: 80
+          timeoutSeconds: 2
+        resources:
+          limits:
+            cpu: 994m
+            memory: 1170Mi
+          requests:
+            cpu: 10m
+            memory: 55Mi
+      dnsPolicy: ClusterFirst
+      imagePullSecrets:
+      - name: harborkey
+      restartPolicy: Always
+      securityContext: {}
+      serviceAccountName: default

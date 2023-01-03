@@ -1,0 +1,32 @@
+实验1：在 Power BI Desktop 中准备数据
+https://docs.microsoft.com/zh-cn/learn/modules/get-data/lab-prepare
+
+实验2：在 Power BI Desktop 中加载数据
+https://docs.microsoft.com/zh-cn/learn/modules/clean-data-power-bi/8-lab
+
+实验3：Power BI Desktop 中的数据建模
+https://docs.microsoft.com/zh-cn/learn/modules/design-model-power-bi/8-lab
+
+实验4：开发数据模型
+https://docs.microsoft.com/zh-cn/learn/modules/design-model-power-bi/9-lab
+
+实验5：Power BI Desktop 中的 DAX 简介
+https://docs.microsoft.com/zh-cn/learn/modules/create-measures-dax-power-bi/6-lab
+
+实验6：DAX 中的时间智能和度量值
+https://docs.microsoft.com/zh-cn/learn/modules/create-measures-dax-power-bi/8-lab
+
+实验7：在 Power BI Desktop 中设计报表
+https://docs.microsoft.com/zh-cn/learn/modules/visuals-power-bi/8-lab
+
+实验8：通过切片器、交互和格式设置增强 Power BI 报表体验
+https://docs.microsoft.com/zh-cn/learn/modules/data-driven-story-power-bi/13-lab
+
+实验9：创建 Power BI 仪表板
+https://docs.microsoft.com/zh-cn/learn/modules/create-dashboards-power-bi/9-lab
+
+实验10：创建分页报表（略）
+https://docs.microsoft.com/zh-cn/learn/modules/create-paginated-reports-power-bi/6-lab
+
+实验11：Power BI Desktop 中的数据分析
+https://docs.microsoft.com/zh-cn/learn/modules/ai-visuals-power-bi/5-lab

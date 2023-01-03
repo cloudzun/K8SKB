@@ -1,0 +1,21 @@
+version: '3.6'
+services:
+  Gitlab:
+    image: 'gitlab/gitlab-ce:latest'
+    restart: always
+    hostname: 'gitlab.admin.com'
+    environment:
+      TZ: 'Asia/Shanghai'
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://192.168.14.244'
+        gitlab_rails['gitlab_ssh_host'] = '192.168.14.244'
+        gitlab_rails['gitlab_shell_ssh_port'] = 10022
+        prometheus_monitoring['enable'] = false
+    ports:
+      - '80:80'
+      - '10443:443'
+      - '10022:22'
+    volumes:
+      - '/gitlab-data/config:/etc/gitlab'
+      - '/gitlab-data/logs:/var/log/gitlab'
+      - '/gitlab-data/data:/var/opt/gitlab'

@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  name: backend-api
+  namespace: study-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: nginx.cloudzun.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: backend-api
+            port:
+              number: 80
+        path: /api-a(/|$)(.*)
+        pathType: ImplementationSpecific

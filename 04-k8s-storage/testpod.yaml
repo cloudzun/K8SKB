@@ -1,0 +1,30 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: check-snapshot-restore
+spec:
+  selector:
+    matchLabels:
+      app: check 
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: check 
+    spec:
+      containers:
+      - image: alpine:3.8
+        name: check
+        command:
+        - sh
+        - -c
+        - sleep 36000
+        volumeMounts:
+        - name: check-mysql-persistent-storage
+          mountPath: /mnt
+      volumes:
+      - name: check-mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: rbd-pvc-restore 

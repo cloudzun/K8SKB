@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hello-world-ingress
+  namespace: ingress-basic
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: helloworld.cloudzun.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: aks-helloworld-one
+            port:
+              number: 80
+        path: /k8s(/|$)(.*)
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: aks-helloworld-two
+            port:
+              number: 80
+        path: /ingress(/|$)(.*)
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: aks-helloworld-one
+            port:
+              number: 80
+        path: /(.*)
+        pathType: ImplementationSpecific

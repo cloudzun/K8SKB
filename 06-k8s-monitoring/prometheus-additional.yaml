@@ -1,0 +1,26 @@
+- job_name: 'blackbox'
+  metrics_path: /probe
+  params:
+    module: [http_2xx] # Look for a HTTP 200 response.
+  static_configs:
+    - targets:
+      - http://cloudzun.com # Target to probe with http.
+      - https://www.google.com # Target to probe with https.
+      - https://chengzhweb1030.azurewebsites.net/
+  relabel_configs:
+    - source_labels: [__address__]
+      target_label: __param_target
+    - source_labels: [__param_target]
+      target_label: instance
+    - target_label: __address__
+      replacement: blackbox-exporter.monitoring:19115 # The blackbox exporter's real hostname:port.需要写IP地址
+
+- job_name: 'WindowsServerMonitor'
+  static_configs:
+    - targets:
+      - "192.168.1.6:9182" # 被监控Windows机器的IP地址
+      labels:
+        server_type: 'windows'
+  relabel_configs:
+    - source_labels: [__address__]
+

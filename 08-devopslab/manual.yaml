@@ -1,0 +1,360 @@
+环境介绍：
+虚拟实例1：运行jenkins + gitlab + harbor环境，节点地址192.168.14.244（可以把当前机器的地址进行查找替换）
+虚拟实例2：运行单节点k8s群集，版本为1.23.00
+上述两个实例的配置均为4vCPU 8GB内存 127GB 硬盘空间，操纵系统为ubuntu 20.04
+
+
+第一部分，环境初始化安装
+
+
+安装docker
+
+apt -y install apt-transport-https ca-certificates curl software-properties-common
+
+curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable"
+
+apt update -y 
+apt install docker-ce -y 
+
+# curl -sSL https://get.docker.com/ | sh
+# usermod -aG docker chengzh
+
+mkdir /etc/docker
+
+cat > /etc/docker/daemon.json << EOF
+{
+    "exec-opts": ["native.cgroupdriver=systemd"],
+    "log-driver": "json-file",
+    "log-opts": {
+        "max-size": "100m",
+        "max-file": "10"
+    },
+    "registry-mirrors": ["https://pqbap4ya.mirror.aliyuncs.com"]
+}
+EOF
+
+systemctl restart docker
+systemctl enable docker
+
+安装docker docker-compose
+apt install docker-compose
+
+下载项目文件
+git clone https://github.com/cloudzun/devopslab
+
+
+安装jenkins
+
+创建文件夹
+mkdir jenkins
+
+进入文件夹
+cd jenkins
+
+创建docker-compose文件
+nano docker-compose.yaml
+
+version: '2'
+
+services:
+  jenkins:
+    image: docker.io/bitnami/jenkins:2.319.1-debian-10-r11
+    restart: always
+    ports:
+      - '8080:8080'
+      - '50000:50000'
+    environment:
+      - JENKINS_PASSWORD=password
+      - JENKINS_USERNAME=admin
+    volumes:
+      - 'jenkins_data:/bitnami/jenkins'
+
+volumes:
+  jenkins_data:
+    driver: local
+
+# 如果已经已经下载了项目文件可以直接 cd devopslab/jenkins/
+
+安装jenkins
+docker-compose up -d
+
+查看安装进度
+docker logs -f jenkins_jenkins_1
+#等待看到Jenkins is fully up and running字样说明安装成功
+
+使用admin/password 登录到http://192.168.14.244:8080,建议修改密码
+
+#加载国内jenkins插件源
+#https://mirrors.tuna.tsinghua.edu.cn/jenkins/updates/current/update-center.json
+
+加载jenkins插件:http://192.168.14.244:8080/pluginManager/available
+Git
+Git Parameter
+Git Pipeline for Blue Ocean
+GitLab
+Credentials
+Credentials Binding
+Blue Ocean
+Blue Ocean Pipeline Editor
+Blue Ocean Core JS
+Pipeline SCM API for Blue Ocean
+Dashboard for Blue Ocean
+Build With Parameters
+Dynamic Extended Choice Parameter 
+Dynamic Parameter Plug-in ？？
+Extended Choice Parameter
+List Git Branches Parameter
+Pipeline
+Pipeline: Declarative
+Kubernetes
+Kubernetes CLI
+Kubernetes Credentials
+Image Tag Parameter
+Active Choices
+
+
+安装gitlab
+
+创建目录
+mkdir gitlab
+
+进入目录
+cd gitlab
+
+创建docker-compose文件
+nano docker-compose.yaml
+
+version: '3.6'
+services:
+  Gitlab:
+    image: 'gitlab/gitlab-ce:latest'
+    restart: always
+    hostname: 'gitlab.admin.com'
+    environment:
+      TZ: 'Asia/Shanghai'
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://192.168.14.244'
+        gitlab_rails['gitlab_ssh_host'] = '192.168.14.244'
+        gitlab_rails['gitlab_shell_ssh_port'] = 10022
+        prometheus_monitoring['enable'] = false
+    ports:
+      - '80:80'
+      - '10443:443'
+      - '10022:22'
+    volumes:
+      - '/gitlab-data/config:/etc/gitlab'
+      - '/gitlab-data/logs:/var/log/gitlab'
+      - '/gitlab-data/data:/var/opt/gitlab'
+
+
+安装gitlab
+docker-compose up -d
+
+查看初始化密码
+nano /gitlab-data/config/initial_root_password
+
+使用root和初始化密码登录到服务器，并修改密码
+
+创建一个公开的组，比如kubernetes
+
+从githuba上导入一个项目（比如：https://github.com/cloudzun/cloudzun）进行测试
+
+git clone http://192.168.14.244/kubernetes/cloudzun.git
+
+git config --global user.email "info@cloudzun.com"
+git config --global user.name "Abraham Cheng"
+
+针对文件做些修改，或者增加一些文件
+
+git add .
+
+git commit -am "first commit"
+
+git push origin master
+
+
+
+安装 harbor
+
+下载安装文件
+wget https://github.com/goharbor/harbor/releases/download/v2.4.3/harbor-offline-installer-v2.4.3.tgz
+#加速链接 wget https://chengzhstor.blob.core.windows.net/k8slab/harbor-offline-installer-v2.4.3.tgz
+
+解压
+tar xf harbor-offline-installer-v2.4.3.tgz
+
+进入目录
+cd harbor
+
+加载映像文件和配置我呢见
+docker load -i harbor.v2.4.3.tar.gz
+
+cp harbor.yml.tmpl harbor.yml
+
+修改配置文件
+nano harbor.yml
+
+hostname:使用IP地址
+port:使用5000端口
+https:这一段全部注释
+harbor_admin_password:默认为admin:Harbor12345
+data_volume:改为/data/harbor
+
+
+预配存储
+mkdir /data/harbor /var/log/harbor -p
+ ./prepare
+
+安装
+./install.sh
+
+使用admin:Harbor12345 登录到节点，创建一个公共项目chengzh
+
+在另一台机器上测试
+
+修改daemon.json
+cat > /etc/docker/daemon.json << EOF
+{
+    "exec-opts": ["native.cgroupdriver=systemd"],
+    "log-driver": "json-file",
+    "log-opts": {
+        "max-size": "100m",
+        "max-file": "10"
+    },
+    "registry-mirrors": ["https://pqbap4ya.mirror.aliyuncs.com"],
+    "insecure-registries": ["192.168.14.244:5000"]
+}
+EOF
+
+重启docker
+systemctl restart docker
+systemctl enable docker
+
+
+登录到harbor
+docker login 192.168.14.244:5000
+
+上传映像
+docker pull alexwhen/docker-2048
+
+docker tag alexwhen/docker-2048  192.168.14.244:5000/chengzh/docker-2048
+
+docker push  192.168.14.244:5000/chengzh/docker-2048
+
+可以在另一台机器上测试
+docker run -d -p 2048:80  192.168.14.244:5000/chengzh/docker-2048
+
+
+创建测试K8S群集（单节点群集）
+
+按照常规步骤安装k8s之后，执行以下操作
+
+删除master污点，使其能承载工作负载
+kubectl taint node node node-role.kubernetes.io/master-
+
+打印admin.conf文件内容，并复制保存到本地
+ cat $HOME/.kube/config
+
+创建ingress
+kubectl apply -f https://raw.githubusercontent.com/cloudzun/devopslab/main/ingress.yaml
+
+修改daemon.json
+cat > /etc/docker/daemon.json << EOF
+{
+    "exec-opts": ["native.cgroupdriver=systemd"],
+    "log-driver": "json-file",
+    "log-opts": {
+        "max-size": "100m",
+        "max-file": "10"
+    },
+    "registry-mirrors": ["https://pqbap4ya.mirror.aliyuncs.com"],
+    "insecure-registries": ["192.168.14.244:5000"]
+}
+EOF
+
+重启docker
+systemctl restart docker
+systemctl enable docker
+
+
+第二部分，环境整合配置
+
+
+配置Jenkins
+
+配置jenkins location
+在 http://192.168.14.244:8080/configure 确认Jenkins URL
+
+配置agent 
+在http://192.168.14.244:8080/configureSecurity/ 上启用50000端口
+
+
+配置凭据 http://192.168.14.244:8080/credentials/store/system/domain/_/
+配置kubernetes证书（ kind:secret file  id:study-kubernetes）
+
+配置Harbor账号密码 id:HARBOR_ACCOUNT
+
+配置gitlab key(可选)
+
+创建cloud 
+http://192.168.14.244:8080/configureClouds/ （id：study-kubernetes）
+
+
+配置Harbor
+创建公共项目：kubernetes
+
+配置gitlab
+创建公共组：kubernetes
+
+在上述公共项目组内导入项目：
+https://github.com/cloudzun/spring-boot-project
+# 新导入的公共项目组的地址：http://192.168.14.244/kubernetes/spring-boot-project.git
+
+对项目中的Jenkins文件做必要调整
+104行 123行的项目url:地址更新为当前项目地址
+180行的HARBOR_ADDRESS替换位当前harbor地址（如果未使用80端口，则需要替换端口）
+# 可参照https://github.com/cloudzun/devopslab/blob/main/Jenkinsfile
+
+
+配置K8S
+
+给slave节点打标签
+kubectl label node node build=true
+
+创建命名空间
+kubectl create ns kubernetes
+
+设置映像库用户名密码
+kubectl create secret docker-registry harborkey --docker-server=192.168.14.244:5000 --docker-username=admin --docker-password=2wsx#EDC --docker-email=info@cloudzun.com -n kubernetes
+
+创建项目所需资源
+kubectl apply -f https://raw.githubusercontent.com/cloudzun/devopslab/main/spring-boot-project.yaml
+
+
+使用http://192.168.14.244/kubernetes/spring-boot-project.git作为代码库创建pipeline
+注意：需要手动触发一次，且第一次触发会失败，报错信息为：
+The specified working directory should be fully accessible to the remoting executable (RWX): /home/jenkins/agent
+
+解决方法在slave节点上设置权限
+chmod -R 777  /opt/workspace
+
+第二次使用build with Parameter创建
+
+Pipeline运行结束之后进行验证 http://node:30080
+kubectl patch svc -n kubernetes spring-boot-project  -p '{"spec":{"type": "NodePort"}}'
+kubectl patch service spring-boot-project  --namespace=kubernetes spring-boot-project --type='json' --patch='[{"op": "replace", "path": "/spec/ports/0/nodePort", "value":30080}]'
+
+
+
+
+
+附录
+
+安装portainer
+docker run -d -p 9000:9000 --restart always -v /var/run/docker.sock:/var/run/docker.sock -v /opt/portainer:/data portainer/portainer -H unix:///var/run/docker.sock
+
+安装Prometheus
+git clone https://github.com/stefanprodan/dockprom  
+cd dockprom 
+ADMIN_USER=admin ADMIN_PASSWORD=admin docker-compose up -d

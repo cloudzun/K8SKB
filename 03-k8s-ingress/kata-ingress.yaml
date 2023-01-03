@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: katacoda
+  name: katacoda
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: katacoda
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: katacoda
+    spec:
+      containers:
+      - image: katacoda/docker-http-server
+        name: docker-http-server
+        resources: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: katacoda
+  name: katacoda
+spec:
+  ports:
+  - name: 80-80
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: katacoda
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kata-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: kata.cloudzun.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: katacoda
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
