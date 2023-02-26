@@ -580,6 +580,14 @@ chown $(id -u):$(id -u) $HOME/.kube/config
 
 部署网络插件
 
+
+
+```bash
+kubectl create -f https://raw.githubusercontent.com/cloudzun/k8slab/main/install/calico.yaml
+```
+
+
+
 ```bash
 curl https://docs.projectcalico.org/manifests/calico.yaml -O
 kubectl apply -f calico.yaml
