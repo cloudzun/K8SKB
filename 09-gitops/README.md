@@ -2722,6 +2722,7 @@ Hello World Golangroot@node1:~#
 ```
 
 
+
 ### Node.js 应用容器化
 
 ```bash
@@ -2965,6 +2966,8 @@ docker run --publish 8080:80 vue-nginx
 
 打开浏览器访问 http://localhost:8080 验证一下，如果出现和前面提到的 http-server 构建方式一样的 Vue 示例应用界面，就说明镜像构建成功了。
 
+
+
 ### 构建多平台镜像 (使用docker desktop演示)
 
 确认experiment功能开启之后，创建构建器
@@ -3182,6 +3185,8 @@ chengzh@TB15P:~/gitops/docker/13/multi-arch$ docker buildx build --platform linu
 
 ## 缩减镜像体积
 
+
+
 ### 基本构建
 
 
@@ -3381,8 +3386,6 @@ Successfully built 056ccad9a6ab
 Successfully tagged golang:2
 ```
 
-
-
 查看映像
 
 ```bash
@@ -3426,6 +3429,8 @@ d8bf44a3f6b4   14 months ago    /bin/sh -c #(nop) WORKDIR /go                   
 <missing>      14 months ago    /bin/sh -c #(nop) ADD file:9233f6f2237d79659…   5.59MB
 
 ```
+
+
 
 ### 本地编译
 
@@ -3534,11 +3539,12 @@ e4e0c73fee4e   About a minute ago   /bin/sh -c #(nop) COPY file:20d600ca265b298d
 不过，这种方式将应用的编译过程拆分到了宿主机上，这会让 Dockerfile 失去描述应用编译和打包的作用，不是一个好的实践
 
 
+
 ### 多阶段构建
 
 多阶段构建的本质其实就是将镜像构建过程拆分成编译过程和运行过程。
 - 第一个阶段对应编译的过程，负责生成可执行文件；
-- 第二个阶段对应运行过程，也就是拷贝第一阶段的二进制可执行文件，并为程序提供运行环境，最终镜像也就是第二阶段生成的镜像如下图所示。
+- 第二个阶段对应运行过程，也就是拷贝第一阶段的二进制可执行文件，并为程序提供运行环境，最终镜像也就是第二阶段生成的镜像。
 
 Dockerfile-4
 ```Dockerfile
@@ -3642,6 +3648,8 @@ IMAGE          CREATED          CREATED BY                                      
 <missing>      13 days ago      /bin/sh -c #(nop)  ARG RELEASE                  0B 
 ```
 
+
+
 ### 进一步压缩
 
 Dockerfile-5
@@ -3715,8 +3723,6 @@ Successfully built 419b26609935
 Successfully tagged golang:5
 ```
 
-
-
 查看映像
 
 ```bash
@@ -3758,6 +3764,7 @@ b2aa39c304c2   4 weeks ago          /bin/sh -c #(nop)  CMD ["/bin/sh"]          
 ```
 
 由于 Alpine 镜像和常规 Linux 发行版存在一些差异，通常并不推荐在生产环境下使用 Alpine 镜像作为业务的运行镜像
+
 
 
 ### 极限压缩
@@ -3816,8 +3823,6 @@ Successfully built d05c2b689d37
 Successfully tagged golang:6
 ```
 
-
-
 查看映像
 
 ```bash
@@ -3858,6 +3863,7 @@ b3cfc770d142   58 seconds ago   /bin/sh -c #(nop) WORKDIR /opt/app              
 ```
 
 scratch 镜像是一个空白镜像，甚至连 shell 都没有，所以也无法进入容器查看文件或进行调试。在生产环境中，如果对安全有极高的要求，可以考虑把 scratch 作为程序的运行镜像。
+
 
 
 ### 复用构建缓存，加快构建过程
@@ -3927,8 +3933,6 @@ Successfully built 32d7ee5d6a76
 Successfully tagged golang:7
 ```
 
-
-
 查看映像
 
 ```bash
@@ -3975,9 +3979,678 @@ b2aa39c304c2   4 weeks ago      /bin/sh -c #(nop)  CMD ["/bin/sh"]              
 
 
 
+## 使用Github Action 自动构建映像
+
+
+
+### 定义 build.yaml
+
+示例repo：https://github.com/cloudzun/kubernetes-example/tree/main/.github/workflows
+
+```yaml
+
+name: build
+
+on:
+  push:
+    branches:
+      - 'main'
+
+env:
+  DOCKERHUB_USERNAME: cloudzun  # 替换为自己的docker hub 账号
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set outputs
+        id: vars
+        run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build backend and push
+        uses: docker/build-push-action@v3
+        with:
+          context: backend
+          push: true
+          tags: ${{ env.DOCKERHUB_USERNAME }}/backend:${{ steps.vars.outputs.sha_short }}
+      - name: Build frontend and push
+        uses: docker/build-push-action@v3
+        with:
+          context: frontend
+          push: true
+          tags: ${{ env.DOCKERHUB_USERNAME }}/frontend:${{ steps.vars.outputs.sha_short }}
+```
+
+解析：
+
+这是一个GitHub Actions的工作流程配置文件，用于在推送到`main`分支时自动构建并推送Docker镜像到Docker Hub。以下是详细解释：
+
+1. `name: build`：为此GitHub Actions工作流程命名为"build"。
+2. `on`：指定触发此工作流程的条件。
+   - `push`：当有新的推送事件时触发。
+   - `branches`：指定仅在推送到`main`分支时触发此工作流程。
+3. `env`：设置环境变量。
+   - `DOCKERHUB_USERNAME: cloudzun`：设置Docker Hub用户名为"cloudzun"。请将此值替换为你自己的Docker Hub用户名。
+4. `jobs`：定义工作流程中的任务。
+   - `docker`：定义一个名为"docker"的任务。
+   - `runs-on: ubuntu-latest`：指定任务运行在最新版的Ubuntu虚拟环境上。
+5. `steps`：定义任务中的步骤。
+   - `Checkout`：使用`actions/checkout@v3` action，将代码库检出到虚拟环境中。
+   - `Set outputs`：设置输出变量。使用`git rev-parse --short HEAD`命令获取当前提交的sha_short值，并将其存储为输出变量`sha_short`。
+   - `Set up QEMU`：使用`docker/setup-qemu-action@v2` action，设置QEMU模拟器，以支持跨平台的Docker镜像构建。
+   - `Set up Docker Buildx`：使用`docker/setup-buildx-action@v2` action，设置Docker Buildx，它是一个Docker CLI插件，用于扩展原生的Docker构建功能。
+   - `Login to Docker Hub`：使用`docker/login-action@v2` action，登录到Docker Hub。使用环境变量`DOCKERHUB_USERNAME`和GitHub仓库的密钥`DOCKERHUB_TOKEN`进行身份验证。
+   - `Build backend and push`：使用`docker/build-push-action@v3` action，构建名为"backend"的Docker镜像并推送到Docker Hub。将镜像的标签设置为`用户名/backend:sha_short`。
+   - `Build frontend and push`：使用`docker/build-push-action@v3` action，构建名为"frontend"的Docker镜像并推送到Docker Hub。将镜像的标签设置为`用户名/frontend:sha_short`。
+
+
+
+在这个工作流中，这 7 个阶段会具体执行下面几件事。
+当有新的提交推送到`main`分支时，这个GitHub Actions工作流会自动执行以下操作：
+
+1.  检出仓库：将Git仓库的源代码检出到GitHub Actions运行的虚拟环境中。    
+2.  获取当前提交的短SHA值：获取当前推送事件对应的提交的短SHA值（`sha_short`），并将其存储为输出变量，用于后续步骤中构建Docker镜像的标签。    
+3.  设置QEMU模拟器：安装并配置QEMU模拟器，使得Docker镜像可以跨平台构建。    
+4.  设置Docker Buildx：安装并配置Docker Buildx插件，用于扩展Docker原生的构建功能。    
+5.  登录到Docker Hub：使用环境变量中的Docker Hub用户名和GitHub仓库中的Docker Hub令牌（密钥）登录到Docker Hub。    
+6.  构建并推送后端Docker镜像：    
+    -   使用`backend`目录下的Dockerfile构建名为"backend"的Docker镜像。
+    -   为构建的镜像设置标签，格式为`用户名/backend:sha_short`。
+    -   将构建好的Docker镜像推送到Docker Hub。
+7.  构建并推送前端Docker镜像：    
+    -   使用`frontend`目录下的Dockerfile构建名为"frontend"的Docker镜像。
+    -   为构建的镜像设置标签，格式为`用户名/frontend:sha_short`。
+    -   将构建好的Docker镜像推送到Docker Hub。
+
+总之，当有新的提交推送到`main`分支时，这个GitHub Actions工作流会自动构建并推送名为"backend"和"frontend"的Docker镜像到Docker Hub，并使用当前提交的短SHA值（`sha_short`）作为镜像标签。
+
+
+
+### 创建 Docker Hub Access Token
+
+要在Docker Hub上创建一个访问令牌（Access Token），请按照以下步骤操作：
+
+1.  登录到你的Docker Hub账户。    
+2.  点击右上角的头像，然后从下拉菜单中选择`Account Settings`（帐户设置）。    
+3.  在左侧的导航菜单中，点击`Security`（安全）。    
+4.  点击`New Access Token`（新访问令牌）按钮。    
+5.  输入一个描述性的令牌名称，例如“GitHub Actions”，然后点击`Create`（创建）按钮。
+6.  成功创建令牌后，一个弹出窗口会显示新生成的访问令牌。请务必立即复制此令牌，因为你以后将无法再次查看它。如果你不小心关闭了窗口，你需要生成一个新的访问令牌。    
+
+现在你已经创建了一个Docker Hub访问令牌，可以在API调用、命令行工具或GitHub Actions工作流程中使用它进行身份验证。为了安全起见，请不要在公共场所共享你的访问令牌。
+
+接下来，你可以在GitHub仓库中创建一个Docker Hub Secret，用于存储你刚刚创建的访问令牌。这样，在GitHub Actions工作流程中，你可以通过`${{ secrets.DOCKERHUB_TOKEN }}`引用这个Secret。
+
+
+
+### 创建 Github Docker Hub Secret
+
+进入 kubernetes-example 仓库的 Settings 页面，点击左侧的“Secrets”，进入“Actions”菜单，然后点击右侧“New repository secret”创建新的 Secret。
+
+在 Name 输入框中输入 DOCKERHUB_TOKEN，这样在 GitHub Action 的 Step 中，就可以通过 ${{ secrets.DOCKERHUB_TOKEN }} 表达式来获取它的值。在 Secret 输入框中输入刚才我们复制的 Docker Hub Token，点击“Add secret”创建。
+
+要在GitHub仓库中创建一个Docker Hub Secret，你需要执行以下步骤：
+
+1.  登录到你的GitHub账户，然后转到要为其创建Secret的仓库。    
+2.  点击仓库页面顶部的`Settings`（设置）选项卡。    
+3.  在左侧的导航菜单中，点击`Secrets and Variables`。    
+4.  点击页面右上角的`New repository secret`（新建仓库密钥）按钮。    
+5.  输入一个名称，例如`DOCKERHUB_TOKEN`，并输入你的Docker Hub访问令牌（也可以是密码）作为值。点击`Add secret`（添加密钥）按钮以保存。    
+
+现在，你已经成功创建了一个名为`DOCKERHUB_TOKEN`的Secret，它存储了你的Docker Hub访问令牌。在GitHub Actions工作流程中，你可以通过`${{ secrets.DOCKERHUB_TOKEN }}`引用这个Secret。
+
+请注意，为了安全起见，GitHub不允许在工作流程日志中显示Secret的值，因此它们会自动被隐藏。此外，为了防止泄露，GitHub不允许在公共仓库的Forks上的工作流程中使用Secret。
+
+
+
+### 触发 GitHub Action Workflow
+
+```bash
+git clone https://github.com/cloudzun/kubernetes-example
+```
+
+```bash
+cd kubernetes-example
+```
+
+向仓库提交一个空 commit
+```bash
+git commit --allow-empty -m "Trigger Build"
+```
+
+使用 git push 来推送到仓库，这将触发工作流
+```bash
+git push origin main
+```
+
+
+
+![Pasted image 20230212103416](README.assets/Pasted image 20230212103416.png)
+
+
+
+![Pasted image 20230212103255](README.assets/Pasted image 20230212103255.png)
+
+
+
+
+
+
+
 # 使用 Helm 定义应用
 
 
+
+
+
+## 改造实例应用
+
+
+
+### 创建 Helm Chart 目录结构
+
+```bash
+cd kubernetes-example && mkdir helm
+```
+
+```bash
+mkdir helm/templates && touch helm/Chart.yaml && touch helm/values.yaml
+```
+
+```bash
+$ ls helm                 
+Chart.yaml  templates   values.yaml
+```
+
+
+
+### 配置 Chart.yaml 内容
+
+将下面的内容复制到 Chart.yaml 文件内。
+
+```yaml
+apiVersion: v2
+name: kubernetes-example
+description: A Helm chart for Kubernetes
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+```
+
+- apiVersion 字段设置为 v2，代表使用 Helm 3 来安装应用。
+- name 表示 Helm Chart 的名称，当使用 helm install 命令安装 Helm Chart 时，指定的名称也就是这里配置的名称。
+- description 表示 Helm Chart 的描述信息，你可以根据需要填写。
+- type 表示类型，这里我们将其固定为 application，代表 Kubernetes 应用。
+- version 表示我们打包的 Helm Chart 的版本，当使用 helm install 时，可以指定这里定义的版本号。Helm Chart 的版本就是通过这个字段来管理的，当我们发布新的 Chart 时，需要更新这里的版本号。
+- appVersion 和 Helm Chart 无关，它用于定义应用的版本号，建立当前 Helm Chart 和应用版本的关系。
+
+
+
+### 填充 helm/tamplates
+
+helm/tamplates 目录是用来存放模板文件的，这个模板文件也可以是 Kubernetes Manifest。所以，我们现在尝试不使用 Helm Chart 的模板功能，而是直接将 deploy 目录下的 Kubernetes Manifest 复制到 helm/tamplates 目录下
+
+```bash
+cp -r deploy/ helm/templates/
+```
+
+```bash
+helm
+├── Chart.yaml
+├── templates
+│   └── deploy
+│       ├── backend.yaml
+│       ├── database.yaml
+│       ├── frontend.yaml
+│       ├── hpa.yaml
+│       └── ingress.yaml
+└── values.yaml
+```
+
+其中，values.yaml 的文件内容为空。
+
+到这里，一个最简单的 Helm Chart 就编写完成了。在这个 Helm Chart 中，templates 目录下的 Manifest 的内容是确定的，安装这个 Helm Chart 等同于使用 kubectl apply 命令，接下来我们尝试使用 helm install 命令来安装这个 Helm Chart。
+
+```bash
+helm install my-kubernetes-example ./helm --namespace example --create-namespace
+```
+
+在上面这条命令中，我们指定了应用的名称为 my-kubernetes-example，Helm Chart 目录为 ./helm 目录，并且为应用指定了命名空间为 example。要注意的是，example 命名空间并不存在，所以我同时使用 --create-namespace 来让 Helm 自动创建这个命名空间。
+
+此外，这里还有一个非常重要的概念：Release Name。在安装时，我们需要指定 Release Name 也就是 my-kubernetes-example，它和 Helm Chart Name 有本质的区别。Release Name 是在安装时指定的，Helm Chart Name 在定义阶段就已经固定了。
+
+
+
+### 使用模板变量
+
+不过，刚才改造的最简单的 Helm Chart 并不能满足我们的目标。到目前为止，它只是一个纯静态的应用，无法应对多环境对配置差异的需求。
+
+要将这个静态的 Helm Chart 改造成参数动态可控制的，我们需要用到模板变量和 values.yaml。
+
+还记得我之前提到的 values.yaml 的概念吗？模板变量的值都会引自这个文件。在这个例子中，根据我们对不同环境配置差异化的要求，我抽象了这几个可配置项：
+- 镜像版本
+- HPA CPU 平均使用率
+- 是否启用集群内
+- 数据库数据库连接地址、账号和密码
+
+这些可配置项都需要从 values.yaml 文件中读取，所以，你需要将下面的内容复制到 helm/values.yaml 文件内。
+
+```yaml
+
+frontend:
+  image: chengzh/frontend
+  tag: latest
+  autoscaling:
+    averageUtilization: 90
+
+backend:
+  image: chengzh/backend
+  tag: latest
+  autoscaling:
+    averageUtilization: 90
+
+database:
+  enabled: true
+  uri: pg-service
+  username: postgres
+  password: postgres
+  
+```
+
+除了 values.yaml，我们还需要让 helm/templates 目录下的文件能够读取到 values.yaml 的内容，这就需要模板变量了。
+
+举一个最简单的例子，要读取 values.yaml 中的 frontend.image 字段，可以通过 “{{ .Values.frontend.image }}” 模板变量来获取值。
+
+所以，要将这个“静态”的 Helm Chart 改造成“动态”的，我们只需要用模板变量来替换 templates 目录下需要实现“动态”的字段。
+
+了解原理后，我们来修改 helm/templates/backend.yaml 文件，用模板替换需要从 values.yaml 读取的字段。
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  ......
+spec:
+  ......
+    spec:
+      containers:
+      - name: flask-backend
+        image: "{{ .Values.backend.image }}:{{ .Values.backend.tag }}"
+        env:
+        - name: DATABASE_URI
+          value: "{{ .Values.database.uri }}"
+        - name: DATABASE_USERNAME
+          value: "{{ .Values.database.username }}"
+        - name: DATABASE_PASSWORD
+          value: "{{ .Values.database.password }}"
+```
+
+同理，修改 helm/templates/frontend.yaml 文件的 image 字段。
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  ......
+spec:
+  ......
+    spec:
+      containers:
+      - name: react-frontend
+        image: "{{ .Values.frontend.image }}:{{ .Values.frontend.tag }}" 
+```
+
+此外，还需要修改 helm/templates/hpa.yaml 文件的 averageUtilization 字段。
+
+```yaml
+
+......
+metadata:
+  name: frontend
+spec:
+  ......
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.frontend.autoscaling.averageUtilization }}
+---
+......
+metadata:
+  name: backend
+spec:
+  ......
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.backend.autoscaling.averageUtilization }}
+```
+
+注意，相比较其他的模板变量，在这里我们没有在模板变量的外部使用双引号，这是因为 averageUtilization 字段是一个 integer 类型，而双引号加上模板变量的意思是 string 类型。
+
+最后，我们希望使用 values.yaml 中的 database.enable 字段来控制是否向集群提交 helm/templates/database.yaml 文件。所以我们可以在文件首行和最后一行增加下面的内容。
+
+```yaml
+
+{{- if .Values.database.enabled -}}
+......
+{{- end }}
+```
+
+到这里，我们就成功地将“静态”的 Helm Chart 改造为了“动态”的 Helm Chart。
+
+
+
+
+
+## 部署 Helm Chart
+
+在将示例应用改造成 Helm Chart 之后，我们就可以使用 helm install 进行安装了。这里我会将 Helm Chart 分别安装到 helm-staging 和 helm-prod 命名空间，它们对应预发布环境和生产环境，接着我会介绍如何为不同的环境传递不同的参数。
+
+
+
+### 部署预发布环境
+
+我们为 Helm Chart 创建的 values.yaml 实际上是默认值，在预发布环境，我们希望将前后端的 HPA CPU averageUtilization 从默认的 90 调整为 60，你可以在安装时使用 --set 来调整特定的字段，不需要修改 values.yaml 文件。
+
+```bash
+helm install my-kubernetes-example ./helm --namespace helm-staging --create-namespace --set frontend.autoscaling.averageUtilization=60 --set backend.autoscaling.averageUtilization=60
+```
+
+```bash
+controlplane $ helm install my-kubernetes-example ./helm --namespace helm-staging --create-namespace --set frontend.autoscaling.averageUtilization=60 --set backend.autoscaling.averageUtilization=60
+NAME: my-kubernetes-example
+LAST DEPLOYED: Thu Feb 23 03:00:51 2023
+NAMESPACE: helm-staging
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+```
+
+小插曲，可能会遇到如下错误
+```bash
+Error: unable to build kubernetes objects from release manifest: unable to recognize "": no matches for kind "HorizontalPodAutoscaler" in version "autoscaling/v2beta2"
+```
+
+解决方案，查询一下当前版本的 k8s 支持的 api 版本，对 hap.yaml 进行必要的调整
+```bash
+kubectl api-versions | grep autoscaling
+autoscaling/v1
+autoscaling/v2
+```
+
+在这个安装例子中，我们使用 --set 参数来调整 frontend.autoscaling.averageUtilization  字段值，其它的字段值仍然采用 values.yaml 提供的默认值。
+
+部署完成后，你可以查看我们为预发布环境配置的后端服务 HPA averageUtilization 字段值。
+
+```bash
+kubectl get hpa backend -n helm-staging --output jsonpath='{.spec.metrics[0].resource.target.averageUtilization}'
+```
+
+```bash
+controlplane $ kubectl get hpa backend -n helm-staging --output jsonpath='{.spec.metrics[0].resource.target.averageUtilization}'
+60controlplane $ 
+```
+返回值为 60，和我们配置的安装参数一致。
+
+同时，你也可以查看是否部署了数据库，也就是 postgres 工作负载。
+
+```bash
+kubectl get deployment postgres -n helm-staging
+```
+
+```bash
+controlplane $ kubectl get deployment postgres -n helm-staging
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+postgres   1/1     1            1           4m32s
+```
+
+postgres 工作负载存在，符合预期。
+
+最后，你可以查看 backend Deployment 的 Env 环境变量，以便检查是否使用集群内的数据库实例
+
+```bash
+kubectl get deployment backend -n helm-staging --output jsonpath='{.spec.template.spec.containers[0].env[*]}'
+
+```
+
+```bash
+controlplane $ kubectl get deployment backend -n helm-staging --output jsonpath='{.spec.template.spec.containers[0].env[*]}'
+{"name":"DATABASE_URI","value":"pg-service"} {"name":"DATABASE_USERNAME","value":"postgres"} {"name":"DATABASE_PASSWORD","value":"postgres"}controlplane $ 
+```
+
+
+
+### 部署生产环境
+
+部署到生产环境的例子相对来说配置项会更多，除了需要修改 database.enable 字段，禁用集群内数据库实例以外，还需要修改数据库连接的三个环境变量。所以，我们使用另一种安装参数传递方式：使用文件传递。要使用文件来传递安装参数，
+
+首先需要准备这个文件。你需要将下面的内容保存为 helm/values-prod.yaml 文件。
+
+```yaml
+frontend:
+  autoscaling:
+    averageUtilization: 50
+
+backend:
+  autoscaling:
+    averageUtilization: 50
+
+database:
+  enabled: false
+  uri: 10.10.10.10
+  username: external_postgres
+  password: external_postgres
+```
+
+接下来，我们使用 helm install 命令来安装它，同时指定新的 values-prod.yaml 文件作为安装参数。
+
+```bash
+helm install my-kubernetes-example ./helm -f ./helm/values-prod.yaml --namespace helm-prod --create-namespace
+```
+
+部署完成后，你可以查看我们为生产环境配置的后端服务 HPA averageUtilization 字段值。
+
+```bash
+kubectl get hpa backend -n helm-prod --output jsonpath='{.spec.metrics[0].resource.target.averageUtilization}'
+```
+
+```bash
+controlplane $ kubectl get hpa backend -n helm-prod --output jsonpath='{.spec.metrics[0].resource.target.averageUtilization}'
+50controlplane $ 
+```
+返回值为 50，和我们在 values-prod.yaml 文件中定义的安装参数一致。
+
+同时，你也可以查看是否部署了数据库，也就是 postgres 工作负载。
+
+```bash
+kubectl get deployment postgres -n helm-prod   
+```
+
+```bash
+controlplane $ kubectl get deployment postgres -n helm-prod   
+Error from server (NotFound): deployments.apps "postgres" not found
+```
+可以发现，postgres 工作负载并不存在，符合预期。最后，你可以查看 backend Deployment 的 Env 环境变量，检查是否使用了外部数据库。
+
+```bash
+kubectl get deployment backend -n helm-prod --output jsonpath='{.spec.template.spec.containers[0].env[*]}'
+```
+
+```bash
+controlplane $ kubectl get deployment backend -n helm-prod --output jsonpath='{.spec.template.spec.containers[0].env[*]}'
+{"name":"DATABASE_URI","value":"10.10.10.10"} {"name":"DATABASE_USERNAME","value":"external_postgres"} {"name":"DATABASE_PASSWORD","value":"external_postgres"}
+```
+返回结果同样符合预期。到这里，将实例应用改造成 Helm Chart 的工作已经全部完成了。
+
+
+
+
+## 发布 Helm Chart
+
+在 Helm Chart 编写完成之后，我们便能够在本地安装它了。不过，我们通常还会有和其他人分享 Helm Chart 的需求。
+
+为实现这个需求，需要将在上面创建的 Helm Chart 打包并且上传到 Helm 仓库中即可。这里以 GitHub Package 为例，介绍如何将 Helm Chart 上传到镜像仓库。
+
+
+
+### 创建 GitHub Token
+
+要将 Helm Chart 推送到 GitHub Package，首先我们需要创建一个具备推送权限的 Token，你可以在这个链接：https://github.com/settings/tokens/new 创建，并勾选 write:packages 权限。点击“Genarate token”按钮生成 Token 并复制。
+
+
+
+### 推送 Helm Chart
+
+在推送之前，还需要使用 GitHub ID 和刚才创建的 Token 登录到 GitHub Package。
+
+```
+helm registry login -u cloudzun https://ghcr.io
+```
+
+```bash
+~/kubernetes-example$ helm registry login -u cloudzun https://ghcr.io
+Password:
+Login Succeeded
+```
+
+请注意，由于 GitHub Package 使用的是 OCI 标准的存储格式，如果你使用的 helm 版本小于 3.8.0，则需要在运行这条命令之前增加 HELM_EXPERIMENTAL_OCI=1 的环境变量启用实验性功能。然后，返回到示例应用的根目录下，执行 helm package 命令来打包 Helm Chart。
+
+然后，返回到示例应用的根目录下，执行 helm package 命令来打包 Helm Chart。
+
+```bash
+helm package ./helm
+```
+
+这条命令会将 helm 目录打包，并生成 kubernetes-example-0.1.0.tgz 文件。接下来，就可以使用 helm push 命令推送到 GitHub Package 了。
+
+```bash
+helm push kubernetes-example-0.1.0.tgz oci://ghcr.io/cloudzun/helm
+```
+
+命令运行结束后将展示 Digest 字段，就说明 Helm Chart 推送成功了。
+```bash
+helm package ./helm
+Successfully packaged chart and saved it to: /home/chengzh/kubernetes-example/kubernetes-example-0.1.0.tgz
+helm push kubernetes-example-0.1.0.tgz oci://ghcr.io/cloudzun/helm
+Pushed: ghcr.io/cloudzun/helm/kubernetes-example:0.1.0
+Digest: sha256:2f3d04c9f2fda3e948dd31a96ba60b9bd2a939f16708ef5fb964f5d81314281f
+```
+
+
+
+### 安装远端仓库的 Helm Chart
+
+当我们成功把 Helm Chart 推送到 GitHub Package 之后，就可以直接使用远端仓库来安装 Helm Chart 了。和一般的安装步骤不同的是，由于 GitHub Package 仓库使用的是 OCI 标准的存储方式，所以无需执行 helm repo add 命令添加仓库，可以直接使用 helm install 命令来安装。
+
+```bash
+helm install my-kubernetes-example oci://ghcr.io/cloudzun/helm/kubernetes-example --version 0.1.0 --namespace remote-helm-staging --create-namespace --set frontend.autoscaling.averageUtilization=60 --set backend.autoscaling.averageUtilization=60
+```
+
+在上面的安装命令中，oci://ghcr.io/cloudzun/helm/kubernetes-example 是 Helm Chart 的完整的地址，并标识了 OCI 关键字。另外，version 字段指定的是 Helm Chart 的版本号。在安装时，同样可以使用 --set 或者指定 -f 参数来覆写 values.yaml 的字段。
+
+```bash
+ helm install my-kubernetes-example oci://ghcr.io/cloudzun/helm/kubernetes-example --version 0.1.0 --namespace remote-helm-staging --create-namespace --set frontend.autoscaling.averageUtilization=60 --set backend.autoscaling.averageUtilization=60
+Pulled: ghcr.io/cloudzun/helm/kubernetes-example:0.1.0
+Digest: sha256:2f3d04c9f2fda3e948dd31a96ba60b9bd2a939f16708ef5fb964f5d81314281f
+NAME: my-kubernetes-example
+LAST DEPLOYED: Thu Feb 23 11:39:04 2023
+NAMESPACE: remote-helm-staging
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+```
+
+
+
+
+
+## Helm 应用管理
+
+总结来说，Helm Chart 和 Manifest 之间一个最大的区别是，Helm 从应用的角度出发，提供了应用的管理功能，通常我们在实际使用 Helm 过程中会经常遇到下面几种场景。
+
+
+
+### 调试 Helm Chart
+
+在编写 Helm Chart 的过程中，为了方便验证，我们会经常渲染完整的 Helm 模板而又不安装它，这时候你就可以使用 helm template 命令来调试 Helm Chart。
+
+```bash
+helm template ./helm -f ./helm/values-prod.yaml
+```
+
+此外，你还可以在运行 helm install 命令时增加 --dry-run 参数来实现同样的效果。
+
+```bash
+helm install my-kubernetes-example oci://ghcr.io/cloudzun/helm/kubernetes-example --version 0.1.0 --dry-run
+```
+
+
+
+### 查看已安装的 Helm Release
+
+要查看已安装的 Helm Release，可以使用 helm list 命令。
+
+```bash
+helm list -A
+```
+
+
+
+### 更新 Helm Release
+
+要更新 Helm Release，可以使用 helm upgrade 命令，Helm 会自动对比新老版本之间的 Manifest 差异，并执行升级。
+
+```bash
+helm upgrade my-kubernetes-example ./helm -n example
+```
+
+
+
+### 查看 Helm Release 历史版本
+
+要查看 Helm Release 的历史版本，你可以使用 helm history 命令。
+
+```bash
+helm history my-kuebrnetes-example -n example
+```
+
+
+
+### 回滚 Helm Release
+
+当 Helm Release 有多个版本时，你可以通过 helm rollback 命令回滚到指定的版本。
+
+```bash
+helm rollback my-kubernetes-example 1 -n example
+```
+
+
+
+### 卸载 Helm Release
+
+要卸载 Helm Release，你可以使用 helm uninstall
+
+```bash
+helm uninstall my-kubernetes-example -n example
+```
 
 
 
