@@ -4964,6 +4964,8 @@ argocd app create example --sync-policy automated --repo https://github.com/clou
 
 ## 实现镜像版本变化触发的 GitOps 工作流
 
+
+
 ### 安装和配置 ArgoCD Image Updater
 
 安装  ArgoCD Image Updater
@@ -5006,12 +5008,13 @@ kubectl create -n argocd secret docker-registry dockerhub-secret \
 argocd repo add https://github.com/cloudzun/kubernetes-example-helm.git --username $USERNAME --password $PASSWORD
 ```
 
-注意要将仓库地址修改为你新创建的用于存放 Helm Chart 的 GitHub 仓库地址，并将 `$USERNAME` 替换为 `GitHub 账户 ID`，将 `$PASSWORD` 替换为 `GitHub Personal Token`。你可以在这个页面创建 `GitHub Personal Token`，并赋予仓库相关权限。
-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
+注意要将仓库地址修改为你新创建的用于存放 Helm Chart 的 GitHub 仓库地址，并将 `$USERNAME` 替换为 `GitHub 账户 ID`，将 `$PASSWORD` 替换为 `GitHub Personal Token`。你可以在这个页面：https://github.com/settings/tokens 创建 `GitHub Personal Token`，并赋予仓库相关权限。
+
 
 ```bash
-argocd repo add https://github.com/cloudzun/kubernetes-example-helm.git --username cloudzun --password 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
+argocd repo add https://github.com/cloudzun/kubernetes-example-helm.git --username cloudzun --password $PASSWORD
 ```
+
 
 
 ### 创建 ArgoCD 应用
@@ -5083,8 +5086,6 @@ spec:
 
 总之，这个manifest文件定义了一个名为`example`的Argo CD应用，用于在指定的Kubernetes命名空间中部署和管理一个基于Helm的应用。同时，它还包含了Argo CD Image Updater的配置，用于自动更新容器镜像。
 
-
-
 - `annotations` 部分包含了Argo CD Image Updater的配置。这些配置用于指定自动更新容器镜像的策略、参数和相关信息。以下是对这些注释的详细解释：
 
   1. `argocd-image-updater.argoproj.io/backend.allow-tags` 和 `argocd-image-updater.argoproj.io/frontend.allow-tags`: 这两个注释分别针对后端（backend）和前端（frontend）镜像，指定了允许更新的镜像标签。这里使用正则表达式 `regexp:^main`，表示允许使用以 "main" 开头的标签。
@@ -5101,6 +5102,7 @@ spec:
 ```bash
 kubectl apply -n argocd -f application.yaml
 ```
+
 
 
 ### 触发 GitOps 工作流
@@ -5153,6 +5155,7 @@ postgres   1/1     1            1           13m   postgres         postgres     
 
 ```
 此处关注镜像：`chengzh/backend:main-2fff0b2`
+
 
 
 ### Demo提示
