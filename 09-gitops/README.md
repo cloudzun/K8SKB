@@ -4513,7 +4513,35 @@ controlplane $ kubectl get deployment backend -n helm-prod --output jsonpath='{.
 
 ### 创建 GitHub Token
 
-要将 Helm Chart 推送到 GitHub Package，首先我们需要创建一个具备推送权限的 Token，你可以在这个链接：https://github.com/settings/tokens/new 创建，并勾选 write:packages 权限。点击“Genarate token”按钮生成 Token 并复制。
+为了创建一个GitHub Token，用于发布Helm Chart，您需要执行以下步骤：
+
+1. 登录到您的GitHub帐户。
+
+2. 点击右上角的头像，然后从下拉菜单中选择`Settings`（设置）。
+
+3. 在左侧的导航菜单中，点击`Developer settings`（开发者设置）。
+
+4. 点击`Personal access tokens`（个人访问令牌）选项卡。
+
+5. 点击页面右上角的`Generate new token`（生成新令牌）按钮。
+
+6. 输入一个描述性的令牌名称，例如“Helm Chart Publishing”。
+
+7. 选择要授予此访问令牌的权限范围。对于Helm Chart发布，通常需要以下权限：
+
+   - `repo`（仓库）：允许对私有仓库和公共仓库的完全访问。
+   - `write:packages`：允许将容器镜像发布到GitHub Packages。
+   - `delete:packages`：允许删除GitHub Packages中的容器镜像（可选，取决于您是否需要删除功能）。
+
+   根据您的需求选择其他权限。
+
+8. 点击页面底部的`Generate token`（生成令牌）按钮。
+
+9. 成功创建令牌后，页面顶部会显示一个绿色的通知，其中包含新生成的访问令牌。请务必立即复制此令牌，因为您以后将无法再次查看它。如果您不小心关闭了页面，您需要生成一个新的访问令牌。
+
+现在您已经创建了一个GitHub个人访问令牌，可以在API调用、命令行工具或GitHub Actions工作流程中使用它进行身份验证。为了安全起见，请不要在公共场所共享您的个人访问令牌。
+
+（可选）接下来，您可以在GitHub仓库中创建一个Secret，用于存储您刚刚创建的访问令牌。这样，在GitHub Actions工作流程中，您可以通过`${{ secrets.YOUR_SECRET_NAME }}`引用这个Secret。
 
 
 
@@ -4662,9 +4690,511 @@ helm uninstall my-kubernetes-example -n example
 
 
 
+## 部署 ArgoCD
 
 
-# 高级发布策略
+创建命名空间
+```bash
+kubectl create namespace argocd
+```
+
+安装
+```bash
+kubectl apply -n argocd -f https://ghproxy.com/https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+```
+
+```bash
+root@node1:~/kubernetes-example# kubectl apply -n argocd -f https://ghproxy.com/https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+customresourcedefinition.apiextensions.k8s.io/applications.argoproj.io created
+customresourcedefinition.apiextensions.k8s.io/applicationsets.argoproj.io created
+customresourcedefinition.apiextensions.k8s.io/appprojects.argoproj.io created
+serviceaccount/argocd-application-controller created
+serviceaccount/argocd-applicationset-controller created
+serviceaccount/argocd-dex-server created
+serviceaccount/argocd-notifications-controller created
+serviceaccount/argocd-redis created
+serviceaccount/argocd-repo-server created
+serviceaccount/argocd-server created
+role.rbac.authorization.k8s.io/argocd-application-controller created
+role.rbac.authorization.k8s.io/argocd-applicationset-controller created
+role.rbac.authorization.k8s.io/argocd-dex-server created
+role.rbac.authorization.k8s.io/argocd-notifications-controller created
+role.rbac.authorization.k8s.io/argocd-server created
+clusterrole.rbac.authorization.k8s.io/argocd-application-controller created
+clusterrole.rbac.authorization.k8s.io/argocd-server created
+rolebinding.rbac.authorization.k8s.io/argocd-application-controller created
+rolebinding.rbac.authorization.k8s.io/argocd-applicationset-controller created
+rolebinding.rbac.authorization.k8s.io/argocd-dex-server created
+rolebinding.rbac.authorization.k8s.io/argocd-notifications-controller created
+rolebinding.rbac.authorization.k8s.io/argocd-redis created
+rolebinding.rbac.authorization.k8s.io/argocd-server created
+clusterrolebinding.rbac.authorization.k8s.io/argocd-application-controller created
+clusterrolebinding.rbac.authorization.k8s.io/argocd-server created
+configmap/argocd-cm created
+configmap/argocd-cmd-params-cm created
+configmap/argocd-gpg-keys-cm created
+configmap/argocd-notifications-cm created
+configmap/argocd-rbac-cm created
+configmap/argocd-ssh-known-hosts-cm created
+configmap/argocd-tls-certs-cm created
+secret/argocd-notifications-secret created
+secret/argocd-secret created
+service/argocd-applicationset-controller created
+service/argocd-dex-server created
+service/argocd-metrics created
+service/argocd-notifications-controller-metrics created
+service/argocd-redis created
+service/argocd-repo-server created
+service/argocd-server created
+service/argocd-server-metrics created
+deployment.apps/argocd-applicationset-controller created
+deployment.apps/argocd-dex-server created
+deployment.apps/argocd-notifications-controller created
+deployment.apps/argocd-redis created
+deployment.apps/argocd-repo-server created
+deployment.apps/argocd-server created
+statefulset.apps/argocd-application-controller created
+networkpolicy.networking.k8s.io/argocd-application-controller-network-policy created
+networkpolicy.networking.k8s.io/argocd-applicationset-controller-network-policy created
+networkpolicy.networking.k8s.io/argocd-dex-server-network-policy created
+networkpolicy.networking.k8s.io/argocd-notifications-controller-network-policy created
+networkpolicy.networking.k8s.io/argocd-redis-network-policy created
+networkpolicy.networking.k8s.io/argocd-repo-server-network-policy created
+networkpolicy.networking.k8s.io/argocd-server-network-policy created
+```
+
+检查安装情况
+```bash
+kubectl wait --for=condition=Ready pods --all -n argocd --timeout 300s
+```
+
+```bash
+root@node1:~/kubernetes-example# kubectl wait --for=condition=Ready pods --all -n argocd --timeout 300s
+pod/argocd-application-controller-0 condition met
+pod/argocd-applicationset-controller-69c4b965dc-mcgd9 condition met
+pod/argocd-dex-server-64d856b94c-8jntz condition met
+pod/argocd-notifications-controller-f7c967bc9-7nb8p condition met
+pod/argocd-redis-598f75bc69-7pg4j condition met
+pod/argocd-repo-server-df7f747b4-48cj7 condition met
+pod/argocd-server-59d9b8cb46-wns97 condition met
+```
+
+安装 argocd cli
+```bash
+curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64 
+sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd 
+rm argocd-linux-amd64
+```
+
+获取密码
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+```
+
+
+```
+amsgK3UobDG6VsVd
+```
+
+forward到8080端口 （建议再开一个session）
+```bash
+kubectl port-forward service/argocd-server 8080:80 -n argocd
+```
+
+创建 ingress manifest
+```bash
+nano argocd-ingress.yaml
+```
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server-ingress
+  namespace: argocd
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+spec:
+  rules:
+  - host: argocd.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service: 
+            name: argocd-server
+            port:
+              name: https
+  tls:
+  - hosts:
+    - argocd.example.com
+    secretName: argocd-secret # do not change, this is provided by Argo CD
+```
+
+```bash
+kubectl apply -f argocd-ingress.yaml
+```
+
+修改本地的host文件
+
+```txt
+192.168.1.231 argocd.example.com
+```
+
+访问 https://argocd.example.com/
+
+
+
+（可选）安装 cert-manager
+
+
+```bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+```
+
+```bash
+helm repo add jetstack https://charts.jetstack.io
+```
+
+```bash
+helm repo update
+```
+
+```bash
+helm install cert-manager jetstack/cert-manager \
+--namespace cert-manager \
+--create-namespace \
+--version v1.10.0 \
+--set ingressShim.defaultIssuerName=letsencrypt-prod \
+--set ingressShim.defaultIssuerKind=ClusterIssuer \
+--set ingressShim.defaultIssuerGroup=cert-manager.io \
+--set installCRDs=true
+```
+
+```bash
+nano cluster-issuer.yaml
+```
+
+
+```bash
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: "abraham.cheng@gmail.com"
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:    
+    - http01:
+        ingress:
+          class: nginx
+```
+
+```bash
+kubectl apply -f cluster-issuer.yaml
+```
+
+
+
+## 创建 ArgoCD 应用
+
+请确保删除之前的 example 项目
+
+```bash
+kubectl delete ns example
+```
+
+登录到ArgoCD
+
+```bash
+argocd login localhost:8080 --insecure
+```
+
+```bash
+root@node1:~# argocd login localhost:8080 --insecure
+Username: admin
+Password:
+'admin:login' logged in successfully
+Context 'localhost:8080' updated
+```
+
+```
+argocd repo add https://github.com/chengzh/kubernetes-example.git --username cloudzun --password $PASSWORD
+
+```
+
+```bash
+argocd app create example --sync-policy automated --repo https://github.com/cloudzun/kubernetes-example.git --revision main --path helm --dest-namespace gitops-example --dest-server https://kubernetes.default.svc --sync-option CreateNamespace=true
+```
+
+这条命令使用Argo CD在Kubernetes集群中创建和管理一个名为`example`的应用。以下是对命令各部分的详细解释：
+
+1. `argocd app create`: 这是Argo CD的命令，用于创建一个新的应用。
+2. `example`: 为创建的Argo CD应用分配一个名字。在这种情况下，应用的名称是`example`。
+3. `--sync-policy automated`: 设置同步策略为自动化，这意味着当Git仓库中的配置发生变化时，Argo CD会自动将这些更改应用到Kubernetes集群。
+4. `--repo https://github.com/cloudzun/kubernetes-example.git`: 指定应用的Git仓库URL。在这个例子中，Git仓库位于`https://github.com/cloudzun/kubernetes-example.git`。
+5. `--revision main`: 指定Git仓库的分支或修订版本。在这里，我们使用`main`分支。
+6. `--path helm`: 指定Git仓库中包含Kubernetes资源的路径。在这种情况下，路径是`helm`。
+7. `--dest-namespace gitops-example`: 指定Kubernetes命名空间，用于部署应用。在这种情况下，命名空间是`gitops-example`。
+8. `--dest-server https://kubernetes.default.svc`: 指定Kubernetes API服务器的URL，Argo CD将在该服务器上部署应用。在这里，我们使用Kubernetes集群的默认API服务器地址`https://kubernetes.default.svc`。
+9. `--sync-option CreateNamespace=true`: 设置同步选项，以在应用同步时自动创建目标命名空间（如果它不存在的话）。
+
+总之，这条命令使用Argo CD在指定的Kubernetes命名空间中创建一个名为`example`的应用，该应用从指定的Git仓库和分支中获取Kubernetes资源。同步策略设置为自动化，以便在Git仓库中的配置发生变化时自动应用这些更改。
+
+
+
+```bash
+root@node1:~# argocd app create example --sync-policy automated --repo https://github.com/cloudzun/kubernetes-example.git --revision main --path helm --dest-namespace gitops-example --dest-server https://kubernetes.default.svc --sync-option CreateNamespace=true
+application 'example' created
+```
+
+
+
+## 实现镜像版本变化触发的 GitOps 工作流
+
+### 安装和配置 ArgoCD Image Updater
+
+安装  ArgoCD Image Updater
+```bash
+kubectl apply -n argocd -f https://ghproxy.com/https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/stable/manifests/install.yaml
+```
+
+```bash
+root@node1:~# kubectl apply -n argocd -f https://ghproxy.com/https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/stable/manifests/install.yaml
+serviceaccount/argocd-image-updater created
+role.rbac.authorization.k8s.io/argocd-image-updater created
+rolebinding.rbac.authorization.k8s.io/argocd-image-updater created
+configmap/argocd-image-updater-config created
+configmap/argocd-image-updater-ssh-config created
+secret/argocd-image-updater-secret created
+deployment.apps/argocd-image-updater created
+```
+
+设置docker 仓库 secret （注意 docker-password 的时效）
+
+
+```bash
+kubectl create -n argocd secret docker-registry dockerhub-secret \
+  --docker-username chengzh \
+  --docker-password dckr_pat_UxCRddCJXMg9_HNyHA0gsE3BSZA \
+  --docker-server "https://registry-1.docker.io"
+```
+
+### 创建 Helm Chart 仓库
+
+创建一个新的 Git 仓库，将现有仓库的helm目录复制到新仓库
+
+```bash
+ $ cp -r ./kubernetes-example/helm ./kubernetes-example-helm
+```
+
+为 ArgoCD Image Updater 提供回写 kubernetes-example-helm 仓库的权限。要配置仓库访问权限，你可以使用 argocd repo add 命令
+
+```bash
+argocd repo add https://github.com/cloudzun/kubernetes-example-helm.git --username $USERNAME --password $PASSWORD
+```
+
+注意要将仓库地址修改为你新创建的用于存放 Helm Chart 的 GitHub 仓库地址，并将 `$USERNAME` 替换为 `GitHub 账户 ID`，将 `$PASSWORD` 替换为 `GitHub Personal Token`。你可以在这个页面创建 `GitHub Personal Token`，并赋予仓库相关权限。
+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
+
+```bash
+argocd repo add https://github.com/cloudzun/kubernetes-example-helm.git --username cloudzun --password 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
+```
+
+
+### 创建 ArgoCD 应用
+
+(可选)删除旧应用
+
+```bash
+argocd app delete example --cascade
+```
+
+接下来我们正式创建 ArgoCD 应用。在上一节课中，我们是使用 argocd app create 命令创建的 ArgoCD 应用 。实际上，它会创建一个特殊类型的资源，也就是 ArgoCD Application，它和 K8s 其他标准的资源对象一样，也是使用 YAML 来定义的。
+在这里，我们直接使用 YAML 来创建新的 Application，将下面的文件内容保存为 application.yaml。
+
+```bash
+nano application.yaml
+```
+
+
+```ymal
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: example
+  annotations:
+    argocd-image-updater.argoproj.io/backend.allow-tags: regexp:^main
+    argocd-image-updater.argoproj.io/backend.helm.image-name: backend.image
+    argocd-image-updater.argoproj.io/backend.helm.image-tag: backend.tag
+    argocd-image-updater.argoproj.io/backend.pull-secret: pullsecret:argocd/dockerhub-secret
+    argocd-image-updater.argoproj.io/frontend.allow-tags: regexp:^main
+    argocd-image-updater.argoproj.io/frontend.helm.image-name: frontend.image
+    argocd-image-updater.argoproj.io/frontend.helm.image-tag: frontend.tag
+    argocd-image-updater.argoproj.io/frontend.pull-secret: pullsecret:argocd/dockerhub-secret
+    argocd-image-updater.argoproj.io/image-list: frontend=chengzh/frontend, backend=chengzh/backend
+    argocd-image-updater.argoproj.io/update-strategy: latest
+    argocd-image-updater.argoproj.io/write-back-method: git
+spec:
+  destination:
+    namespace: gitops-example-updater
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    path: .
+    repoURL: https://github.com/cloudzun/kubernetes-example-helm.git
+    targetRevision: main
+  syncPolicy:
+    automated: {}
+    syncOptions:
+      - CreateNamespace=true
+```
+
+这个manifest文件定义了一个名为`example`的Argo CD Application，用于在Kubernetes集群中部署和管理一个基于Helm的应用。同时，这个manifest还包含了Argo CD Image Updater的一些配置，用于自动更新容器镜像。以下是对文件各部分的详细解释：
+
+1. `apiVersion` 和 `kind`: 这两个字段定义了Kubernetes资源的类型。在这个例子中，资源类型是`argoproj.io/v1alpha1`和`Application`，表示这是一个Argo CD的Application资源。
+2. `metadata`: 定义了关于Application的元数据，例如名称和注释。
+   - `name`: 定义了应用的名称，为`example`。
+   - `annotations`: 定义了Argo CD Image Updater的配置。这些配置允许自动更新容器镜像，同时指定了镜像名称、标签策略等信息。
+3. `spec`: 定义了应用的具体配置。
+   - `destination`: 定义了应用部署的目标Kubernetes集群和命名空间。
+     - `namespace`: 定义了部署应用的Kubernetes命名空间，为`gitops-example-updater`。
+     - `server`: 定义了Kubernetes API服务器的URL，为`https://kubernetes.default.svc`。
+   - `project`: 定义了Argo CD项目，为`default`。
+   - `source`: 定义了应用的源代码信息。
+     - `path`: 定义了包含Kubernetes资源的路径，在这个例子中为`.`，表示当前目录。
+     - `repoURL`: 定义了Git仓库的URL，为`https://github.com/cloudzun/kubernetes-example-helm.git`。
+     - `targetRevision`: 定义了Git仓库的分支或修订版本，为`main`。
+   - `syncPolicy`: 定义了应用的同步策略。
+     - `automated`: 指定了自动同步策略，表示当Git仓库中的配置发生变化时，Argo CD会自动将这些更改应用到Kubernetes集群。
+     - `syncOptions`: 定义了同步选项，例如在同步过程中自动创建命名空间。
+
+总之，这个manifest文件定义了一个名为`example`的Argo CD应用，用于在指定的Kubernetes命名空间中部署和管理一个基于Helm的应用。同时，它还包含了Argo CD Image Updater的配置，用于自动更新容器镜像。
+
+
+
+- `annotations` 部分包含了Argo CD Image Updater的配置。这些配置用于指定自动更新容器镜像的策略、参数和相关信息。以下是对这些注释的详细解释：
+
+  1. `argocd-image-updater.argoproj.io/backend.allow-tags` 和 `argocd-image-updater.argoproj.io/frontend.allow-tags`: 这两个注释分别针对后端（backend）和前端（frontend）镜像，指定了允许更新的镜像标签。这里使用正则表达式 `regexp:^main`，表示允许使用以 "main" 开头的标签。
+  2. `argocd-image-updater.argoproj.io/backend.helm.image-name` 和 `argocd-image-updater.argoproj.io/frontend.helm.image-name`: 这两个注释分别针对后端（backend）和前端（frontend）镜像，指定了在Helm chart中的镜像名称字段。这里的值是`backend.image`和`frontend.image`。
+  3. `argocd-image-updater.argoproj.io/backend.helm.image-tag` 和 `argocd-image-updater.argoproj.io/frontend.helm.image-tag`: 这两个注释分别针对后端（backend）和前端（frontend）镜像，指定了在Helm chart中的镜像标签字段。这里的值是`backend.tag`和`frontend.tag`。
+  4. `argocd-image-updater.argoproj.io/backend.pull-secret` 和 `argocd-image-updater.argoproj.io/frontend.pull-secret`: 这两个注释分别针对后端（backend）和前端（frontend）镜像，指定了用于拉取镜像的Secret。在这里，Secret名称是`dockerhub-secret`，位于`argocd`命名空间下。
+  5. `argocd-image-updater.argoproj.io/image-list`: 这个注释定义了应用中使用的镜像列表。这里列出了前端（frontend）和后端（backend）的镜像，分别对应`chengzh/frontend`和`chengzh/backend`。
+  6. `argocd-image-updater.argoproj.io/update-strategy`: 这个注释定义了镜像更新策略。这里的值是`latest`，表示使用最新的镜像标签进行更新。
+  7. `argocd-image-updater.argoproj.io/write-back-method`: 这个注释定义了更新后的配置写回方法。这里的值是`git`，表示将更新后的配置写回到Git仓库。
+
+  这些注释与Argo CD Image Updater相关，用于配置自动更新容器镜像的策略、参数和相关信息。这样，当有新版本的镜像可用时，Argo CD Image Updater可以自动更新部署在Kubernetes集群中的应用。
+
+然后，使用 kubectl apply 命令创建 ArgoCD Application，效果等同于使用 argocd app create 命令创建应用。
+```bash
+kubectl apply -n argocd -f application.yaml
+```
+
+
+### 触发 GitOps 工作流
+
+接下来，你可以尝试修改 frontend/src/App.js 文件，例如修改文件第 49 行的“Hi! I am abraham”内容。修改完成后，将代码推送到 GitHub 的 main 分支。此时会触发两个 GitHub Action 工作流。其中，当 build-every-branch 工作流被触发时，它将构建 Tag 为 main 开头的镜像版本，并将其推送到镜像仓库中，
+
+```bash
+#22 pushing manifest for docker.io/chengzh/backend:main-2fff0b2@sha256:20ae4681cebb5c3096a43f067f53e5255777b4de52d1b636a2143e8ed130845e
+
+[1034](https://github.com/cloudzun/kubernetes-example/actions/runs/4252208283/jobs/7395500319#step:8:1034)#22 pushing manifest for docker.io/chengzh/backend:main-2fff0b2@sha256:20ae4681cebb5c3096a43f067f53e5255777b4de52d1b636a2143e8ed130845e 0.9s done
+```
+
+注意以上日志的中的 `backend:main-2fff0b2`
+
+到docker hub上查看新上线的镜像 tag：
+![[Pasted image 20230223194606.png]]
+可以观察到 `main-2fff0b2`
+
+与此同时，ArgoCD Image Updater 将会每 2 分钟从镜像仓库检索 frontend 和 backend 的镜像版本，一旦发现有新的并且以 main 开头的镜像版本，它将自动使用新版本来更新集群内工作负载的镜像，并将镜像版本回写到 kubernetes-example-helm 仓库。在回写时，ArgoCD Image Updater 并不会直接修改仓库的 values.yaml 文件，而是会创建一个专门用于覆盖 Helm Chart values.yaml 的 .argocd-source-example.yaml 文件
+
+```yaml
+helm:
+  parameters:
+  - name: frontend.image
+    value: chengzh/frontend
+    forcestring: true
+  - name: frontend.tag
+    value: main-2fff0b2
+    forcestring: true
+  - name: backend.image
+    value: chengzh/backend
+    forcestring: true
+  - name: backend.tag
+    value: main-2fff0b2
+    forcestring: true
+```
+
+
+使用以下命令查看 deployment
+```bash
+kubectl get deployment -n gitops-example-updater  -o wide
+```
+
+```bash
+root@node1:~# kubectl get deployment -n gitops-example-updater  -o wide
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS       IMAGES                          SELECTOR
+backend    1/2     2            1           13m   flask-backend    chengzh/backend:main-2fff0b2    app=backend
+frontend   2/7     7            2           13m   react-frontend   chengzh/frontend:main-2fff0b2   app=frontend
+postgres   1/1     1            1           13m   postgres         postgres                        app=database
+
+```
+此处关注镜像：`chengzh/backend:main-2fff0b2`
+
+
+### Demo提示
+
+使用简化版的application manifest，只响应frontend的更新
+
+```bash
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: example
+  annotations:
+    argocd-image-updater.argoproj.io/frontend.allow-tags: regexp:^main
+    argocd-image-updater.argoproj.io/frontend.helm.image-name: frontend.image
+    argocd-image-updater.argoproj.io/frontend.helm.image-tag: frontend.tag
+    argocd-image-updater.argoproj.io/frontend.pull-secret: pullsecret:argocd/dockerhub-secret
+    argocd-image-updater.argoproj.io/image-list: frontend=chengzh/frontend
+    argocd-image-updater.argoproj.io/update-strategy: latest
+    argocd-image-updater.argoproj.io/write-back-method: git
+spec:
+  destination:
+    namespace: gitops-example-updater
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    path: .
+    repoURL: https://github.com/cloudzun/kubernetes-example-helm.git
+    targetRevision: main
+  syncPolicy:
+    automated: {}
+    syncOptions:
+      - CreateNamespace=true
+```
+
+- 
+  做演示之前记得删除`https://github.com/cloudzun/kubernetes-example-helm/` 中的 `.argocd-source-example.yaml`
+
+- 从触发action运行到新版本部署大概需要20多分钟，耐心是美德
+
+
+
+
+
+
+
+# 实现高级发布策略
 
 
 
