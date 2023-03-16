@@ -5115,7 +5115,7 @@ kubectl apply -n argocd -f application.yaml
 ![[Pasted image 20230223194606.png]]
 可以观察到 `main-2fff0b2`
 
-与此同时，ArgoCD Image Updater 将会每 2 分钟从镜像仓库检索 frontend 和 backend 的镜像版本，一旦发现有新的并且以 main 开头的镜像版本，它将自动使用新版本来更新集群内工作负载的镜像，并将镜像版本回写到 kubernetes-example-helm 仓库。在回写时，ArgoCD Image Updater 并不会直接修改仓库的 values.yaml 文件，而是会创建一个专门用于覆盖 Helm Chart values.yaml 的 .argocd-source-example.yaml 文件
+与此同时，ArgoCD Image Updater 将会每 2 分钟从镜像仓库检索 `frontend` 和 `backend` 的镜像版本，一旦发现有新的并且以 `main` 开头的镜像版本，它将自动使用新版本来更新集群内工作负载的镜像，并将镜像版本回写到 `kubernetes-example-helm` 仓库。在回写时，ArgoCD Image Updater 并不会直接修改仓库的 values.yaml 文件，而是会创建一个专门用于覆盖 Helm Chart values.yaml 的 `.argocd-source-example.yaml` 文件
 
 ```yaml
 helm:
@@ -5199,6 +5199,900 @@ spec:
 
 
 
+
+## 蓝绿发布
+
+
+
+### 手动蓝绿发布
+
+1. 创建蓝色环境的 Deployment 和 Service
+
+```bash
+nano blue_deployment.yaml
+```
+
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blue
+  labels:
+    app: blue
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: blue
+  template:
+    metadata:
+      labels:
+        app: blue
+    spec:
+      containers:
+      - name: demo
+        image: argoproj/rollouts-demo:blue
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blue-service
+  labels:
+    app: blue
+spec:
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  selector:
+    app: blue
+  type: ClusterIP
+```
+
+在上面这段 Manifest 中，我们使用了 `argoproj/rollouts-demo:blue` 镜像创建了蓝色环境的 Deployment 工作负载，并且创建了名为 `blue-service` 的 Service 对象，同时通过 Service 选择器将 Service 和 Pod 进行了关联。
+
+```bash
+kubectl apply -f blue_deployment.yaml 
+```
+
+检查部署效果
+
+```bash
+kubectl wait pods -l app=blue --for condition=Ready --timeout=90s
+```
+
+```bash
+root@node1:~# kubectl wait pods -l app=blue --for condition=Ready --timeout=90s
+pod/blue-659f669c78-fsfmd condition met
+pod/blue-659f669c78-qjsrf condition met
+pod/blue-659f669c78-scmm5 condition met
+```
+
+2. 创建 Ingress 策略，并指向蓝色环境的 Service
+
+```bash
+nano blue_ingress.yaml
+```
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-ingress
+spec:
+  rules:
+  - host: "bluegreen.demo"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: blue-service
+            port:
+              number: 80
+```
+
+```bash
+kubectl apply -f blue_ingress.yaml   
+```
+
+
+修改host文件，增加类似条目
+`127.0.0.1 bluegreen.demo`
+
+实际demo场景中为
+`192.168.1.231 bluegreen.demo`
+
+3. 访问蓝色环境
+http://bluegreen.demo
+
+![Pasted image 20230224073958](README.assets/Pasted image 20230224073958-1678944800844-2.png)
+
+在这个页面里，浏览器每秒钟会向后端发出 50 个请求，蓝色的方块代表后端返回接口的内容为 blue，对应 blue 版本的镜像，代表蓝色环境。
+
+4. 创建绿色环境的 Deployment 和 Service
+```bash
+nano green_deployment.yaml 
+```
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: green
+  labels:
+    app: green
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: green
+  template:
+    metadata:
+      labels:
+        app: green
+    spec:
+      containers:
+      - name: demo
+        image: argoproj/rollouts-demo:green
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: green-service
+  labels:
+    app: green
+spec:
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  selector:
+    app: green
+  type: ClusterIP
+```
+
+```bash
+kubectl apply -f green_deployment.yaml 
+```
+
+```bash
+kubectl wait pods -l app=green --for condition=Ready --timeout=90s
+```
+
+```bash
+root@node1:~# kubectl wait pods -l app=green --for condition=Ready --timeout=90s
+pod/green-79c9fb755d-8lrds condition met
+pod/green-79c9fb755d-bdm9m condition met
+pod/green-79c9fb755d-f8d6k condition met
+```
+
+5. 更新 Ingress 策略，并指向绿色环境
+
+```bash
+nano green_ingress.yaml
+```
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-ingress
+spec:
+  rules:
+  - host: "bluegreen.demo"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: green-service
+            port:
+              number: 80
+```
+
+
+```bash
+kubectl apply -f green_ingress.yaml
+```
+
+6. 访问绿色环境
+http://bluegreen.demo
+
+将会看到请求将逐渐从蓝色切换到绿色
+
+
+
+### 蓝绿发布自动化
+
+到这里，我们都是通过创建 Kubernetes 原生对象并修改 Ingress 策略的方式来完成蓝绿发布的。这存在一些缺点，首先，在更新过程中，我们一般只关注镜像版本的变化，而不会去操作 Ingress 策略；其次，这种方式不利于将蓝绿发布和 GitOps 流水线进行整合
+
+1. 安装 Argo Rollout
+
+Argo Rollout 是一款专门提供 Kubernetes 高级部署能力的自动化工具，它可以独立运行，同时也可以和 ArgoCD 协同在 GitOps 流水线中来使用。
+
+在使用之前，我们需要先安装它，你可以通过下面的命令进行安装。
+
+```bash
+kubectl create namespace argo-rollouts  
+kubectl apply -n argo-rollouts -f https://ghproxy.com/https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
+```
+
+安装完成后，等待 Argo Rollout 工作负载就绪。
+
+```bash
+kubectl wait --for=condition=Ready pods --all -n argo-rollouts --timeout=300s
+```
+
+```bash
+root@node1:~# kubectl create namespace argo-rollouts
+namespace/argo-rollouts created
+root@node1:~# kubectl apply -n argo-rollouts -f https://ghproxy.com/https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
+customresourcedefinition.apiextensions.k8s.io/analysisruns.argoproj.io created
+customresourcedefinition.apiextensions.k8s.io/analysistemplates.argoproj.io created
+customresourcedefinition.apiextensions.k8s.io/clusteranalysistemplates.argoproj.io created
+customresourcedefinition.apiextensions.k8s.io/experiments.argoproj.io created
+customresourcedefinition.apiextensions.k8s.io/rollouts.argoproj.io created
+serviceaccount/argo-rollouts created
+clusterrole.rbac.authorization.k8s.io/argo-rollouts created
+clusterrole.rbac.authorization.k8s.io/argo-rollouts-aggregate-to-admin created
+clusterrole.rbac.authorization.k8s.io/argo-rollouts-aggregate-to-edit created
+clusterrole.rbac.authorization.k8s.io/argo-rollouts-aggregate-to-view created
+clusterrolebinding.rbac.authorization.k8s.io/argo-rollouts created
+secret/argo-rollouts-notification-secret created
+service/argo-rollouts-metrics created
+deployment.apps/argo-rollouts created
+root@node1:~# kubectl wait --for=condition=Ready pods --all -n argo-rollouts --timeout=300s
+pod/argo-rollouts-58d887958b-rb6qb condition met
+
+```
+
+2. 创建 Rollout 对象
+
+和手动实施蓝绿发布的过程不同的是，为了实现自动化，Argo Rollout 采用了自定义资源（CRD）的方式来管理工作负载。
+
+```bash
+nano blue-green-rollout.yaml
+```
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: bluegreen-demo
+  labels:
+    app: bluegreen-demo
+spec:
+  replicas: 3
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: bluegreen-demo
+  template:
+    metadata:
+      labels:
+        app: bluegreen-demo
+    spec:
+      containers:
+      - name: bluegreen-demo
+        image: argoproj/rollouts-demo:blue
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        resources:
+          requests:
+            memory: 32Mi
+            cpu: 5m
+  strategy:
+    blueGreen:
+      autoPromotionEnabled: true
+      activeService: bluegreen-demo
+```
+
+如果你仔细观察，会发现在这个 Rollout 对象中，它大部分的字段定义和 Kubernetes 原生的 Deployment 工作负载并没有太大的区别，只是将 apiVersion 从 apps/v1 修改为了 argoproj.io/v1alpha1，同时将 kind 字段从 Deployment 修改为了 Rollout，并且增加了 strategy 字段。在容器配置方面，Rollout 对象同样也使用了 argoproj/rollouts-demo:blue 来创建蓝色环境。
+
+需要留意的是，strategy 字段是用来定义部署策略的。其中，autoPromotionEnabled 字段表示自动实施蓝绿发布，activeService 用来关联蓝绿发布的 Service，也就是我们在后续要创建的 Service 名称。
+
+总结来说，当我们将这段 Rollout 对象应用到集群内之后，Argo Rollout 首先会创建 Kubernetes 原生对象 ReplicaSet，然后，ReplicaSet 会创建对应的 Pod。
+
+
+在理解了它们的关系之后，接下来我们创建 Rollout 对象。和普通资源一样，你可以通过 kubectl apply 来创建。
+```bash
+kubectl apply -f blue-green-rollout.yaml
+```
+
+3. 创建 Service 和 Ingress
+
+创建好 Rollout 对象之后，我们还需要创建 Service 和 Ingress 策略，这和之前手动实施蓝绿发布的过程是一致的。
+
+创建服务
+
+```bash
+nano blue-green-service.yaml
+```
+
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: bluegreen-demo
+  labels:
+    app: bluegreen-demo
+spec:
+  ports:
+  - port: 80
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app: bluegreen-demo
+```
+
+```bash
+kubectl apply -f blue-green-service.yaml 
+```
+
+创建ingress
+```bash
+nano  blue-green-ingress.yaml 
+```
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bluegreen-demo
+spec:
+  rules:
+  - host: "bluegreen.auto"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: bluegreen-demo
+            port:
+              number: 80
+```
+
+```bash
+kubectl apply -f blue-green-ingress.yaml 
+```
+
+更新host记录
+
+`127.0.0.1 bluegreen.auto`
+
+演示环境中为
+
+`192.168.1.231 bluegreen.auto`
+
+4. 访问蓝色环境
+
+配置完 Hosts 之后，接下来我们就可以访问由 Argo Rollout 创建的蓝色环境了。使用浏览器访问 http://bluegreen.auto 你应该能看到和手动实施蓝绿发布一样的页面。
+
+
+5. 蓝绿发布自动化
+
+现在，假设我们需要更新到绿色环境，在 Argo Rollout 的帮助下，你只需要修改 Rollout 对象中的镜像版本就可以了，流量切换过程将由 Argo Rollout 自动控制。要更新到绿色环境，你需要编辑 blue-green-rollout.yaml 文件的 image 字段，将 blue 修改为 green 版本。
+
+```bash
+nano blue-green-rollout.yaml
+```
+
+```bash
+containers:
+- name: bluegreen-demo
+  image: argoproj/rollouts-demo:green #改为green
+```
+
+然后，使用 kubectl apply 将这段 Rollout 对象重新应用到集群内。
+
+```bash
+kubectl apply -f blue-green-rollout.yaml
+```
+
+现在，返回到浏览器，等待十几秒后，你应该就能看到请求里开始出现绿色环境了。
+
+几秒钟后，所有请求都变成了绿色方格，这表示蓝绿发布的自动化过程已经完成。相比较手动的方式，在使用 Argo Rollout 进行蓝绿发布的过程中，我们不再需要手动去切换流量，除了更新镜像版本以外，我们也无需关注其他的 Kubernetes 对象
+
+6. 访问 Argo Rollout Dashboard
+
+安装 
+```bash
+curl -LO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64
+chmod +x ./kubectl-argo-rollouts-linux-amd64
+sudo mv ./kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
+```
+
+查看版本
+
+```bash
+kubectl argo rollouts version
+```
+
+```bash
+root@node1:~# kubectl argo rollouts version
+kubectl-argo-rollouts: v1.4.0+e40c9fe
+  BuildDate: 2023-01-09T20:20:38Z
+  GitCommit: e40c9fe8a2f7fee9d8ee1c56b4c6c7b983fce135
+  GitTreeState: clean
+  GoVersion: go1.19.4
+  Compiler: gc
+  Platform: linux/amd64
+```
+
+```bash
+kubectl argo rollouts dashboard
+```
+
+然后，使用浏览器访问 `http://localhost:3100/rollouts` 打开 Dashboard，实验场景中是：http://192.168.1.231:3100/rollouts
+
+点击进入 Rollout 的详情界面，在这里，你能够以图形化的方式来查看 Rollout 的信息或进行回滚操作。
+
+
+
+
+
+## 金丝雀发布
+
+
+
+### 手动金丝雀发布
+
+1. 创建生产环境的 Deployment 和 Service
+
+```bash
+nano prod_deployment.yaml
+```
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prod
+  labels:
+    app: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prod
+  template:
+    metadata:
+      labels:
+        app: prod
+    spec:
+      containers:
+      - name: demo
+        image: argoproj/rollouts-demo:blue
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prod-service
+  labels:
+    app: prod
+spec:
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  selector:
+    app: prod
+  type: ClusterIP
+```
+
+```bash
+kubectl apply -f prod_deployment.yaml
+```
+
+
+2. 创建生产环境 Ingress 策略，并指向生产环境的 Service
+
+```bash
+nano blue_ingress_canary.yaml
+```
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prod-ingress
+spec:
+  rules:
+  - host: "canary.demo"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: prod-service
+            port:
+              number: 80
+```
+
+```bash
+kubectl apply -f blue_ingress_canary.yaml
+```
+
+更新host记录
+`127.0.0.1 canary.demo`
+
+demo环境为
+
+`192.168.1.231 canary.demo`
+
+3. 访问生产环境
+
+配置完 Hosts 之后，接下来我们就可以访问生产环境了。使用浏览器访问 http://canary.demo 你应该能看到像下面截图的页面。
+
+![Pasted image 20230224073958](README.assets/Pasted image 20230224073958.png)
+
+在这个页面里，浏览器每秒钟会向后端发出 50 个请求，蓝色的方块代表后端返回接口的内容为 blue，对应的是 argoproj/rollouts-demo:blue 版本的镜像，用来模拟生产环境。
+
+4. 创建金丝雀环境的 Deployment 和 Service
+
+```bash
+nano canary_deployment.yaml
+```
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: canary
+  labels:
+    app: canary
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: canary
+  template:
+    metadata:
+      labels:
+        app: canary
+    spec:
+      containers:
+      - name: demo
+        image: argoproj/rollouts-demo:green
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: canary-service
+  labels:
+    app: canary
+spec:
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  selector:
+    app: canary
+  type: ClusterIP
+```
+
+```bash
+kubectl apply -f canary_deployment.yaml
+```
+
+
+5. 创建金丝雀环境 Ingress 策略，并实现按比例分发和识别特殊流量分发
+
+
+```bash
+nano canary_ingress.yaml
+```
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: canary-ingress-canary
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-weight: "20"
+    nginx.ingress.kubernetes.io/canary-by-header: "X-Canary"
+spec:
+  rules:
+  - host: "canary.demo"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: canary-service
+            port:
+              number: 80
+```
+
+相比较生产环境的 Ingress 策略，这段金丝雀环境的 Ingress 策略在 metadata.annotations 字段上有明显的差异，下面我简单介绍一下。
+
+- nginx.ingress.kubernetes.io/canary 字段的值为 true，表示启用金丝雀发布策略。
+- nginx.ingress.kubernetes.io/canary-weight 字段的值为 20，表示将 20% 的流量转发到金丝雀环境当中，实际上这是负载均衡的加权轮询机制。
+- nginx.ingress.kubernetes.io/canary-by-header 字段的值为 X-Canary，代表当 Header 中包含 X-Canary 时，则无视流量比例规则，将请求直接转发到金丝雀环境中。
+
+所以，上面的 Ingress 策略实际上同时配置了基于请求流量比例以及请求头的金丝雀策略。
+
+```bash
+kubectl apply -f canary_ingress.yaml
+```
+
+6. 访问生产环境
+
+重新返回浏览器，你将会看到生产环境（蓝色方块）和金丝雀环境（绿色方块）的流量比例将按照配置的 4:1 来分布，如下图右下角所示。
+
+![[Pasted image 20230224100706.png]]
+
+现在，你只需要调整金丝雀环境的 Ingress 策略，分次提升 canary-weight 的值直到 100%，也就实现了一次完整的金丝雀发布过程。
+
+### 自动金丝雀发布
+
+上面提到手动金丝雀发布过程比较麻烦，我们除了需要手动创建生产和金丝雀两个环境以外，还需要手动配置 Ingress 策略，如果想要调整金丝雀环境的流量比例，那么就需要多次修改 Ingress 策略。这种发布方式效率很低，并且最后将金丝雀环境提升为生产环境时也需要手动处理。
+
+但是借助 Argo Rollout 的自动金丝雀发布功能，就能很好地解决这些问题。
+
+在使用 Argo Rollout 之前，你需要先在集群里安装它，并在本地安装好 Argo Rollout kubectl 插件。
+
+1.  创建 Rollout 对象
+
+
+```bash
+nano canary-rollout.yaml  
+```
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: canary-demo
+  labels:
+    app: canary-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: canary-demo
+  template:
+    metadata:
+      labels:
+        app: canary-demo
+    spec:
+      containers:
+      - name: canary-demo
+        image: argoproj/rollouts-demo:blue
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        resources:
+          requests:
+            memory: 32Mi
+            cpu: 5m
+  strategy:
+    canary:
+      canaryService: canary-demo-canary
+      stableService: canary-demo
+      canaryMetadata:
+        labels:
+          deployment: canary
+      stableMetadata:
+        labels:
+          deployment: stable
+      trafficRouting:
+        nginx:
+          stableIngress: canary-demo
+          additionalIngressAnnotations:
+            canary-by-header: X-Canary
+      steps:
+        - setWeight: 20
+        - pause: {}
+        - setWeight: 50
+        - pause:
+            duration: 30s
+        - setWeight: 70
+        - pause:
+            duration: 30s
+```
+
+```bash
+kubectl apply -f canary-rollout.yaml                        
+```
+
+在上面这段 Rollout 对象中，spec.template 字段和 Deployment 工作负载的字段定义是一致的，在这里，我们使用了 argoproj/rollouts-demo:blue 镜像来创建生产环境的工作负载，并定义了 strategy.canary 字段，它代表使用金丝雀发布的策略。其他的字段我也简单介绍一下。
+
+- canaryService 表示金丝雀 Service 的名称，我们会在稍后创建它。
+- stableService 表示生产环境 Service 的名称，同样也需要在稍后创建。
+- canaryMetadata 和 stableMetadata 字段表示在金丝雀发布时，会将额外的标签增加到 Pod 中，它可以区分不同环境的 Pod。
+- trafficRouting.nginx 字段表示使用 Ingress-Nginx 来管理流量，同时，trafficRouting.nginx.stableIngress 字段用来指定 Ingress 名称，这个 Ingress 需要我们提前创建。
+- trafficRouting.nginx.additionalIngressAnnotations 字段用来配置特定的金丝雀流量识别策略，这里的含义是当请求头出现 X-Canary 时，就将流量转发到金丝雀环境中。
+
+此外，还有一项重要的配置：canary.steps，它是用来描述如何进行自动化金丝雀发布。
+
+在这个例子中，自动化金丝雀的配置如下。
+
+1.  将金丝雀环境的流量比例配置为 20%。
+2.  暂停金丝雀发布，直到手动批准。
+3.  将金丝雀环境的流量比例配置为 50%，并持续 30 秒。
+4.  将金丝雀环境的流量比例配置为 70%，并持续 30 秒。
+5.  完成金丝雀发布，此时金丝雀环境成为新的生产环境，并接收所有的生产流量
+
+
+2.  创建 Service 和 Ingress 对象
+
+创建 service 
+
+```bash
+nano canary-demo-service.yaml
+```
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: canary-demo
+  labels: 
+    app: canary-demo
+spec:
+  ports:
+  - port: 80
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app: canary-demo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: canary-demo-canary
+  labels: 
+    app: canary-demo
+spec:
+  ports:
+  - port: 80
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app: canary-demo
+```
+
+```bash
+kubectl apply -f canary-demo-service.yaml
+```
+
+创建ingress
+
+```bash
+nano canary-demo-ingress.yaml
+```
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: canary-demo
+  labels:
+    app: canary-demo
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: canary.auto
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: canary-demo
+                port:
+                  name: http
+```
+
+```bash
+kubectl apply -f canary-demo-ingress.yaml
+```
+
+设置host 
+
+`127.0.0.1 canary.auto`
+
+demo 环境为
+
+`192.168.1.231 canary.auto`
+
+3.  访问生产环境
+
+配置好 Hosts 之后，就可以访问生产环境了。使用浏览器访问 http://canary.auto 你应该能看到和手动部署生产环境一样的界面，如下图所示。
+
+![[Pasted image 20230224102302.png]]
+
+4.  金丝雀发布自动化
+
+
+```bash
+nano canary-rollout.yaml
+```
+
+```yaml
+containers:
+- name: canary-demo
+  image: argoproj/rollouts-demo:green # 修改为green
+```
+
+```bash
+kubectl apply -f canary-rollout.yaml
+```
+
+现在，返回浏览器，等待十几秒后，你应该能看到代表金丝雀环境的绿色方块开始出现，并大致占到总请求数的 20%，如下图右下角所示。
+
+![[Pasted image 20230224102722.png]]
+
+同时，我们在 Rollout 对象中还配置了 canary-by-header 参数，所以当我们使用特定的 Header 请求时，流量将被转发到金丝雀环境中，你可以使用 curl 来验证。
+
+```bash
+for i in `seq 1 10`; do curl -H "X-Canary: always" http://canary.auto/color; done
+```
+
+```bash
+$ for i in `seq 1 10`; do curl -H "X-Canary: always" http://canary.auto/color; done
+"green""green""green""green""green""green""green""green""green""green"
+```
+
+5. 访问 Argo Rollout Dashboard
+
+要访问 Argo Rollout Dashboard，你需要先安装 Argo Rollout kubectl 插件，接下来，我们可以使用 kubectl argo rollouts dashboard 来启用 Dashboard
+
+```bash
+kubectl argo rollouts dashboard
+```
+
+然后，使用浏览器访问 http://localhost:3100/rollouts 打开 Dashboard。
+
+接下来，点击卡片进入 canary-demo 详情，在这里我们将看到金丝雀发布的完整步骤以及当前所处的阶段。
+
+![[Pasted image 20230224103323.png]]
+
+从上面的截图我们可以看出，金丝雀发布一共有 6 个阶段，当前处于第二个暂停阶段，这和我们在 Rollout 里的定义是一致的。
+
+接下来，我们通过手动批准的方式让金丝雀发布进入下一个步骤。你可以使用 kubectl argo rollouts promote 命令来让金丝雀发布继续运行。
+
+```bash
+kubectl argo rollouts promote canary-demo
+```
+
+之后，金丝雀发布将会按照我们预定的步骤运行。首先将金丝雀环境的流量比例设置为 50%，停留 30 秒，然后将金丝雀环境的流量比例设置为 70%，再停留 30 秒，最后将金丝雀环境提升为生产环境。当金丝雀发布完成之后，Argo Rollout 将同时自动对老的环境进行缩容操作，如下图所示。到这里，一次完整的自动化金丝雀发布就已经完成了。
+
+
+
+## 自动渐进交付
 
 
 
