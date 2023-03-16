@@ -5635,6 +5635,8 @@ kubectl-argo-rollouts: v1.4.0+e40c9fe
   Platform: linux/amd64
 ```
 
+再开一个session，运行下列命令
+
 ```bash
 kubectl argo rollouts dashboard
 ```
@@ -5830,11 +5832,30 @@ spec:
               number: 80
 ```
 
-相比较生产环境的 Ingress 策略，这段金丝雀环境的 Ingress 策略在 metadata.annotations 字段上有明显的差异，下面我简单介绍一下。
+   `apiVersion` 和 `kind`: 这两个字段定义了Kubernetes资源的类型。在这个例子中，资源类型是`networking.k8s.io/v1`和`Ingress`，表示这是一个Kubernetes Ingress资源。
+-   `metadata`: 包含了有关Ingress的元数据，如名称和注解。
+    -   `name`: 定义了Ingress的名称，为`canary-ingress-canary`。
+    -   `annotations`: 包含了与Ingress相关的注解信息。
+        -   `kubernetes.io/ingress.class`: 指定了Ingress控制器的类型，为`nginx`。
+        -   `nginx.ingress.kubernetes.io/canary`: 标识这是一个金丝雀Ingress，值为`"true"`。
+        -   `nginx.ingress.kubernetes.io/canary-weight`: 指定金丝雀部署流量的权重，为`"20"`，表示20%的流量将被路由到金丝雀服务。
+        -   `nginx.ingress.kubernetes.io/canary-by-header`: 指定通过HTTP头字段`X-Canary`来识别和路由金丝雀流量。
+-   `spec`: 包含了Ingress的详细配置。
+    -   `rules`: 定义了Ingress的转发规则。
+        -   `host`: 指定了访问该Ingress的域名，为`canary.demo`。
+        -   `http`: 定义了与HTTP相关的转发规则。
+            -   `paths`: 定义了基于URL路径的转发规则。
+                -   `pathType`: 定义了路径匹配的类型，为`Prefix`，表示使用前缀匹配。
+                -   `path`: 定义了路径前缀，为`/`。
+                -   `backend`: 定义了请求转发的目标服务。
+                    -   `service`: 定义了目标服务的相关配置。
+                        -   `name`: 目标服务的名称，为`canary-service`。
+                        -   `port`: 目标服务的端口配置。
+                            -   `number`: 目标服务的端口号，为80。
 
-- nginx.ingress.kubernetes.io/canary 字段的值为 true，表示启用金丝雀发布策略。
-- nginx.ingress.kubernetes.io/canary-weight 字段的值为 20，表示将 20% 的流量转发到金丝雀环境当中，实际上这是负载均衡的加权轮询机制。
-- nginx.ingress.kubernetes.io/canary-by-header 字段的值为 X-Canary，代表当 Header 中包含 X-Canary 时，则无视流量比例规则，将请求直接转发到金丝雀环境中。
+这个Ingress配置文件实现了将外部流量路由到`canary-service`服务的金丝雀部署。其中，20%的流量将被发送到金丝雀服务，而带有`X-Canary`头的请求也将被路由到金丝雀服务。
+
+
 
 所以，上面的 Ingress 策略实际上同时配置了基于请求流量比例以及请求头的金丝雀策略。
 
@@ -5846,7 +5867,7 @@ kubectl apply -f canary_ingress.yaml
 
 重新返回浏览器，你将会看到生产环境（蓝色方块）和金丝雀环境（绿色方块）的流量比例将按照配置的 4:1 来分布，如下图右下角所示。
 
-![[Pasted image 20230224100706.png]]
+![Pasted image 20230224100706](README.assets/Pasted image 20230224100706.png)
 
 现在，你只需要调整金丝雀环境的 Ingress 策略，分次提升 canary-weight 的值直到 100%，也就实现了一次完整的金丝雀发布过程。
 
@@ -5924,23 +5945,26 @@ spec:
 kubectl apply -f canary-rollout.yaml                        
 ```
 
-在上面这段 Rollout 对象中，spec.template 字段和 Deployment 工作负载的字段定义是一致的，在这里，我们使用了 argoproj/rollouts-demo:blue 镜像来创建生产环境的工作负载，并定义了 strategy.canary 字段，它代表使用金丝雀发布的策略。其他的字段我也简单介绍一下。
+`strategy` 部分定义了 Rollout 资源的升级策略。在这个例子中，我们使用了金丝雀（canary）策略。以下是 `strategy` 部分的详细解释：
 
-- canaryService 表示金丝雀 Service 的名称，我们会在稍后创建它。
-- stableService 表示生产环境 Service 的名称，同样也需要在稍后创建。
-- canaryMetadata 和 stableMetadata 字段表示在金丝雀发布时，会将额外的标签增加到 Pod 中，它可以区分不同环境的 Pod。
-- trafficRouting.nginx 字段表示使用 Ingress-Nginx 来管理流量，同时，trafficRouting.nginx.stableIngress 字段用来指定 Ingress 名称，这个 Ingress 需要我们提前创建。
-- trafficRouting.nginx.additionalIngressAnnotations 字段用来配置特定的金丝雀流量识别策略，这里的含义是当请求头出现 X-Canary 时，就将流量转发到金丝雀环境中。
+1. `canary`: 表示使用金丝雀策略进行部署。
+2. `canaryService`: 用于定义金丝雀服务的名称。金丝雀服务将处理金丝雀版本的流量。在这个例子中，金丝雀服务的名称是 `canary-demo-canary`。
+3. `stableService`: 用于定义稳定版本的服务名称。稳定服务将处理稳定版本的流量。在这个例子中，稳定服务的名称是 `canary-demo`。
+4. `canaryMetadata`: 包含要应用于金丝雀副本的元数据。在这个例子中，我们添加了一个名为 `deployment` 的标签，值为 `canary`。
+5. `stableMetadata`: 包含要应用于稳定副本的元数据。在这个例子中，我们添加了一个名为 `deployment` 的标签，值为 `stable`。
+6. `trafficRouting`: 定义了如何将流量路由到金丝雀和稳定版本之间的配置。
+   - `nginx`: 使用 Nginx Ingress 控制器作为流量路由器。
+     - `stableIngress`: 定义了指向稳定版本的 Nginx Ingress 资源的名称。在这个例子中，稳定 Ingress 的名称是 `canary-demo`。
+     - `additionalIngressAnnotations`: 定义了额外的 Ingress 注解。在这个例子中，我们指定了金丝雀流量应通过带有 `X-Canary` HTTP 头的请求触发。
+7. `steps`: 定义了金丝雀部署的步骤。在这个例子中，我们有以下步骤：
+   - `setWeight: 20`: 将金丝雀版本的流量权重设置为 20%。
+   - `pause: {}`: 暂停金丝雀部署进程，直到用户手动恢复或满足某些条件。
+   - `setWeight: 50`: 将金丝雀版本的流量权重设置为 50%。
+   - `pause: { duration: 30s }`: 暂停金丝雀部署进程 30 秒。
+   - `setWeight: 70`: 将金丝雀版本的流量权重设置为 70%。
+   - `pause: { duration: 30s }`: 再次暂停金丝雀部署进程 30 秒。
 
-此外，还有一项重要的配置：canary.steps，它是用来描述如何进行自动化金丝雀发布。
 
-在这个例子中，自动化金丝雀的配置如下。
-
-1.  将金丝雀环境的流量比例配置为 20%。
-2.  暂停金丝雀发布，直到手动批准。
-3.  将金丝雀环境的流量比例配置为 50%，并持续 30 秒。
-4.  将金丝雀环境的流量比例配置为 70%，并持续 30 秒。
-5.  完成金丝雀发布，此时金丝雀环境成为新的生产环境，并接收所有的生产流量
 
 
 2.  创建 Service 和 Ingress 对象
@@ -6030,9 +6054,9 @@ demo 环境为
 
 3.  访问生产环境
 
-配置好 Hosts 之后，就可以访问生产环境了。使用浏览器访问 http://canary.auto 你应该能看到和手动部署生产环境一样的界面，如下图所示。
+配置好 Hosts 之后，就可以访问生产环境了。使用浏览器访问 http://canary.auto 你应该能看到和手动部署生产环境一样的界面，全部是蓝色方块
 
-![[Pasted image 20230224102302.png]]
+
 
 4.  金丝雀发布自动化
 
@@ -6053,7 +6077,7 @@ kubectl apply -f canary-rollout.yaml
 
 现在，返回浏览器，等待十几秒后，你应该能看到代表金丝雀环境的绿色方块开始出现，并大致占到总请求数的 20%，如下图右下角所示。
 
-![[Pasted image 20230224102722.png]]
+![Pasted image 20230224100706](README.assets/Pasted image 20230224100706-1678947896355-5.png)
 
 同时，我们在 Rollout 对象中还配置了 canary-by-header 参数，所以当我们使用特定的 Header 请求时，流量将被转发到金丝雀环境中，你可以使用 curl 来验证。
 
@@ -6068,7 +6092,7 @@ $ for i in `seq 1 10`; do curl -H "X-Canary: always" http://canary.auto/color; d
 
 5. 访问 Argo Rollout Dashboard
 
-要访问 Argo Rollout Dashboard，你需要先安装 Argo Rollout kubectl 插件，接下来，我们可以使用 kubectl argo rollouts dashboard 来启用 Dashboard
+要访问 Argo Rollout Dashboard，你需要先安装 Argo Rollout kubectl 插件，接下来启用 Dashboard
 
 ```bash
 kubectl argo rollouts dashboard
@@ -6078,7 +6102,7 @@ kubectl argo rollouts dashboard
 
 接下来，点击卡片进入 canary-demo 详情，在这里我们将看到金丝雀发布的完整步骤以及当前所处的阶段。
 
-![[Pasted image 20230224103323.png]]
+![Pasted image 20230224103323](README.assets/Pasted image 20230224103323.png)
 
 从上面的截图我们可以看出，金丝雀发布一共有 6 个阶段，当前处于第二个暂停阶段，这和我们在 Rollout 里的定义是一致的。
 
@@ -6088,11 +6112,420 @@ kubectl argo rollouts dashboard
 kubectl argo rollouts promote canary-demo
 ```
 
+```bash
+root@node1:~# kubectl argo rollouts promote canary-demo
+rollout 'canary-demo' promoted
+```
+
 之后，金丝雀发布将会按照我们预定的步骤运行。首先将金丝雀环境的流量比例设置为 50%，停留 30 秒，然后将金丝雀环境的流量比例设置为 70%，再停留 30 秒，最后将金丝雀环境提升为生产环境。当金丝雀发布完成之后，Argo Rollout 将同时自动对老的环境进行缩容操作，如下图所示。到这里，一次完整的自动化金丝雀发布就已经完成了。
+
+![Pasted image 20230224103308](README.assets/Pasted image 20230224103308.png)
 
 
 
 ## 自动渐进交付
+
+
+
+### 创建生产环境
+
+创建Rollout对象
+
+```bash
+nano rollout-with-analysis.yaml
+```
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: canary-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: canary-demo
+  strategy:
+    canary:
+      analysis:
+        templates:
+        - templateName: success-rate
+        startingStep: 2
+        args:
+        - name: ingress
+          value: canary-demo
+      canaryService: canary-demo-canary
+      stableService: canary-demo
+      trafficRouting:
+        nginx:
+          stableIngress: canary-demo
+      steps:
+      - setWeight: 20
+      - pause:
+          duration: 1m
+      - setWeight: 40
+      - pause:
+          duration: 1m
+      - setWeight: 60
+      - pause:
+          duration: 1m
+      - setWeight: 80
+      - pause:
+          duration: 1m
+  template:
+    metadata:
+      labels:
+        app: canary-demo
+    spec:
+      containers:
+      - image: argoproj/rollouts-demo:blue
+        imagePullPolicy: IfNotPresent
+        name: canary-demo
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 5m
+            memory: 32Mi
+```
+
+这个配置文件定义了一个使用金丝雀部署策略的`Rollout`资源。在`strategy`部分，我们可以看到以下设置：
+
+1. `canary`：表示要使用金丝雀部署策略。
+2. `analysis`：此部分定义了在金丝雀部署过程中要执行的分析模板和参数。这个例子中使用了名为`success-rate`的模板，并在第2步开始应用分析。`args`部分传递了参数`ingress`，其值为`canary-demo`。
+3. `canaryService`：用于金丝雀版本的Kubernetes服务。
+4. `stableService`：用于稳定版本的Kubernetes服务。
+5. `trafficRouting`：配置流量路由。在这个例子中，使用了NGINX ingress来路由流量。
+6. `steps`：定义了金丝雀部署过程中的逐步权重调整和暂停。根据这些步骤，金丝雀版本将逐渐接收更多的流量，从20%开始，每次增加20%，直到达到80%。在每次权重调整后，暂停1分钟以观察金丝雀版本的性能。
+
+这个`Rollout`资源将按照指定的金丝雀部署策略和权重调整步骤逐渐将流量切换到新版本。在流量切换的过程中，根据分析模板`success-rate`对应用程序进行评估，以确保新版本在实际环境中的表现达到预期。
+
+```bash
+kubectl apply -f rollout-with-analysis.yaml
+```
+
+
+创建 service (复用上个模块的服务)
+
+```bash
+nano canary-demo-service.yaml
+```
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: canary-demo
+  labels: 
+    app: canary-demo
+spec:
+  ports:
+  - port: 80
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app: canary-demo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: canary-demo-canary
+  labels: 
+    app: canary-demo
+spec:
+  ports:
+  - port: 80
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app: canary-demo
+```
+
+```bash
+kubectl apply -f canary-demo-service.yaml
+```
+
+
+创建 ingress
+
+```bash
+nano canary-progressive-ingress.yaml
+```
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: canary-demo
+  labels:
+    app: canary-demo
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: progressive.auto
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: canary-demo
+                port:
+                  name: http
+```
+
+```bash
+kubectl apply -f canary-progressive-ingress.yaml
+```
+
+
+
+### 创建用于自动金丝雀分析的 AnalysisTemplate 模板
+
+
+```bash
+nano analysis-success.yaml
+```
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: success-rate
+spec:
+  args:
+  - name: ingress
+  metrics:
+  - name: success-rate
+    interval: 10s
+    failureLimit: 3
+    successCondition: result[0] > 0.90
+    provider:
+      prometheus:
+        address: http://prometheus-kube-prometheus-prometheus.prometheus:9090
+        query: >+
+          sum(
+            rate(nginx_ingress_controller_requests{ingress="{{args.ingress}}",status!~"[4-5].*"}[60s]))
+            /
+            sum(rate(nginx_ingress_controller_requests{ingress="{{args.ingress}}"}[60s])
+          )
+```
+
+这个配置文件定义了一个名为`success-rate`的`AnalysisTemplate`资源。`AnalysisTemplate`用于定义度量指标、查询和条件，以在Argo Rollouts的金丝雀部署过程中评估应用程序的表现。以下是关于这个配置文件的详细解释：
+
+1.  `metadata`部分中的`name`设置了`AnalysisTemplate`的名称为`success-rate`。
+2.  `spec`部分定义了模板的具体参数和度量指标。
+3.  `args`：定义了模板需要的输入参数。在这个例子中，只有一个参数`ingress`。
+4.  `metrics`：定义了度量指标的集合。在这个例子中，只有一个度量指标`success-rate`。
+    -   `interval`：度量指标的采集间隔，此例中设置为10秒。
+    -   `failureLimit`：在分析过程中允许的失败次数，此例中设置为3次。
+    -   `successCondition`：成功条件，此例中设置为`result[0] > 0.90`，表示只有当成功率大于90%时，应用程序才被认为是成功的。
+    -   `provider`：定义了度量指标数据来源。此例中使用Prometheus作为度量指标的提供者。
+        -   `address`：Prometheus实例的地址。
+        -   `query`：Prometheus查询表达式，用于计算应用程序的成功率。这个查询计算了过去60秒内非4xx和5xx状态码的请求占总请求的比例。
+
+这个`AnalysisTemplate`资源定义了一个成功率度量指标，用于在Argo Rollouts的金丝雀部署过程中评估应用程序的性能。根据这个模板的配置，只有当应用程序的成功率高于90%时，部署才会继续进行。如果在分析过程中出现3次失败，金丝雀部署将被视为失败，回滚到之前的稳定版本。
+
+```bash
+kubectl apply -f analysis-success.yaml
+```
+
+配置 hosts
+
+`127.0.0.1 progressive.auto`
+
+Demo 环境的配置
+
+`192.168.1.231 progressive.auto`
+
+接下来，使用浏览器访问 http://progressive.auto 你应该能看全蓝色块界面。
+
+
+
+### 安装 Prometheus 并配置 Ingress-Nginx
+
+安装 Prometheus
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm upgrade prometheus prometheus-community/kube-prometheus-stack \
+--namespace prometheus  --create-namespace --install \
+--set prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues=false \
+--set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false
+```
+
+在上面的安装命令中，我使用 --set 对安装参数进行了配置，这是为了让它后续能够顺利获取到 Ingress-Nginx 的监控指标。
+
+```bash
+kubectl wait --for=condition=Ready pods --all -n prometheus
+```
+
+配置 ingress-nginx
+
+为了让 Prometheus 能够顺利地获取到 HTTP 请求指标，我们需要打开 Ingress-Nginx Metric 指标端口。
+
+首先需要为 Ingress-Nginx Deployment 添加容器的指标端口，你可以执行下面的命令来完成。
+
+```bash
+kubectl patch deployment ingress-nginx-controller -n ingress-nginx --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/ports/-", "value": {"name": "prometheus","containerPort":10254}}]'
+```
+
+```bash
+kubectl patch service ingress-nginx-controller -n ingress-nginx --type='json' -p='[{"op": "add", "path": "/spec/ports/-", "value": {"name": "prometheus","port":10254,"targetPort":"prometheus"}}]'
+```
+
+```bash
+root@node1:~# kubectl patch deployment ingress-nginx-controller -n ingress-nginx --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/ports/-", "value": {"name": "prometheus","containerPort":10254}}]'
+deployment.apps/ingress-nginx-controller patched
+root@node1:~# kubectl patch service ingress-nginx-controller -n ingress-nginx --type='json' -p='[{"op": "add", "path": "/spec/ports/-", "value": {"name": "prometheus","port":10254,"targetPort":"prometheus"}}]'
+service/ingress-nginx-controller patched
+```
+
+
+
+配置 ServiceMonitor 对象
+
+为了让 Prometheus 能够抓取到 Ingress-Nginx 指标，我们还需要创建 ServiceMonitor 对象，它可以为 Prometheus 配置指标获取的策略。将下面的内容保存为 servicemonitor.yaml 文件。
+
+```bash
+nano servicemonitor.yaml
+```
+
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nginx-ingress-controller-metrics
+  namespace: prometheus
+  labels:
+    app: nginx-ingress
+    release: prometheus-operator
+spec:
+  endpoints:
+  - interval: 10s
+    port: prometheus
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/name: ingress-nginx
+  namespaceSelector:
+    matchNames:
+    - ingress-nginx
+```
+
+```bash
+kubectl apply -f servicemonitor.yaml
+```
+
+验证 ingress-nginx 指标
+
+接下来，我们验证 Prometheus 是否已经成功获取到了 Ingress-Nginx 指标，这将决定自动金丝雀分析是否能成功获取到数据。
+
+我们可以进入 Prometheus 控制台验证是否成功获取了 Ingress-Nginx 指标。
+
+```bash
+nano prometheus-ui.yaml
+```
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prometheus-ui
+  namespace: prometheus
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+  # Use the host you used in your kubernetes Ingress Configurations
+  - host: prometheus.demo
+    http:
+      paths:
+      - backend:
+          service:
+            name: prometheus-kube-prometheus-prometheus
+            port:
+              number: 9090
+        path: /
+        pathType: Prefix
+```
+
+```bash
+kubectl apply -f prometheus-ui.yaml
+```
+
+
+接下来，使用浏览器打开 http://prometheus.demo 进入控制台，在搜索框中输入 nginx_ingress，如果出现一系列指标，则说明 Prometheus 和 Ingress-Nginx 已经配置完成，如下图所示。
+
+![Pasted image 20230224174548](README.assets/Pasted image 20230224174548.png)
+
+
+
+### 自动渐进式交付成功
+
+我们使用另一种更新镜像的方法，通过 Argo Rollout kubectl 插件来更新镜像
+
+```bash
+kubectl argo rollouts set image canary-demo canary-demo=argoproj/rollouts-demo:green
+```
+
+注意：由于受上一个实验的影响，此处也可以手动在rollouts控制界面里手动选择使用blue镜像
+
+使用浏览器访问 http://localhost:3100/rollouts 进入控制台，观察自动渐进式交付过程。可以看到目前处在 20% 金丝雀流量的下一阶段，也就是暂停1 分钟的阶段。
+
+![Pasted image 20230224153817](README.assets/Pasted image 20230224153817.png)
+
+1分钟后，将进入到 40% 金丝雀流量阶段，从这个阶段开始，自动金丝雀分析开始工作，直到最后金丝雀发布完成，金丝雀环境提升为了生产环境，这时自动分析也完成了，如下图所示。
+
+![Pasted image 20230224153830](README.assets/Pasted image 20230224153830.png)
+
+到这里，一次完整的自动渐进式交付就完成了。
+
+
+
+### 自动渐进式交付失败
+
+在上面的实验中，由于应用返回的 HTTP 状态码都是 200 ，所以金丝雀分析自然是会成功的。
+
+接下来，我们来尝试进行自动渐进式交付失败的实验。
+
+经过了自动渐进式交付成功的实验之后，当前生产环境中的镜像为 argoproj/rollouts-demo:green，我们继续使用 Argo Rollout kubectl 插件来更新镜像，并将镜像版本修改为 yellow 版本。
+
+```bash
+kubectl argo rollouts set image canary-demo canary-demo=argoproj/rollouts-demo:yellow
+```
+
+
+接下来，重新返回 http://progressive.auto 打开应用，等待一段时间后，你会看到请求开始出现黄色方块，如下图所示。
+
+![Pasted image 20230224174638](README.assets/Pasted image 20230224174638.png)
+
+接下来，我们让应用返回错误的 HTTP 状态码。你可以滑动界面上的 ERROR 滑动块，将错误率设置为 50%，如下图所示。
+
+![Pasted image 20230224174655](README.assets/Pasted image 20230224174655.png)
+
+现在，你会在黄色方块中看到带有红色描边的方块，这代表本次请求返回的 HTTP 状态码不等于 200，说明我们成功控制了一部分请求返回错误。
+
+2 分钟后，金丝雀发布会进入到 40% 流量的阶段，此时自动分析将开始进行。现在，我们进入 Argo Rollout 控制台。
+
+使用浏览器打开 http://localhost:3100/rollouts 进入发布详情，等待一段时间后，金丝雀分析将失败，如下图所示。
+
+![Pasted image 20230224174801](README.assets/Pasted image 20230224174801.png)
+
+此时，Argo Rollout 将执行自动回滚操作，这时候重新返回 http://progressive.auto 打开应用，你会看到黄色方块的流量消失，所有请求被绿色方块取代，说明已经完成回滚了，如下图所示。
+
+![Pasted image 20230224174818](README.assets/Pasted image 20230224174818.png)
+
+到这里，一次完整的渐进式交付失败实验就成功了。
+
+
+
+
 
 
 
