@@ -4782,18 +4782,12 @@ pod/argocd-server-59d9b8cb46-wns97 condition met
 安装 argocd cli
 ```bash
 curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64 
+```
+
+```bash
 sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd 
 rm argocd-linux-amd64
-```
 
-获取密码
-```bash
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
-```
-
-
-```
-amsgK3UobDG6VsVd
 ```
 
 forward到8080端口 （建议再开一个session）
@@ -4840,13 +4834,26 @@ spec:
 kubectl apply -f argocd-ingress.yaml
 ```
 
+获取 ArgoCD Admin 初始密码
+
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+```
+
+
+```
+amsgK3UobDG6VsVd
+```
+
+
+
 修改本地的host文件
 
 ```txt
 192.168.1.231 argocd.example.com
 ```
 
-访问 https://argocd.example.com/
+访问 https://argocd.example.com/ 建议修改密码
 
 
 
@@ -4926,6 +4933,8 @@ Password:
 Context 'localhost:8080' updated
 ```
 
+可选此处的$PASSWORD 为此前定义的 github tocken
+
 ```
 argocd repo add https://github.com/chengzh/kubernetes-example.git --username cloudzun --password $PASSWORD
 
@@ -4950,11 +4959,6 @@ argocd app create example --sync-policy automated --repo https://github.com/clou
 总之，这条命令使用Argo CD在指定的Kubernetes命名空间中创建一个名为`example`的应用，该应用从指定的Git仓库和分支中获取Kubernetes资源。同步策略设置为自动化，以便在Git仓库中的配置发生变化时自动应用这些更改。
 
 
-
-```bash
-root@node1:~# argocd app create example --sync-policy automated --repo https://github.com/cloudzun/kubernetes-example.git --revision main --path helm --dest-namespace gitops-example --dest-server https://kubernetes.default.svc --sync-option CreateNamespace=true
-application 'example' created
-```
 
 
 
