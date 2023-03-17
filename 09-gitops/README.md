@@ -290,14 +290,7 @@ Step 7/7 : CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0"]
 Removing intermediate container 9d963abc96ec
  ---> 56f87d5a4218
 Successfully built 56f87d5a4218
-Successfully tagged hello-world-flask:latest```
-
-
-```bash
-root@node1:~/lab# docker images
-REPOSITORY                                                                    TAG               IMAGE ID       CREATED         SIZE
-hello-world-flask                                                             latest            58ae2a9411fc   4 minutes ago   161MB
-
+Successfully tagged hello-world-flask:latest
 ```
 
 查看映像
@@ -397,7 +390,6 @@ e85196541518: Mounted from library/python
 748ccc4fc823: Mounted from library/python 
 60333954a7a8: Mounted from library/python 
 latest: digest: sha256:6cd2283913db39d4d45620d073443c4c3a2cc91b25118f4236f205556bc84044 size: 2414
-
 ```
 
 
@@ -463,6 +455,8 @@ root@12dbcd7f0621:/app# ls
 Dockerfile  __pycache__  app.py  requirements.txt
 root@12dbcd7f0621:/app# 
 ```
+
+
 
 
 
@@ -629,8 +623,6 @@ COPY src ./src
 CMD ["./mvnw", "spring-boot:run"]
 ```
 
-
-
 这是一个 Dockerfile，用于构建一个基于 Maven 构建的 Java Web 应用的容器镜像。以下是对每条指令的解释：
 
 1. `FROM eclipse-temurin:17-jdk-jammy`：从官方的 Eclipse Temurin 镜像中拉取一个标记为 17-jdk-jammy 的版本。
@@ -647,20 +639,14 @@ CMD ["./mvnw", "spring-boot:run"]
 
 7. `CMD ["./mvnw", "spring-boot:run"]`：设置容器启动时执行的默认命令，即使用 Maven 启动 Spring Boot 应用。
 
-
-
 ```bash
 docker build -t spring-boot . -f Dockerfile-Boot
 ```
 
 
-
-
 ```bash
 docker run --publish 8080:8080 spring-boot
 ```
-
-
 
 
 ```bash
@@ -669,13 +655,9 @@ Hello World!root@node1:~#
 ```
 
 
-
-
 ```bash
 docker images
 ```
-
-
 
 ```bash
 root@node1:~/gitops/docker/13/spring-boot# docker images
@@ -715,6 +697,8 @@ func main() {
         e.Logger.Fatal(e.Start(":8080"))
 }
 ```
+
+这是一个简单的 Golang 程序，它使用 Echo 框架创建了一个 HTTP 服务器。服务器会监听 8080 端口，并为 "/hello" 路径提供一个响应。
 
 ```bash
 nano Dockerfile
@@ -769,8 +753,6 @@ CMD ["/opt/app/example"]
 
 12. `CMD ["/opt/app/example"]`：设置容器启动时执行的默认命令，即运行 /opt/app/example 可执行文件。
 
-
-
 ```bash
 docker build -t golang .
 ```
@@ -820,6 +802,8 @@ app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
 })
 ```
+
+这个 Node.js 程序使用 Express 框架创建了一个简单的 HTTP 服务器，监听 3000 端口，并为 "/hello" 路径提供一个响应。
 
 
 ```bash
@@ -993,8 +977,6 @@ CMD ["nginx", "-g", "daemon off;"]
 
 ```
 
-
-
 这是一个 Dockerfile，用于构建一个 web 应用的容器镜像。以下是对每条指令的解释：
 
 1. `FROM node:lts-alpine as build-stage`：从官方的 Node.js 镜像中拉取一个标记为 lts-alpine 的版本，并将其命名为 build-stage。
@@ -1114,6 +1096,12 @@ func indexHandler(c *gin.Context) {
     c.JSON(http.StatusOK, osinfo)
 }
 ```
+
+这是使用 Go 语言和 Gin 框架创建的 HTTP 服务器，它会在根路径 "/" 处接收 GET 请求并调用名为 indexHandler 的函数进行处理。
+
+indexHandler 函数使用 runtime 包来获取当前操作系统的信息，并将其存储在一个 map[string]string 变量 osinfo 中。然后使用 gin.Context 结构体的 JSON 方法将 osinfo 变量编码成 JSON 格式并作为 HTTP 响应返回给客户端。
+
+最后，该服务器会在本地主机的 8080 端口上运行，等待请求的到来
 
 ```bash
 nano Dockerfile
@@ -2009,8 +1997,6 @@ docker images
 docker history golang:7
 ```
 
-
-
 ```bash
 root@node1:~/gitops/docker/13/golang# docker images
 REPOSITORY   TAG           IMAGE ID       CREATED              SIZE
@@ -2040,6 +2026,8 @@ abf475bd2ed2   15 seconds ago   /bin/sh -c #(nop) COPY file:2bd00ab8d3308a9a… 
 b2aa39c304c2   4 weeks ago      /bin/sh -c #(nop)  CMD ["/bin/sh"]              0B        
 <missing>      4 weeks ago      /bin/sh -c #(nop) ADD file:40887ab7c06977737…   7.05MB  
 ```
+
+
 
 
 
