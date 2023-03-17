@@ -1,2404 +1,468 @@
 
 
-# Kubernetes 应用平台解析
-
-
-
-
-
-## 部署Kind群集
-
-
-
-### 安装 docker
-
-安装 docker, (1.23 还能支持 docker 作为容器运行时, 考虑到 docker 可以兼容更多的实验场景, 所以此例中保留使用 docker)
-
-```bash
-apt -y install apt-transport-https ca-certificates curl software-properties-common
-```
-
-
-
-```bash
-curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | sudo apt-key add -
-sudo add-apt-repository "deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable"
-```
-
-
-
-```bash
-apt update -y 
-apt install docker-ce -y 
-```
-
-
-
-可选, 国际互联网直达安装方式
-
-```bash
-# curl -sSL https://get.docker.com/ | sh
-# usermod -aG docker chengzh
-```
-
-
-
-```bash
-mkdir /etc/docker
-```
-
-
-
-```bash
-cat > /etc/docker/daemon.json << EOF
-{
-    "exec-opts": ["native.cgroupdriver=systemd"],
-    "log-driver": "json-file",
-    "log-opts": {
-        "max-size": "100m",
-        "max-file": "10"
-    },
-    "registry-mirrors": ["https://pqbap4ya.mirror.aliyuncs.com"]
-}
-EOF
-```
-
-
-
-```bash
-systemctl restart docker
-systemctl enable docker
-```
-
-
-
-### 安装 kubelet
-
-```
-apt-get update && apt-get install -y apt-transport-https
-```
-
-
-
-```bash
-root@node1:~# apt-get update && apt-get install -y apt-transport-https
-Hit:1 http://repo.huaweicloud.com/ubuntu focal InRelease
-Hit:2 http://repo.huaweicloud.com/ubuntu focal-updates InRelease
-Hit:3 http://repo.huaweicloud.com/ubuntu focal-backports InRelease
-Hit:4 http://repo.huaweicloud.com/ubuntu focal-security InRelease
-Hit:5 https://mirrors.aliyun.com/docker-ce/linux/ubuntu focal InRelease
-Hit:6 https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial InRelease
-Reading package lists... Done
-Reading package lists... Done
-Building dependency tree
-Reading state information... Done
-apt-transport-https is already the newest version (2.0.9).
-0 upgraded, 0 newly installed, 0 to remove and 171 not upgraded.
-```
-
-
-
-```bash
-curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add - 
-```
-
-
-
-```bash
-root@node1:~# curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add -
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100  2426  100  2426    0     0  20913      0 --:--:-- --:--:-- --:--:-- 20913
-OK
-```
-
-
-
-```bash
-cat > /etc/apt/sources.list.d/kubernetes.list << EOF 
-deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main
-EOF
-```
-
-
-
-```bash
-apt update -y 
-```
-
-
-
-```bash
-root@node1:~# cat > /etc/apt/sources.list.d/kubernetes.list << EOF
-> deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main
-> EOF
-root@node1:~# apt update -y
-Hit:1 http://repo.huaweicloud.com/ubuntu focal InRelease
-Hit:2 http://repo.huaweicloud.com/ubuntu focal-updates InRelease
-Hit:3 http://repo.huaweicloud.com/ubuntu focal-backports InRelease
-Hit:4 http://repo.huaweicloud.com/ubuntu focal-security InRelease
-Hit:5 https://mirrors.aliyun.com/docker-ce/linux/ubuntu focal InRelease
-Hit:6 https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial InRelease
-Reading package lists... Done
-Building dependency tree
-Reading state information... Done
-171 packages can be upgraded. Run 'apt list --upgradable' to see them.
-```
-
-
-
-```bash
-apt-cache madison kubelet
-```
-
-
-
-```bash
-root@node1:~# apt-cache madison kubelet
-   kubelet |  1.26.0-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.25.5-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.25.4-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.25.3-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.25.2-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.25.1-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.25.0-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.24.9-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.24.8-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.24.7-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.24.6-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.24.5-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.24.4-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.24.3-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.24.2-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.24.1-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.24.0-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet | 1.23.15-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet | 1.23.14-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet | 1.23.13-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet | 1.23.12-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet | 1.23.11-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet | 1.23.10-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.23.9-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.23.8-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.23.7-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.23.6-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.23.5-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.23.4-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.23.3-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.23.2-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.23.1-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet |  1.23.0-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-   kubelet | 1.22.17-00 | https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial/main amd64 Packages
-```
-
-
-
-安装 `1.23.00` 
-
-```bash
-apt install -y kubelet=1.23.0-00 kubeadm=1.23.0-00  kubectl=1.23.0-00
-```
-
-
-
-可选:安装当前最新版本 
-
-```text
-apt install -y kubelet kubeadm kubectl
-```
-
-
-
-### 安装 Kind 
-
-官方方式
-```bash
-curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.17.0/kind-linux-amd64
-chmod +x ./kind
-sudo mv ./kind /usr/local/bin/kind
-```
-
-
-加速方式
-```bash
-curl -Lo ./kind https://chengzhstor.blob.core.windows.net/k8slab/kind-linux-amd64
-chmod +x ./kind
-sudo mv ./kind /usr/local/bin/kind
-```
-
-
-
-### 创建实验用群集（单节点）
-
-创建群集配置文件
-```bash
-nano  config.yaml
-```
-
-
-```yaml
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-networking:
-  apiServerAddress: "192.168.1.231" # 使用虚机的IP，其他场景则设置为 127.0.0.1
-  apiServerPort: 6443
-nodes:
-- role: control-plane
-  kubeadmConfigPatches:
-  - |
-    kind: InitConfiguration
-    nodeRegistration:
-      kubeletExtraArgs:
-        node-labels: "ingress-ready=true"
-  extraPortMappings:
-  - containerPort: 80
-    hostPort: 80
-    protocol: TCP
-  - containerPort: 443
-    hostPort: 443
-    protocol: TCP
-```
-
-
-创建群集
-```bash
-kind create cluster --config config.yaml
-```
-
-```bash
-root@node1:~# kind create cluster --config config.yaml
-Creating cluster "kind" ...
- ✓ Ensuring node image (kindest/node:v1.25.3) 🖼
- ✓ Preparing nodes 📦
- ✓ Writing configuration 📜
- ✓ Starting control-plane 🕹️
- ✓ Installing CNI 🔌
- ✓ Installing StorageClass 💾
-Set kubectl context to "kind-kind"
-You can now use your cluster with:
-
-kubectl cluster-info --context kind-kind
-
-Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
-root@node1:~# kubectl cluster-info --context kind-kind
-Kubernetes control plane is running at https://192.168.1.231:6443
-CoreDNS is running at https://192.168.1.231:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
-
-To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
-```
-
-查看群集节点
-```bash
-kubectl get node -o wide
-```
-
-```bash
-root@node1:~# kubectl get node -o wide
-NAME                 STATUS   ROLES           AGE     VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
-kind-control-plane   Ready    control-plane   3m32s   v1.25.3   172.18.0.2    <none>        Ubuntu 22.04.1 LTS   5.4.0-107-generic   containerd://1.6.9
-```
-
-
-查看目前的pod
-```bash
-kubectl get pod -o wide -A
-```
-
-```bash
-root@node1:~# kubectl get pod -o wide -A
-NAMESPACE            NAME                                         READY   STATUS    RESTARTS   AGE   IP           NODE                 NOMINATED NODE   READINESS GATES
-kube-system          coredns-565d847f94-7j587                     1/1     Running   0          24s   10.244.0.4   kind-control-plane   <none>           <none>
-kube-system          coredns-565d847f94-gqpnw                     1/1     Running   0          24s   10.244.0.3   kind-control-plane   <none>           <none>
-kube-system          etcd-kind-control-plane                      1/1     Running   0          38s   172.18.0.2   kind-control-plane   <none>           <none>
-kube-system          kindnet-2tpcs                                1/1     Running   0          24s   172.18.0.2   kind-control-plane   <none>           <none>
-kube-system          kube-apiserver-kind-control-plane            1/1     Running   0          39s   172.18.0.2   kind-control-plane   <none>           <none>
-kube-system          kube-controller-manager-kind-control-plane   1/1     Running   0          37s   172.18.0.2   kind-control-plane   <none>           <none>
-kube-system          kube-proxy-76lx7                             1/1     Running   0          24s   172.18.0.2   kind-control-plane   <none>           <none>
-kube-system          kube-scheduler-kind-control-plane            1/1     Running   0          37s   172.18.0.2   kind-control-plane   <none>           <none>
-local-path-storage   local-path-provisioner-684f458cdd-2jfl4      1/1     Running   0          24s   10.244.0.2   kind-control-plane   <none>           <none>
-
-```
-
-
-
-### 安装基础群集服务
-
-安装ingress
-```bash
-kubectl create -f https://ghproxy.com/https://raw.githubusercontent.com/cloudzun/resource/main/ingress-nginx/ingress-nginx.yaml
-```
-
-安装metrics
-```bash
-kubectl apply -f https://ghproxy.com/https://raw.githubusercontent.com/cloudzun/resource/main/metrics/metrics.yaml
-```
-
-安装 helm
-```bash
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-```
-
-(可选)打印kubeconfig文件
-```bash
-cat $HOME/.kube/config
-```
-
-(可选) 安装 Prometheus
-```bash
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm upgrade prometheus prometheus-community/kube-prometheus-stack \
---namespace prometheus  --create-namespace --install \
---set prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues=false \
---set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false
-```
-
-
-
-### 部署实例应用
-
-创建 example 命名空间
-```bash
-kubectl create namespace example
-```
-
-创建数据库
-```bash
-kubectl apply -f https://ghproxy.com/https://raw.githubusercontent.com/cloudzun/kubernetes-example/main/deploy/database.yaml -n example
-```
-
-创建后端服务
-```bash
-kubectl apply -f https://ghproxy.com/https://raw.githubusercontent.com/cloudzun/kubernetes-example/main/deploy/backend.yaml -n example
-```
-
-创建前端服务
-```bash
-kubectl apply -f https://ghproxy.com/https://raw.githubusercontent.com/cloudzun/kubernetes-example/main/deploy/frontend.yaml -n example
-```
-
-创建 ingress
-```bash
-kubectl apply -f https://ghproxy.com/https://raw.githubusercontent.com/cloudzun/kubernetes-example/main/deploy/ingress.yaml -n example
-```
-
-创建HPA策略
-```bash
-kubectl apply -f https://ghproxy.com/https://raw.githubusercontent.com/cloudzun/kubernetes-example/main/deploy/hpa.yaml -n example
-```
-
-(可选) 批量创建所有资源
-```bash
-git clone https://ghproxy.com/https://github.com/cloudzun/kubernetes-example && cd kubernetes-example
-
-kubectl apply -f deploy -n example
-```
-
-检查pod是否部署到位
-```bash
-kubectl wait --for=condition=Ready pods --all -n example
-```
-
-```bash
-root@node1:~# kubectl wait --for=condition=Ready pods --all -n example
-pod/backend-6b55f869fd-5mnxq condition met
-pod/frontend-6b5b58d5f8-97cmm condition met
-pod/postgres-fbd8f9f49-n89tl condition met
-```
-
-检查 example 命名空间所有的资源对象是否正常
-```bash
-kubectl get all -n example
-```
-
-```bash
-root@node1:~# kubectl get all -n example
-NAME                            READY   STATUS    RESTARTS        AGE
-pod/backend-6b55f869fd-5mnxq    1/1     Running   0               12m
-pod/backend-6b55f869fd-xfsdr    1/1     Running   0               44s
-pod/frontend-6b5b58d5f8-97cmm   1/1     Running   3 (9m53s ago)   12m
-pod/frontend-6b5b58d5f8-zszmq   1/1     Running   0               44s
-pod/postgres-fbd8f9f49-n89tl    1/1     Running   0               13m
-
-NAME                       TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
-service/backend-service    ClusterIP   10.96.194.109   <none>        5000/TCP   12m
-service/frontend-service   ClusterIP   10.96.95.46     <none>        3000/TCP   12m
-service/pg-service         ClusterIP   10.96.66.228    <none>        5432/TCP   13m
-
-NAME                       READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/backend    2/2     2            2           12m
-deployment.apps/frontend   2/2     2            2           12m
-deployment.apps/postgres   1/1     1            1           13m
-
-NAME                                  DESIRED   CURRENT   READY   AGE
-replicaset.apps/backend-6b55f869fd    2         2         2       12m
-replicaset.apps/frontend-6b5b58d5f8   2         2         2       12m
-replicaset.apps/postgres-fbd8f9f49    1         1         1       13m
-
-NAME                                           REFERENCE             TARGETS           MINPODS   MAXPODS   REPLICAS   AGE
-horizontalpodautoscaler.autoscaling/backend    Deployment/backend    26%/50%, 0%/50%   2         10        2          60s
-horizontalpodautoscaler.autoscaling/frontend   Deployment/frontend   0%/80%            2         2         2          60s
-```
-
-
-
-
-
-## 如何使用命名空间
-
-
-
-创建命名空间
-```bash
-kubectl create namespace example
-```
-
-查看命名空间
-```bash
-kubectl get ns
-```
-
-查看命名空间属性
-```bash
-kubectl describe namespace example
-```
-
-将资源部署到命名空间（示意）
-
-```bash
-kubectl apply -f deploy.yaml -n example
-```
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: frontend
-  namespace: example   # 设置 namesapce
-  labels:
-    app: frontend
-spec:
-  ......
-```
-
-查看命名空间下的资源
-
-```bash
-kubectl get all -n example
-```
-
-删除命名空间
-```bash
-kubectl delete ns example
-```
-
-
-
-## 使用工作负载
-
-
-
-### 使用 deployment 维护服务数量
-
-
-
-使用以下命令生成deployment的原始配置
-
-```bash
-kubectl create deployment webserver --image=nginx --dry-run=client -o yaml 
-```
-
-
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  creationTimestamp: null # 删掉
-  labels:
-    app: webserver
-  name: webserver
-spec:
-  replicas: 1 # 定义副本数量
-  selector: # 通过lable定义所管理的pod
-    matchLabels:
-      app: webserver
-  strategy: {} # 定义滚动升级的策略
-  template: # 此处以下替换成pod yaml文件，注意缩进
-    metadata:
-      creationTimestamp: null
-      labels:
-        app: webserver # 使用相同的lable和deployment保持对仗工整
-    spec:
-      containers:
-      - image: nginx
-        name: nginx
-        resources: {}
-status: {} #删掉
-```
-
-
-
-将之前的pod的最简版本的 yaml 文件整合（copy）进来，注意缩进以及 Pod 的 `label` 和depolyment的 `lable` 保持一致（）
-
-
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  labels:
-    app: webserver
-  name: webserver
-spec:
-  replicas: 1 # 定义副本数量
-  selector: # 通过lable定义所管理的pod
-    matchLabels:
-      app: webserver
-  strategy: {} # 定义滚动升级的策略
-  template: # 此处以下替换成pod yaml文件，注意缩进
-    metadata:
-      creationTimestamp: null
-      labels:
-        app: webserver # 使用相同的lable和deployment保持对仗工整
-    spec:
-      containers:
-      - image: nginx:1.7.9
-        name: nginx
-        resources: {}
-```
-
-
-
-使用示例文件创建yaml文件
-
-```bash
-nano deployment.yaml
-```
-
-
-
-创建deployment
-
-```bash
-kubectl apply -f deployment.yaml
-```
-
-
-
-查看deployment列表
-
-```bash
-kubectl get deployment -o wide
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl get deployment -o wide
-NAME        READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES        SELECTOR
-webserver   1/1     1            1           33s   nginx        nginx:1.7.9   app=webserver
-```
-
-
-
-查看 deployment 细节
-
-```bash
-kubectl describe deployment webserver
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl describe deployment webserver
-Name:                   webserver
-Namespace:              default
-CreationTimestamp:      Wed, 21 Dec 2022 14:26:32 +0800
-Labels:                 app=webserver
-Annotations:            deployment.kubernetes.io/revision: 1
-Selector:               app=webserver
-Replicas:               1 desired | 1 updated | 1 total | 1 available | 0 unavailable
-StrategyType:           RollingUpdate
-MinReadySeconds:        0
-RollingUpdateStrategy:  25% max unavailable, 25% max surge
-Pod Template:
-  Labels:  app=webserver
-  Containers:
-   nginx:
-    Image:        nginx:1.7.9
-    Port:         <none>
-    Host Port:    <none>
-    Environment:  <none>
-    Mounts:       <none>
-  Volumes:        <none>
-Conditions:
-  Type           Status  Reason
-  ----           ------  ------
-  Available      True    MinimumReplicasAvailable
-  Progressing    True    NewReplicaSetAvailable
-OldReplicaSets:  <none>
-NewReplicaSet:   webserver-6b7c64974d (1/1 replicas created)
-Events:
-  Type    Reason             Age   From                   Message
-  ----    ------             ----  ----                   -------
-  Normal  ScalingReplicaSet  58s   deployment-controller  Scaled up replica set webserver-6b7c64974d to 1
-```
-
-
-
-```bash
-kubectl get deployment -o yaml
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl get deployment -o yaml
-apiVersion: v1
-items:
-- apiVersion: apps/v1
-  kind: Deployment
-  metadata:
-    annotations:
-      deployment.kubernetes.io/revision: "1"
-      kubectl.kubernetes.io/last-applied-configuration: |
-        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app":"webserver"},"name":"webserver","namespace":"default"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"webserver"}},"strategy":{},"template":{"metadata":{"creationTimestamp":null,"labels":{"app":"webserver"}},"spec":{"containers":[{"image":"nginx:1.7.9","name":"nginx","resources":{}}]}}}}
-    creationTimestamp: "2022-12-21T06:26:32Z"
-    generation: 1
-    labels:
-      app: webserver
-    name: webserver
-    namespace: default
-    resourceVersion: "29339"
-    uid: 6034b236-d394-47d9-922a-53f0fa459552
-  spec:
-    progressDeadlineSeconds: 600
-    replicas: 1
-    revisionHistoryLimit: 10
-    selector:
-      matchLabels:
-        app: webserver
-    strategy:
-      rollingUpdate:
-        maxSurge: 25%
-        maxUnavailable: 25%
-      type: RollingUpdate
-    template:
-      metadata:
-        creationTimestamp: null
-        labels:
-          app: webserver
-      spec:
-        containers:
-        - image: nginx:1.7.9
-          imagePullPolicy: IfNotPresent
-          name: nginx
-          resources: {}
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-        schedulerName: default-scheduler
-        securityContext: {}
-        terminationGracePeriodSeconds: 30
-  status:
-    availableReplicas: 1
-    conditions:
-    - lastTransitionTime: "2022-12-21T06:26:56Z"
-      lastUpdateTime: "2022-12-21T06:26:56Z"
-      message: Deployment has minimum availability.
-      reason: MinimumReplicasAvailable
-      status: "True"
-      type: Available
-    - lastTransitionTime: "2022-12-21T06:26:32Z"
-      lastUpdateTime: "2022-12-21T06:26:56Z"
-      message: ReplicaSet "webserver-6b7c64974d" has successfully progressed.
-      reason: NewReplicaSetAvailable
-      status: "True"
-      type: Progressing
-    observedGeneration: 1
-    readyReplicas: 1
-    replicas: 1
-    updatedReplicas: 1
-kind: List
-metadata:
-  resourceVersion: ""
-  selfLink: ""
-```
-
-
-
-查看pod
-
-```bash
-kubectl get pod -o wide
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl get pod -o wide
-NAME                         READY   STATUS    RESTARTS   AGE     IP              NODE    NOMINATED NODE   READINESS GATES
-nginx                        1/1     Running   0          4h57m   10.244.135.3    node3   <none>           <none>
-webserver-6b7c64974d-4qrtz   1/1     Running   0          2m29s   10.244.104.20   node2   <none>           <none>
-```
-
-注意新建 pod 的名称
-
-
-
-删除某个pod
-
-```bash
-kubectl delete pod webserver-6b7c64974d-4qrtz
-```
-
-
-
-观测pod重建过程
-
-```text
-kubectl get pod -o wide
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl delete pod webserver-6b7c64974d-4qrtz
-pod "webserver-6b7c64974d-4qrtz" deleted
-root@node1:~/k8slab/deployment# kubectl get pod -o wide
-NAME                         READY   STATUS    RESTARTS   AGE     IP              NODE    NOMINATED NODE   READINESS GATES
-nginx                        1/1     Running   0          4h58m   10.244.135.3    node3   <none>           <none>
-webserver-6b7c64974d-77g4f   1/1     Running   0          10s     10.244.104.21   node2   <none>           <none>
-```
-
-
-
-编辑deployment，将副本数调整成5个
-
-```bash
-KUBE_EDITOR="nano" kubectl edit deployment webserver
-```
-
-
-
-```yaml
-spec:
-  progressDeadlineSeconds: 600
-  replicas: 5 # 调整此处的副本数量
-  revisionHistoryLimit: 10
-  selector:
-    matchLabels:
-      app: webserver
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
-    type: RollingUpdate
-```
-
-
-
-观测pod横向扩展过程
-
-```text
-kubectl get pod 
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl get pod -o wide
-NAME                         READY   STATUS              RESTARTS   AGE     IP              NODE    NOMINATED NODE   READINESS GATES
-nginx                        1/1     Running             0          5h1m    10.244.135.3    node3   <none>           <none>
-webserver-6b7c64974d-2t575   1/1     Running             0          9s      10.244.104.23   node2   <none>           <none>
-webserver-6b7c64974d-77g4f   1/1     Running             0          2m27s   10.244.104.21   node2   <none>           <none>
-webserver-6b7c64974d-cn9cc   0/1     ContainerCreating   0          9s      <none>          node3   <none>           <none>
-webserver-6b7c64974d-cxd82   0/1     ContainerCreating   0          9s      <none>          node3   <none>           <none>
-webserver-6b7c64974d-wwn2j   1/1     Running             0          9s      10.244.104.22   node2   <none>           <none>
-root@node1:~/k8slab/deployment# kubectl get pod
-NAME                         READY   STATUS    RESTARTS   AGE
-nginx                        1/1     Running   0          5h1m
-webserver-6b7c64974d-2t575   1/1     Running   0          41s
-webserver-6b7c64974d-77g4f   1/1     Running   0          2m59s
-webserver-6b7c64974d-cn9cc   1/1     Running   0          41s
-webserver-6b7c64974d-cxd82   1/1     Running   0          41s
-webserver-6b7c64974d-wwn2j   1/1     Running   0          41s
-```
-
-
-
-使用命令进行收缩
-
-```bash
-kubectl scale deployment webserver --replicas=3
-```
-
-
-
-观测pod横向扩展过程
-
-```bash
-kubectl get pod -o wide -w 
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl scale deployment webserver --replicas=3
-deployment.apps/webserver scaled
-root@node1:~/k8slab/deployment# kubectl get pod
-NAME                         READY   STATUS    RESTARTS   AGE
-nginx                        1/1     Running   0          5h2m
-webserver-6b7c64974d-77g4f   1/1     Running   0          4m6s
-webserver-6b7c64974d-cn9cc   1/1     Running   0          108s
-webserver-6b7c64974d-cxd82   1/1     Running   0          108s
-```
-
-
-
-查看 deployment 伸缩历史
-
-```bash
-kubectl describe deployment webserver
-```
-
-
-
-```bash
-Events:
-  Type    Reason             Age    From                   Message
-  ----    ------             ----   ----                   -------
-  Normal  ScalingReplicaSet  8m34s  deployment-controller  Scaled up replica set webserver-6b7c64974d to 1
-  Normal  ScalingReplicaSet  2m49s  deployment-controller  Scaled up replica set webserver-6b7c64974d to 5
-  Normal  ScalingReplicaSet  64s    deployment-controller  Scaled down replica set webserver-6b7c64974d to 3
-```
-
-
-
-删除deployment
-
-```bash
-kubectl delete -f deployment.yaml 
-```
-
-
-
-###   使用 deployment 实现滚动更新
-
-
-
-使用示例文件创建yaml文件
-
-```bash
-nano webserver-strategy.yaml
-```
-
-
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  labels:
-    app: webserver-strategy
-  name: webserver-strategy
-spec:
-  replicas: 6
-  selector:
-    matchLabels:
-      app: webserver-strategy
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:  # 滚动更新策略
-      maxUnavailable: 2 # 先下线两个
-      maxSurge: 0
-  template:
-    metadata:
-      name: webserver
-      namespace: default
-      labels:
-        app: webserver-strategy
-    spec:
-      containers:
-      - image: nginx:1.7.9
-        name: nginx
-        resources: {}
-```
-
-
-
-创建 deployment
-
-```bash
-kubectl apply -f webserver-strategy.yaml 
-```
-
-
-
-查看 deployment 列表,关注 pod 节点数映像版本信息
-
-```bash
-kubectl get deployment -o wide
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl get deployment -o wide
-NAME                 READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES        SELECTOR
-webserver-strategy   6/6     6            6           28s   nginx        nginx:1.7.9   app=webserver-strategy
-```
-
-
-
-查看 deployment 细节，确定目前的 deployment 的滚动更新策略：`RollingUpdateStrategy`
-
-```bash
-kubectl describe deployment webserver-strategy
-```
-
-
-
-```bash
-RollingUpdateStrategy:  2 max unavailable, 0 max surge
-Pod Template:
-  Labels:  app=webserver-strategy
-  Containers:
-   nginx:
-    Image:        nginx:1.7.9
-    Port:         <none>
-    Host Port:    <none>
-    Environment:  <none>
-    Mounts:       <none>
-  Volumes:        <none>
-```
-
-
-
-修改deployment配置，将映像版本提升到1.8
-
-```bash
-kubectl set image deployment webserver-strategy nginx=nginx:1.8
-```
-
-
-
-观察pod滚动升级过程
-
-```text
-kubectl get pod -o wide -w 
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl get pod -o wide -w
-NAME                                  READY   STATUS              RESTARTS   AGE     IP              NODE    NOMINATED NODE   READINESS GATES
-nginx                                 1/1     Running             0          5h19m   10.244.135.3    node3   <none>           <none>
-webserver-strategy-568bc9cf6b-rt4qg   1/1     Terminating         0          80s     10.244.135.22   node3   <none>           <none>
-webserver-strategy-568bc9cf6b-zplmv   1/1     Terminating         0          76s     10.244.104.41   node2   <none>           <none>
-webserver-strategy-5c5fcb9b54-2jl95   1/1     Running             0          4s      10.244.135.26   node3   <none>           <none>
-webserver-strategy-5c5fcb9b54-46xxv   0/1     ContainerCreating   0          2s      <none>          node2   <none>           <none>
-webserver-strategy-5c5fcb9b54-4djbg   0/1     ContainerCreating   0          1s      <none>          node3   <none>           <none>
-webserver-strategy-5c5fcb9b54-4hdz8   1/1     Running             0          8s      10.244.135.25   node3   <none>           <none>
-webserver-strategy-5c5fcb9b54-b4ptl   1/1     Running             0          5s      10.244.104.43   node2   <none>           <none>
-webserver-strategy-5c5fcb9b54-ftqnf   1/1     Running             0          8s      10.244.104.42   node2   <none>           <none>
-webserver-strategy-5c5fcb9b54-4djbg   0/1     ContainerCreating   0          2s      <none>          node3   <none>           <none>
-webserver-strategy-568bc9cf6b-rt4qg   0/1     Terminating         0          81s     10.244.135.22   node3   <none>           <none>
-webserver-strategy-568bc9cf6b-rt4qg   0/1     Terminating         0          81s     10.244.135.22   node3   <none>           <none>
-webserver-strategy-568bc9cf6b-rt4qg   0/1     Terminating         0          81s     10.244.135.22   node3   <none>           <none>
-webserver-strategy-568bc9cf6b-zplmv   0/1     Terminating         0          77s     <none>          node2   <none>           <none>
-webserver-strategy-568bc9cf6b-zplmv   0/1     Terminating         0          77s     <none>          node2   <none>           <none>
-webserver-strategy-568bc9cf6b-zplmv   0/1     Terminating         0          77s     <none>          node2   <none>           <none>
-webserver-strategy-5c5fcb9b54-46xxv   1/1     Running             0          3s      10.244.104.44   node2   <none>           <none>
-webserver-strategy-5c5fcb9b54-4djbg   1/1     Running             0          3s      10.244.135.27   node3   <none>           <none>
-
-```
-
-
-
-借助 lens 进行观察
-
-![image-20221221150836318](README.assets/image-20221221150836318-1678758869076-7.png)
-
-
-
-查看deployment列表,重点关注映像版本信息
-
-```bash
-kubectl get deployment -o wide
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl get deployment -o wide
-NAME                 READY   UP-TO-DATE   AVAILABLE   AGE    CONTAINERS   IMAGES      SELECTOR
-webserver-strategy   6/6     6            6           5m7s   nginx        nginx:1.8   app=webserver-strategy
-```
-
-
-
-修改deployment滚动升级配置，配置为以下设置
-
-```yaml
-nano webserver-strategy.yaml
-      maxSurge: 2 #先上线两个
-      maxUnavailable: 0
-```
-
-
-
-更新deployment
-
-```bash
-kubectl apply -f webserver-strategy.yaml 
-```
-
-
-
-查看deployment细节，确定目前的deployment的滚动更新策略
-
-```bash
-kubectl describe deployment webserver-strategy
-```
-
-
-
-```bash
-RollingUpdateStrategy:  0 max unavailable, 2 max surge
-Pod Template:
-  Labels:  app=webserver-strategy
-  Containers:
-   nginx:
-    Image:        nginx:1.7.9
-    Port:         <none>
-    Host Port:    <none>
-    Environment:  <none>
-    Mounts:       <none>
-  Volumes:        <none>
-```
-
-
-
-修改deployment配置，将映像版本提升到1.9.1
-
-```text
-kubectl set image deployment webserver-strategy nginx=nginx:1.9.1
-```
-
-
-
-观测pod滚动升级过程
-
-```text
-kubectl get pod -o wide -w 
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl get pod -o wide -w
-NAME                                  READY   STATUS              RESTARTS   AGE     IP              NODE    NOMINATED NODE   READINESS GATES
-nginx                                 1/1     Running             0          5h26m   10.244.135.3    node3   <none>           <none>
-webserver-strategy-568bc9cf6b-87k54   1/1     Running             0          12s     10.244.135.35   node3   <none>           <none>
-webserver-strategy-568bc9cf6b-f9rmk   1/1     Running             0          12s     10.244.104.52   node2   <none>           <none>
-webserver-strategy-568bc9cf6b-lsx6w   1/1     Terminating         0          14s     10.244.104.51   node2   <none>           <none>
-webserver-strategy-568bc9cf6b-t9mzt   1/1     Running             0          14s     10.244.135.34   node3   <none>           <none>
-webserver-strategy-7c646cdb9b-67pwv   1/1     Running             0          5s      10.244.135.37   node3   <none>           <none>
-webserver-strategy-7c646cdb9b-ccnpw   1/1     Running             0          3s      10.244.104.55   node2   <none>           <none>
-webserver-strategy-7c646cdb9b-fkdpr   0/1     ContainerCreating   0          2s      <none>          node3   <none>           <none>
-webserver-strategy-7c646cdb9b-nnqdc   1/1     Running             0          5s      10.244.104.54   node2   <none>           <none>
-webserver-strategy-7c646cdb9b-vj6w2   0/1     ContainerCreating   0          1s      <none>          node2   <none>           <none>
-webserver-strategy-568bc9cf6b-lsx6w   1/1     Terminating         0          14s     10.244.104.51   node2   <none>           <none>
-webserver-strategy-7c646cdb9b-fkdpr   1/1     Running             0          2s      10.244.135.38   node3   <none>           <none>
-webserver-strategy-568bc9cf6b-t9mzt   1/1     Terminating         0          14s     10.244.135.34   node3   <none>           <none>
-webserver-strategy-7c646cdb9b-jq7n8   0/1     Pending             0          0s      <none>          <none>   <none>           <none>
-webserver-strategy-7c646cdb9b-jq7n8   0/1     Pending             0          0s      <none>          node3    <none>           <none>
-webserver-strategy-7c646cdb9b-jq7n8   0/1     ContainerCreating   0          0s      <none>          node3    <none>           <none>
-webserver-strategy-568bc9cf6b-t9mzt   1/1     Terminating         0          14s     10.244.135.34   node3    <none>           <none>
-webserver-strategy-568bc9cf6b-lsx6w   0/1     Terminating         0          14s     10.244.104.51   node2    <none>           <none>
-webserver-strategy-568bc9cf6b-lsx6w   0/1     Terminating         0          14s     10.244.104.51   node2    <none>           <none>
-webserver-strategy-568bc9cf6b-lsx6w   0/1     Terminating         0          14s     10.244.104.51   node2    <none>           <none>
-webserver-strategy-7c646cdb9b-vj6w2   0/1     ContainerCreating   0          2s      <none>          node2    <none>           <none>
-webserver-strategy-568bc9cf6b-t9mzt   0/1     Terminating         0          15s     10.244.135.34   node3    <none>           <none>
-webserver-strategy-568bc9cf6b-t9mzt   0/1     Terminating         0          15s     10.244.135.34   node3    <none>           <none>
-webserver-strategy-568bc9cf6b-t9mzt   0/1     Terminating         0          15s     10.244.135.34   node3    <none>           <none>
-webserver-strategy-7c646cdb9b-jq7n8   0/1     ContainerCreating   0          1s      <none>          node3    <none>           <none>
-webserver-strategy-7c646cdb9b-vj6w2   1/1     Running             0          2s      10.244.104.56   node2    <none>           <none>
-webserver-strategy-568bc9cf6b-87k54   1/1     Terminating         0          13s     10.244.135.35   node3    <none>           <none>
-webserver-strategy-568bc9cf6b-87k54   1/1     Terminating         0          14s     10.244.135.35   node3    <none>           <none>
-webserver-strategy-7c646cdb9b-jq7n8   1/1     Running             0          2s      10.244.135.39   node3    <none>           <none>
-webserver-strategy-568bc9cf6b-f9rmk   1/1     Terminating         0          14s     10.244.104.52   node2    <none>           <none>
-webserver-strategy-568bc9cf6b-f9rmk   1/1     Terminating         0          14s     10.244.104.52   node2    <none>           <none>
-webserver-strategy-568bc9cf6b-87k54   0/1     Terminating         0          15s     <none>          node3    <none>           <none>
-webserver-strategy-568bc9cf6b-87k54   0/1     Terminating         0          15s     <none>          node3    <none>           <none>
-webserver-strategy-568bc9cf6b-87k54   0/1     Terminating         0          15s     <none>          node3    <none>           <none>
-webserver-strategy-568bc9cf6b-f9rmk   0/1     Terminating         0          15s     <none>          node2    <none>           <none>
-webserver-strategy-568bc9cf6b-f9rmk   0/1     Terminating         0          15s     <none>          node2    <none>           <none>
-webserver-strategy-568bc9cf6b-f9rmk   0/1     Terminating         0          15s     <none>          node2    <none>           <none>
-```
-
-
-
-借助 lens 进行观察
-
-![image-20221221150628729](README.assets/image-20221221150628729-1678758869077-8.png)
-
-
-
-查看版本历史信息
-
-```bash
-kubectl rollout history deployment/webserver-strategy
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl rollout history deployment/webserver-strategy
-deployment.apps/webserver-strategy
-REVISION  CHANGE-CAUSE
-2         <none>
-3         <none>
-4         <none>
-```
-
-
-
-查看历史版本
-
-```bash
-kubectl rollout history deployment/webserver-strategy  --revision=3
-```
-
-
-
-```bash
-kubectl rollout history deployment/webserver-strategy  --revision=2
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl rollout history deployment/webserver-strategy  --revision=3
-deployment.apps/webserver-strategy with revision #3
-Pod Template:
-  Labels:       app=webserver-strategy
-        pod-template-hash=568bc9cf6b
-  Containers:
-   nginx:
-    Image:      nginx:1.7.9
-    Port:       <none>
-    Host Port:  <none>
-    Environment:        <none>
-    Mounts:     <none>
-  Volumes:      <none>
-
-root@node1:~/k8slab/deployment# kubectl rollout history deployment/webserver-strategy  --revision=2
-deployment.apps/webserver-strategy with revision #2
-Pod Template:
-  Labels:       app=webserver-strategy
-        pod-template-hash=5c5fcb9b54
-  Containers:
-   nginx:
-    Image:      nginx:1.8
-    Port:       <none>
-    Host Port:  <none>
-    Environment:        <none>
-    Mounts:     <none>
-  Volumes:      <none>
-```
-
-
-
-回滚到ver 2版本
-
-```bash
-kubectl rollout undo deployment/webserver-strategy --to-revision=2
-```
-
-
-
-验证回滚结果
-
-```text
-kubectl get deployment -o wide
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl get deployment -o wide
-NAME                 READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES      SELECTOR
-webserver-strategy   6/6     6            6           10m   nginx        nginx:1.8   app=webserver-strategy
-```
-
-
-
-删除deployment
-
-```bash
-kubectl delete -f webserver-strategy.yaml
-```
-
-
-
-### 使用 StatefulSet 编排有状态应用
-
-
-
-使用示例文件创建 yaml 文件
-
-```bash
-nano webserver.yaml
-```
-
-
-
-```yaml
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  labels:
-    app: webserver
-  name: webserver
-spec:
-  serviceName: webserver
-  replicas: 3
-  selector:
-    matchLabels:
-      app: webserver
-  template:
-    metadata:
-      name: webserver
-      namespace: default
-      labels:
-        app: webserver
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.7.9
-        resources: {}
-```
-
-
-
-创建StatefulSet
-
-```bash
-kubectl apply -f webserver.yaml
-```
-
-
-
-查看pod创建过程
-
-```bash
-kubectl get pod -o wide -w
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl get pod -o wide -w
-NAME          READY   STATUS    RESTARTS   AGE     IP              NODE    NOMINATED NODE   READINESS GATES
-nginx         1/1     Running   0          5h39m   10.244.135.3    node3   <none>           <none>
-webserver-0   1/1     Running   0          12s     10.244.104.3    node2   <none>           <none>
-webserver-1   1/1     Running   0          10s     10.244.135.49   node3   <none>           <none>
-webserver-2   1/1     Running   0          8s      10.244.104.4    node2   <none>           <none>
-```
-
-关注 pod 的名称和 ip 地址
-
-
-
-查看 StatefulSet
-
-```bash
-kubectl get sts -o wide
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl get sts -o wide
-NAME        READY   AGE   CONTAINERS   IMAGES
-webserver   3/3     78s   nginx        nginx:1.7.9
-```
-
-
-
-查看 StatefulSet细节
-
-```bash
-kubectl describe sts webserver
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl describe sts webserver
-Name:               webserver
-Namespace:          default
-CreationTimestamp:  Wed, 21 Dec 2022 15:10:51 +0800
-Selector:           app=webserver
-Labels:             app=webserver
-Annotations:        <none>
-Replicas:           3 desired | 3 total
-Update Strategy:    RollingUpdate
-  Partition:        0
-Pods Status:        3 Running / 0 Waiting / 0 Succeeded / 0 Failed
-Pod Template:
-  Labels:  app=webserver
-  Containers:
-   nginx:
-    Image:        nginx:1.7.9
-    Port:         <none>
-    Host Port:    <none>
-    Environment:  <none>
-    Mounts:       <none>
-  Volumes:        <none>
-Volume Claims:    <none>
-Events:
-  Type    Reason            Age    From                    Message
-  ----    ------            ----   ----                    -------
-  Normal  SuccessfulCreate  2m53s  statefulset-controller  create Pod webserver-0 in StatefulSet webserver successful
-  Normal  SuccessfulCreate  2m51s  statefulset-controller  create Pod webserver-1 in StatefulSet webserver successful
-  Normal  SuccessfulCreate  2m49s  statefulset-controller  create Pod webserver-2 in StatefulSet webserver successful
-
-```
-
-关注 `Update Strategy`
-
-
-
-修改StatefulSet配置，将映像版本提升到1.9.1
-
-```bash
-kubectl set image sts webserver nginx=nginx:1.9.1
-```
-
-
-
-观测pod滚动升级过程
-
-```bash
-kubectl get pod -o wide -w 
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl set image sts webserver nginx=nginx:1.9.1
-statefulset.apps/webserver image updated
-root@node1:~/k8slab/deployment# kubectl get pod -o wide -w
-NAME          READY   STATUS              RESTARTS   AGE     IP             NODE    NOMINATED NODE   READINESS GATES
-nginx         1/1     Running             0          5h43m   10.244.135.3   node3   <none>           <none>
-webserver-0   1/1     Running             0          3m45s   10.244.104.3   node2   <none>           <none>
-webserver-1   0/1     ContainerCreating   0          0s      <none>         node3   <none>           <none>
-webserver-2   1/1     Running             0          3s      10.244.104.5   node2   <none>           <none>
-webserver-1   0/1     ContainerCreating   0          1s      <none>         node3   <none>           <none>
-webserver-1   1/1     Running             0          2s      10.244.135.50   node3   <none>           <none>
-webserver-0   1/1     Terminating         0          3m47s   10.244.104.3    node2   <none>           <none>
-webserver-0   1/1     Terminating         0          3m47s   10.244.104.3    node2   <none>           <none>
-webserver-0   0/1     Terminating         0          3m48s   10.244.104.3    node2   <none>           <none>
-webserver-0   0/1     Terminating         0          3m48s   10.244.104.3    node2   <none>           <none>
-webserver-0   0/1     Terminating         0          3m48s   10.244.104.3    node2   <none>           <none>
-webserver-0   0/1     Pending             0          0s      <none>          <none>   <none>           <none>
-webserver-0   0/1     Pending             0          0s      <none>          node2    <none>           <none>
-webserver-0   0/1     ContainerCreating   0          0s      <none>          node2    <none>           <none>
-webserver-0   0/1     ContainerCreating   0          1s      <none>          node2    <none>           <none>
-webserver-0   1/1     Running             0          2s      10.244.104.6    node2    <none>           <none>
-```
-
-
-
-删除StatefulSet
-
-```bash
-kubectl delete -f webserver.yaml
-```
-
-
-
-### 使用 job 实现一次性作业 
-
-
-
-使用示例文件创建yaml文件
-
-```bash
-nano job.yaml
-```
-
-
-
-```yaml
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: pi
-spec:
-  template:
-    spec:
-      containers:
-      - name: pi
-        image: resouer/ubuntu-bc 
-        command: ["sh", "-c", "echo 'scale=1000; 4*a(1)' | bc -l "]
-      restartPolicy: Never
-  backoffLimit: 4
-```
-
-
-
-创建job
-
-```bash
-kubectl create -f job.yaml
-```
-
-
-
-观察对应的pod，几秒之后运算结束，pod会进入到completed状态
-
-```bash
-kubectl get pod -o wide
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl get pod -o wide
-NAME       READY   STATUS              RESTARTS   AGE   IP             NODE    NOMINATED NODE   READINESS GATES
-nginx      1/1     Running             0          8h    10.244.135.3   node3   <none>           <none>
-pi-dzfkn   0/1     ContainerCreating   0          16s   <none>         node2   <none>           <none>
-root@node1:~/k8slab/deployment# kubectl get pod -o wide
-NAME       READY   STATUS      RESTARTS   AGE   IP             NODE    NOMINATED NODE   READINESS GATES
-nginx      1/1     Running     0          8h    10.244.135.3   node3   <none>           <none>
-pi-dzfkn   0/1     Completed   0          31s   10.244.104.7   node2   <none>           <none>
-```
-
-
-
-查看运算结果
-
-```bash
-kubectl logs pi-dzfkn 
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl logs pi-dzfkn
-3.141592653589793238462643383279502884197169399375105820974944592307\
-81640628620899862803482534211706798214808651328230664709384460955058\
-22317253594081284811174502841027019385211055596446229489549303819644\
-28810975665933446128475648233786783165271201909145648566923460348610\
-45432664821339360726024914127372458700660631558817488152092096282925\
-40917153643678925903600113305305488204665213841469519415116094330572\
-70365759591953092186117381932611793105118548074462379962749567351885\
-75272489122793818301194912983367336244065664308602139494639522473719\
-07021798609437027705392171762931767523846748184676694051320005681271\
-45263560827785771342757789609173637178721468440901224953430146549585\
-37105079227968925892354201995611212902196086403441815981362977477130\
-99605187072113499999983729780499510597317328160963185950244594553469\
-08302642522308253344685035261931188171010003137838752886587533208381\
-42061717766914730359825349042875546873115956286388235378759375195778\
-18577805321712268066130019278766111959092164201988
-```
-
-
-
-查看job对象
-
-```bash
-kubectl describe jobs/pi
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl describe jobs/pi
-Name:             pi
-Namespace:        default
-Selector:         controller-uid=b97fb100-b9cf-4112-b48f-cdd0ab8e1944
-Labels:           controller-uid=b97fb100-b9cf-4112-b48f-cdd0ab8e1944
-                  job-name=pi
-Annotations:      batch.kubernetes.io/job-tracking:
-Parallelism:      1
-Completions:      1
-Completion Mode:  NonIndexed
-Start Time:       Wed, 21 Dec 2022 18:01:52 +0800
-Completed At:     Wed, 21 Dec 2022 18:02:15 +0800
-Duration:         23s
-Pods Statuses:    0 Active / 1 Succeeded / 0 Failed
-Pod Template:
-  Labels:  controller-uid=b97fb100-b9cf-4112-b48f-cdd0ab8e1944
-           job-name=pi
-  Containers:
-   pi:
-    Image:      resouer/ubuntu-bc
-    Port:       <none>
-    Host Port:  <none>
-    Command:
-      sh
-      -c
-      echo 'scale=1000; 4*a(1)' | bc -l
-    Environment:  <none>
-    Mounts:       <none>
-  Volumes:        <none>
-Events:
-  Type    Reason            Age   From            Message
-  ----    ------            ----  ----            -------
-  Normal  SuccessfulCreate  101s  job-controller  Created pod: pi-dzfkn
-  Normal  Completed         78s   job-controller  Job completed
-```
-
-
-
-查看 jobs
-
-```bash
-kubectl get jobs -o wide
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl get jobs -o wide
-NAME   COMPLETIONS   DURATION   AGE    CONTAINERS   IMAGES              SELECTOR
-pi     1/1           23s        2m8s   pi           resouer/ubuntu-bc   controller-uid=b97fb100-b9cf-4112-b48f-cdd0ab8e1944
-```
-
-
-
-删除job
-
-```bash
-kubectl delete -f job.yaml
-```
-
-
-
-### 使用 cronjob 实现定时作业 
-
-使用示例文件创建yaml文件
-
-```bash
-nano cronjob.yaml
-```
-
-
-
-```yaml
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: hello
-spec:
-  schedule: "*/1 * * * *"
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          containers:
-          - name: hello
-            image: busybox
-            args:
-            - /bin/sh
-            - -c
-            - date; echo Hello from the Kubernetes cluster
-          restartPolicy: OnFailure
-```
-
-
-
-创建cornjob
-
-```bash
-kubectl create -f cronjob.yaml
-```
-
-
-
-查看pods
-
-```bash
-kubectl get pod -o wide
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl get pod -o wide
-NAME                   READY   STATUS      RESTARTS   AGE   IP             NODE    NOMINATED NODE   READINESS GATES
-hello-27860285-qzrtw   0/1     Completed   0          22s   10.244.104.8   node2   <none>           <none>
-nginx                  1/1     Running     0          8h    10.244.135.3   node3   <none>           <none>
-```
-
-
-
-每隔一分钟执行一次查看jobs
-
-```bash
-kubectl get jobs -o wide
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl get jobs -o wide
-NAME             COMPLETIONS   DURATION   AGE    CONTAINERS   IMAGES    SELECTOR
-hello-27860285   1/1           17s        3m3s   hello        busybox   controller-uid=e93d4b9b-a3a6-4bd3-bb79-3b6f8e64610a
-hello-27860286   1/1           16s        2m3s   hello        busybox   controller-uid=e0364cec-3436-49f6-aa89-e55ae0b51c3b
-hello-27860287   1/1           17s        63s    hello        busybox   controller-uid=a4f5dba3-d577-4581-b411-3b87f3092f0c
-hello-27860288   0/1           3s         3s     hello        busybox   controller-uid=503bfd3e-653c-4b3e-a37e-6d7e88f5c795
-```
-
-
-
-查看 cronjob
-
-```bash
-kubectl get cronjob hello
-```
-
-
-
-```bash
-root@node1:~/k8slab/deployment# kubectl get cronjob hello
-NAME    SCHEDULE      SUSPEND   ACTIVE   LAST SCHEDULE   AGE
-hello   */1 * * * *   False     0        41s             3m51s
-```
-
-
-
-
-
-删除 cronjob
-
-```bash
-kubectl delete -f cronjob.yaml
-```
-
-
-
-### 使用 DaemonSet 运行守护进程应用
-
-使用以下范例，创建 deamonset yaml
-
-```bash
-nano katacoda-daemonsets.yaml 
-```
-
-
-
-```yaml
-apiVersion: apps/v1
-kind: DaemonSet
-metadata:
-  labels:
-    app: katacoda-daemonsets
-  name: katacoda-daemonsets
-spec:
-  selector:
-    matchLabels:
-      app: katacoda-daemonsets
-  template:
-    metadata:
-      labels:
-        app: katacoda-daemonsets
-    spec:
-      containers:
-      - image: katacoda/docker-http-server
-        name: docker-http-server
-        resources: {}
-```
-
-
-
-启用 DaemonSet
-
-```bash
-kubectl apply -f katacoda-daemonsets.yaml 
-```
-
-
-
-观察 pod
-
-```
-kubectl get pods -o wide
-```
-
- 
-
-```bash
-root@node1:~/k8slab/deployment# kubectl get pods -o wide
-NAME                        READY   STATUS    RESTARTS   AGE   IP              NODE    NOMINATED NODE   READINESS GATES
-katacoda-daemonsets-l79w6   1/1     Running   0          48s   10.244.104.15   node2   <none>           <none>
-katacoda-daemonsets-qfw82   1/1     Running   0          48s   10.244.135.51   node3   <none>           <none>
-nginx                       1/1     Running   0          8h    10.244.135.3    node3   <none>           <none>
-```
-
-每个节点都有一个 katacoda，master 节点暂时还没有
-
-
-
-删除 daemonsets
-
-```bash
-kubectl delete -f katacoda-daemonsets.yaml
-```
-
-
-
-
-
-## 服务内部发现和服务外部暴露
-
-
-
-### 服务发现
-
-查看 backend 的pod
-```bash
-kubectl get pods --selector=app=backend -n example -o wide
-```
-
-```bash
-root@node1:~# kubectl get pods --selector=app=backend -n example -o wide
-NAME                       READY   STATUS    RESTARTS   AGE     IP            NODE                 NOMINATED NODE   READINESS GATES
-backend-6b55f869fd-5mnxq   1/1     Running   0          5h31m   10.244.0.11   kind-control-plane   <none>           <none>
-backend-6b55f869fd-xfsdr   1/1     Running   0          5h20m   10.244.0.13   kind-control-plane   <none>           <none>
-```
-特别关注某个pod的ip地址，并记录，比如 `10.244.0.11`
-
-查看服务
-```bash
-kubectl get service -n example
-```
-
-```bash
-root@node1:~# kubectl get svc -n example
-NAME               TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
-backend-service    ClusterIP   10.96.194.109   <none>        5000/TCP   5h32m
-frontend-service   ClusterIP   10.96.95.46     <none>        3000/TCP   5h32m
-pg-service         ClusterIP   10.96.66.228    <none>        5432/TCP   5h33m
-```
-特比关注`backend-service`  的 ip 地址，比如 `10.96.194.109`
-
-进入到某个前端的pod，进行测试
-```bash
-kubectl exec -it $(kubectl get pods --selector=app=frontend -n example -o jsonpath="{.items[0].metadata.name}") -n example -- sh
-```
-
-访问此前记录的后端pod ip
-```bash
-wget -O - http://10.244.0.11:5000/healthy
-```
-
-```bash
-root@node1:~# kubectl exec -it $(kubectl get pods --selector=app=frontend -n example -o jsonpath="{.items[0].metadata.name}") -n example -- sh
-/frontend # wget -O - http://10.244.0.11:5000/healthy
-Connecting to 10.244.0.11:5000 (10.244.0.11:5000)
-writing to stdout
-{"healthy":true}
--                    100% |***************************************************************************************************************|    17  0:00:00 ETA
-written to stdout
-```
-
-
-访问 `backend-service` 的service ip
-```bash
-while true; do wget -q -O- http://10.96.194.109:5000/host_name && sleep 1; done
-```
-
-```bash
-/frontend # while true; do wget -q -O- http://10.96.194.109:5000/host_name && sleep 1; done
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-xfsdr"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-xfsdr"}
-{"host_name":"backend-6b55f869fd-xfsdr"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-xfsdr"}
-{"host_name":"backend-6b55f869fd-xfsdr"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-^C
-```
-
-使用backend-service的完全限定域名 `backend-service.example.svc.cluster.local` 进行访问
-```bash
-while true; do wget -q -O- http://backend-service.example.svc.cluster.local:5000/host_name && sleep 1; done
-```
-
-```bash
-/frontend # while true; do wget -q -O- http://backend-service.example.svc.cluster.local:5000/host_name && sleep 1; done
-{"host_name":"backend-6b55f869fd-xfsdr"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-xfsdr"}
-{"host_name":"backend-6b55f869fd-xfsdr"}
-{"host_name":"backend-6b55f869fd-xfsdr"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-^C
-```
-
-
-使用backend-service的相对域名 `backend-service`  进行访问
-```bash
-while true; do wget -q -O- http://backend-service:5000/host_name && sleep 1; done
-```
-
-```bash
-/frontend # while true; do wget -q -O- http://backend-service:5000/host_name && sleep 1; done
-{"host_name":"backend-6b55f869fd-xfsdr"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-xfsdr"}
-{"host_name":"backend-6b55f869fd-xfsdr"}
-{"host_name":"backend-6b55f869fd-xfsdr"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-{"host_name":"backend-6b55f869fd-5mnxq"}
-^C
-```
-
-退出pod
-```bash
-/frontend # exit
-command terminated with exit code 130
-root@node1:~#
-```
-
-
-
-### ingress
-
-```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.3.1/deploy/static/provider/cloud/deploy.yaml
-```
-
-```bash
-kubectl get svc -n ingress-nginx
-```
-
-
-
-
-
-## 应用配置
-
-连接到后端应用pod查看 env
-```bash
-kubectl exec -it $(kubectl get pods --selector=app=backend -n example -o jsonpath="{.items[0].metadata.name}") -n example -- sh
-```
-
-
-```bash
-env | grep DATABASE
-```
-
-
-```bash
-root@node1:~# kubectl exec -it $(kubectl get pods --selector=app=backend -n example -o jsonpath="{.items[0].metadata.name}") -n example -- sh
-# env | grep DATABASE
-DATABASE_USERNAME=postgres
-DATABASE_PASSWORD=postgres
-DATABASE_URI=pg-service
-```
-
-```bash
-exit
-```
-
-
-连接到数据库 pod 查看 configmap
-```bash
-kubectl exec -it $(kubectl get pods --selector=app=database -n example -o jsonpath="{.items[0].metadata.name}") -n example -- sh
-```
-
-```bash
-ls  /docker-entrypoint-initdb.d
-```
-
-```bash
-cat /docker-entrypoint-initdb.d/CreateDB.sql
-```
-
-
-```bash
-root@node1:~# kubectl exec -it $(kubectl get pods --selector=app=database -n example -o jsonpath="{.items[0].metadata.name}") -n example -- sh
-# ls  /docker-entrypoint-initdb.d
-CreateDB.sql
-# cat /docker-entrypoint-initdb.d/CreateDB.sql
-CREATE TABLE text (
-    id serial PRIMARY KEY,
-    text VARCHAR ( 100 ) UNIQUE NOT NULL
-);#
-```
-
-```bash
-exit
-```
-
-
-
-
-
-## 资源配额和弹性扩缩容
-
-
-
-查看HPA设置
-```bash
-kubectl get hpa -n example
-```
-
-```bash
-root@node1:~# kubectl get hpa -n example
-NAME       REFERENCE             TARGETS           MINPODS   MAXPODS   REPLICAS   AGE
-backend    Deployment/backend    28%/50%, 0%/50%   2         10        2          17h
-frontend   Deployment/frontend   0%/80%            2         2         2          17h
-```
-
-查看pod数量
-```bash
-kubectl get pod -n example
-```
-
-```bash
-root@node1:~# kubectl get pod -n example
-NAME                        READY   STATUS    RESTARTS      AGE
-backend-6b55f869fd-59vcn    1/1     Running   0             17h
-backend-6b55f869fd-mbppw    1/1     Running   0             17h
-frontend-6b5b58d5f8-4h5tz   1/1     Running   3 (16h ago)   17h
-frontend-6b5b58d5f8-s2pm6   1/1     Running   1 (16h ago)   17h
-postgres-fbd8f9f49-dsdr7    1/1     Running   0             17h
-```
-
-访问 http://192.168.1.231/api/ab
-
-查看pod的性能负载，可以观察到已经开始横向扩容了
-```bash
-kubectl top pod -n example
-```
-
-```bash
-root@node1:~# kubectl top pod -n example
-NAME                        CPU(cores)   MEMORY(bytes)
-backend-6b55f869fd-59vcn    255m         38Mi
-backend-6b55f869fd-l5tlz    39m          33Mi
-backend-6b55f869fd-mbppw    1m           35Mi
-frontend-6b5b58d5f8-4h5tz   1m           183Mi
-frontend-6b5b58d5f8-s2pm6   1m           172Mi
-postgres-fbd8f9f49-dsdr7    1m           31Mi
-```
-
-查看 HPA
-```bash
-kubectl get hpa -n example
-```
-
-```bash
-root@node1:~# kubectl get hpa -n example
-NAME       REFERENCE             TARGETS             MINPODS   MAXPODS   REPLICAS   AGE
-backend    Deployment/backend    27%/50%, 100%/50%   2         10        4          17h
-frontend   Deployment/frontend   0%/80%              2         2         2          17h
-```
-
-
-多刷新几次页面，让性能负荷暴涨，再次观察HPA和pod
-```bash
-root@node1:~# kubectl get hpa -n example
-NAME       REFERENCE             TARGETS             MINPODS   MAXPODS   REPLICAS   AGE
-backend    Deployment/backend    30%/50%, 198%/50%   2         10        8          17h
-frontend   Deployment/frontend   0%/80%              2         2         2          17h
-root@node1:~# kubectl get pod -n example
-NAME                        READY   STATUS    RESTARTS      AGE
-backend-6b55f869fd-59vcn    1/1     Running   0             17h
-backend-6b55f869fd-5vv9h    0/1     Pending   0             13s
-backend-6b55f869fd-dc7mk    0/1     Pending   0             28s
-backend-6b55f869fd-l5tlz    1/1     Running   0             4m43s
-backend-6b55f869fd-lcgb4    0/1     Pending   0             28s
-backend-6b55f869fd-mbppw    1/1     Running   0             17h
-backend-6b55f869fd-pg5wp    0/1     Pending   0             28s
-backend-6b55f869fd-rdwpb    1/1     Running   0             4m43s
-backend-6b55f869fd-rr8s2    0/1     Pending   0             28s
-backend-6b55f869fd-xx4gq    0/1     Pending   0             13s
-frontend-6b5b58d5f8-4h5tz   1/1     Running   3 (17h ago)   17h
-frontend-6b5b58d5f8-s2pm6   1/1     Running   1 (17h ago)   17h
-postgres-fbd8f9f49-dsdr7    1/1     Running   0             17h
-```
-
-
-
-
-
-## 健康状态检查
-
-
-
-使用示例文件创建yaml文件
-
-```bash
-nano nginx-healthcheck-readinessprobe.yaml
-```
-
-
-
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: nginx-readinessprobe
-  namespace: default
-  labels:
-    app: nginx-readinessprobe
-  annotations:
-    app: nginx-readinessprobe
-spec:
-  dnsPolicy: Default
-  hostNetwork: false
-  restartPolicy: Always
-  hostAliases:
-  - ip: "192.168.0.181"
-    hostnames:
-    - "cka01"
-    - "cka-master"
-  - ip: "192.168.0.41"
-    hostnames:
-    - "cka02"
-  - ip: "192.168.0.241"
-    hostnames:
-    - "cka03"
-  volumes:
-  - name: web-root
-    hostPath:
-      path: /data
-  - name: web-path
-    emptyDir: 
-  initContainers:
-  - name: pullcode
-    image: busybox
-    volumeMounts:
-    - name: web-path
-      mountPath: /data
-    command:
-    - /bin/sh
-    - -c
-    - "echo hello > /data/index.html; touch /data/healthy"
-  containers:
-  - name: nginx
-    image: nginx
-    imagePullPolicy: Always
-    resources:
-      requests:
-        cpu: "0.1"
-        memory: "32Mi"
-      limits:
-        cpu: "0.2"
-        memory: "64Mi"
-    startupProbe: # 启动检查，脚本探活
-      exec:
-        command:
-          - /bin/sh
-          - -c
-          - "cat /usr/share/nginx/html/healthy"
-      initialDelaySeconds: 5 
-      periodSeconds: 1
-      timeoutSeconds: 1
-      failureThreshold: 18
-      successThreshold: 1 
-    livenessProbe:  # 存活检查，端口探活
-      tcpSocket:
-        port: 8080
-      periodSeconds: 10
-      timeoutSeconds: 1
-      failureThreshold: 3
-      successThreshold: 1 
-    readinessProbe: # 就绪检查，路径探活
-      httpGet:
-        port: 8080
-        path: /
-      periodSeconds: 1
-      timeoutSeconds: 1
-      failureThreshold: 3
-      successThreshold: 1 
-    volumeMounts:
-    - name: web-root
-      mountPath: /data
-    - name: web-path
-      mountPath: /usr/share/nginx/html
-    env:
-    - name: mysqlhost
-      value: "10.96.0.110"
-    - name: mysqlport
-      value: "3306"
-    - name: mysqldb
-      value: "wordpress"
-    ports:
-    - name: web-port
-      containerPort: 80
-      protocol: TCP
-```
-
-
-
-创建pod
-
-```bash
-kubectl apply -f nginx-healthcheck-readinessprobe.yaml 
-```
-
-
-
-查看pod
-
-```bash
-kubectl get pod -o wide
-```
-
-
-
-```bash
-root@node1:~/k8slab/pod# kubectl get pod -o wide
-NAME                   READY   STATUS    RESTARTS      AGE     IP              NODE    NOMINATED NODE   READINESS GATES
-nginx                  1/1     Running   0             4h27m   10.244.135.3    node3   <none>           <none>
-nginx-readinessprobe   0/1     Running   2 (29s ago)   109s    10.244.104.16   node2   <none>          <none>
-```
-
-多查看几次，可以观测到pod有重启现象
-
-
-
-查看pod详细信息
-
-```bash
-kubectl describe pod nginx-readinessprobe
-```
-
-
-
-```bash
-...
-Events:
-  Type     Reason     Age                  From               Message
-  ----     ------     ----                 ----               -------
-  Normal   Scheduled  2m16s                default-scheduler  Successfully assigned default/nginx-readinessprobe to node2
-  Normal   Pulling    2m16s                kubelet            Pulling image "busybox"
-  Normal   Pulled     2m16s                kubelet            Successfully pulled image "busybox" in 336.609183ms
-  Normal   Created    2m16s                kubelet            Created container pullcode
-  Normal   Started    2m15s                kubelet            Started container pullcode
-  Normal   Pulling    2m15s                kubelet            Pulling image "nginx"
-  Normal   Pulled     119s                 kubelet            Successfully pulled image "nginx" in 15.311334882s
-  Normal   Created    119s                 kubelet            Created container nginx
-  Normal   Started    119s                 kubelet            Started container nginx
-  Warning  Unhealthy  107s                 kubelet            Liveness probe failed: dial tcp 10.244.104.16:8080: connect: connection refused
-  Warning  Unhealthy  99s (x16 over 114s)  kubelet            Readiness probe failed: Get "http://10.244.104.16:8080/": dial tcp 10.244.104.16:8080: connect: connection refused
-```
-
-可以观察到 `Liveness` 和 `Readiness` 都有报错
-
-
-
-删除 pod
-
-```bash
-kubectl delete -f nginx-healthcheck-readinessprobe.yaml 
-```
-
-
-
-修改yaml文件
-
-```bash
-nano nginx-healthcheck-readinessprobe.yaml
-```
-
-
-
-```yaml
- livenessProbe:  # 存活检查，端口探活
-      tcpSocket:
-        port: 80
-      periodSeconds: 10
-      timeoutSeconds: 1
-      failureThreshold: 3
-      successThreshold: 1
-```
-
-将 `livenessProbe` 的端口号改为80
-
-
-
-重新创建pod
-
-```bash
-kubectl apply -f nginx-healthcheck-readinessprobe.yaml 
-```
-
-
-
-查看pod
-
-```bash
-kubectl get pod -o wide
-```
-
-
-
-```bash
-root@node1:~/k8slab/pod# kubectl get pod -o wide
-NAME                   READY   STATUS    RESTARTS   AGE     IP              NODE    NOMINATED NODE   READINESS GATES
-nginx                  1/1     Running   0          4h34m   10.244.135.3    node3   <none>           <none>
-nginx-readinessprobe   0/1     Running   0          82s     10.244.104.18   node2   <none>           <none>
-```
-
-多查看几次，pod虽然不再重启，但是一直未能就绪
-
-
-
-查看pod详细信息
-
-```bash
-kubectl describe pod nginx-readinessprobe
-```
-
-
-
-```bash
-Events:
-  Type     Reason     Age                 From               Message
-  ----     ------     ----                ----               -------
-  Normal   Scheduled  102s                default-scheduler  Successfully assigned default/nginx-readinessprobe to node2
-  Normal   Pulling    101s                kubelet            Pulling image "busybox"
-  Normal   Pulled     86s                 kubelet            Successfully pulled image "busybox" in 15.263132583s
-  Normal   Created    86s                 kubelet            Created container pullcode
-  Normal   Started    86s                 kubelet            Started container pullcode
-  Normal   Pulling    85s                 kubelet            Pulling image "nginx"
-  Normal   Pulled     70s                 kubelet            Successfully pulled image "nginx" in 15.275607139s
-  Normal   Created    70s                 kubelet            Created container nginx
-  Normal   Started    70s                 kubelet            Started container nginx
-  Warning  Unhealthy  49s (x17 over 65s)  kubelet            Readiness probe failed: Get "http://10.244.104.18:8080/": dial tcp 10.244.104.18:8080: connect: connection refused
-```
-
-可以观察到Readiness还有报错
-
-
-
-删除pod
-
-```bash
-kubectl delete -f nginx-healthcheck-readinessprobe.yaml 
-```
-
-
-
-修改yaml文件
-
-```bash
-nano nginx-healthcheck-readinessprobe.yaml
-```
-
-
-
-```bash
- readinessProbe: # 就绪检查，路径探活
-      httpGet:
-        port: 80
-        path: /
-      periodSeconds: 1
-      timeoutSeconds: 1
-      failureThreshold: 3
-      successThreshold: 1
-```
-
-将readinessProbe的端口号改为80
-
-
-
-重新创建pod
-
-```bash
-kubectl apply -f nginx-healthcheck-readinessprobe.yaml 
-```
-
-
-
-查看pod
-
-```bash
-kubectl get pod -o wide
-```
-
-
-
-```bash
-root@node1:~/k8slab/pod# kubectl get pod -o wide
-NAME                   READY   STATUS    RESTARTS   AGE     IP              NODE    NOMINATED NODE   READINESS GATES
-nginx                  1/1     Running   0          4h37m   10.244.135.3    node3   <none>           <none>
-nginx-readinessprobe   1/1     Running   0          60s     10.244.104.19   node2   <none>           <none>
-```
-
-pod应该很快完全就绪
-
-
-
-查看pod详细信息
-
-```bash
-kubectl describe pod nginx-readinessprobe
-```
-
-
-
-```bash
-Events:
-  Type    Reason     Age   From               Message
-  ----    ------     ----  ----               -------
-  Normal  Scheduled  85s   default-scheduler  Successfully assigned default/nginx-readinessprobe to node2
-  Normal  Pulling    84s   kubelet            Pulling image "busybox"
-  Normal  Pulled     69s   kubelet            Successfully pulled image "busybox" in 15.293741464s
-  Normal  Created    69s   kubelet            Created container pullcode
-  Normal  Started    69s   kubelet            Started container pullcode
-  Normal  Pulling    68s   kubelet            Pulling image "nginx"
-  Normal  Pulled     53s   kubelet            Successfully pulled image "nginx" in 15.309241357s
-  Normal  Created    53s   kubelet            Created container nginx
-  Normal  Started    53s   kubelet            Started container nginx
-```
-
-除了查看Events中没有报错信息之外，重点查看Condition中各个阶段是否都已经Ready
-
-
-
-清理pod
-
-```bash
- kubectl delete -f nginx-healthcheck-readinessprobe.yaml 
-```
-
-
-
-
-
-
-
 # 应用程序容器化
+
+
+
+
+
+## 构建容器镜像
+
+
+### 创建映像
+
+创建实验目录
+
+```bash
+mkdir lab
+cd lab
+```
+
+
+创建业务代码文件
+```bash
+nano app.py
+```
+
+
+```python
+from flask import Flask
+import os
+app = Flask(__name__)
+app.run(debug=True)
+
+@app.route('/')
+def hello_world():
+    return 'Hello, my first docker images! ' + os.getenv("HOSTNAME") + ''
+```
+
+这是一个简单的 Python 程序，使用 Flask Web 框架创建一个基本的 Web 服务器。下面是对代码的解释：
+
+1. `from flask import Flask`: 这一行导入了 Flask 类，这是使用 Flask 框架创建 Web 应用的基本类。
+2. `import os`: 这一行导入了 Python 的内置 os 模块，它提供了一个与操作系统交互的接口。
+3. `app = Flask(__name__)`: 这一行创建了一个 Flask 应用实例。`__name__` 参数通常用于确定应用的根路径。
+4. `app.run(debug=True)`: 这一行运行了 Flask 应用，`debug=True` 表示应用将以调试模式运行。在调试模式下，应用会自动重新加载，如果发生错误，会显示详细的错误信息。
+5. `@app.route('/')`: 这是一个装饰器，它告诉 Flask 应用，当用户访问根路径（即'/'）时，应该调用下面的函数。
+6. `def hello_world():`: 定义了一个名为 `hello_world` 的函数。这个函数将在用户访问根路径时被调用。
+7. `return 'Hello, my first docker images! ' + os.getenv("HOSTNAME") + ''`: 这一行返回了一个字符串，其中包含 "Hello, my first docker images!" 以及从环境变量中获取的 "HOSTNAME" 的值。当用户访问根路径时，他们将看到这个字符串。
+
+总之，这是一个简单的 Flask Web 应用，它在根路径上提供了一个简单的响应，包括一条欢迎消息和从环境变量中获取的 "HOSTNAME" 的值。当这个应用被放入 Docker 容器中运行时，"HOSTNAME" 将是容器的 ID。
+
+创建 Python 的依赖文件
+```bash
+echo "Flask==2.2.2" >> requirements.txt
+```
+
+
+创建 Dockerfile
+```bash
+nano Dockerfile
+```
+
+
+```Dockerfile
+# syntax=docker/dockerfile:1
+
+FROM python:3.8-slim-buster
+RUN apt-get update && apt-get install -y procps vim apache2-utils && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY requirements.txt requirements.txt
+RUN pip3 install -r requirements.txt
+COPY . .
+CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0"]
+```
+
+以下是对每一行的解释：
+
+1. `# syntax=docker/dockerfile:1`: 这是一个注释，指定 Dockerfile 使用的语法版本。这里的版本是 1。
+2. `FROM python:3.8-slim-buster`: 从名为 `python:3.8-slim-buster` 的基础镜像开始构建新的 Docker 镜像。这个镜像基于 Debian Buster，并包含了预安装的 Python 3.8 和一些最小化工具。
+3. `RUN apt-get update && apt-get install -y procps vim apache2-utils && rm -rf /var/lib/apt/lists/*`: 这个 RUN 指令执行了一系列命令，用于更新包列表、安装一些额外的软件包（如 procps、vim 和 apache2-utils）以及清理缓存文件。这些软件包在新的镜像中将可用。
+4. `WORKDIR /app`: 设置工作目录为 `/app`。接下来的指令（如 COPY 和 RUN）将在这个目录下执行。
+5. `COPY requirements.txt requirements.txt`: 将当前构建上下文中的 `requirements.txt` 文件复制到镜像的工作目录中。这个文件包含了应用所需的 Python 包列表。
+6. `RUN pip3 install -r requirements.txt`: 安装 `requirements.txt` 文件中列出的 Python 包。这些包将包含在新的镜像中，供应用程序使用。
+7. `COPY . .`: 将当前构建上下文中的所有文件和目录复制到镜像的工作目录中。这通常包括应用程序的源代码。
+8. `CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0"]`: 设置容器的默认命令。当容器启动时，这个命令将被执行。这里的命令启动了 Flask 应用，并使用 `--host=0.0.0.0` 参数允许外部访问。
+
+
+构建映像
+```bash
+root@node1:~/lab# dir
+app.py  Dockerfile  requirements.txt
+```
+
+
+```bash
+docker build -t hello-world-flask .
+```
+
+
+```bash
+ubuntu $ docker build -t hello-world-flask .
+Sending build context to Docker daemon  4.096kB
+Step 1/7 : FROM python:3.8-slim-buster
+3.8-slim-buster: Pulling from library/python
+0cf508b37688: Pull complete 
+73f2d4ecfb17: Pull complete 
+4ccbacf6c31d: Pull complete 
+80e5be4781de: Pull complete 
+6c0c9359aa08: Pull complete 
+Digest: sha256:ae7186c947f47090f450f1a438ddcffbd7463cbf14484c2e7869a9c05d900287
+Status: Downloaded newer image for python:3.8-slim-buster
+ ---> a87430669f7e
+Step 2/7 : RUN apt-get update && apt-get install -y procps vim apache2-utils && rm -rf /var/lib/apt/lists/*
+ ---> Running in c05d056667b1
+Get:1 http://deb.debian.org/debian buster InRelease [122 kB]
+Get:2 http://deb.debian.org/debian-security buster/updates InRelease [34.8 kB]
+Get:3 http://deb.debian.org/debian buster-updates InRelease [56.6 kB]
+Get:4 http://deb.debian.org/debian buster/main amd64 Packages [7909 kB]
+Get:5 http://deb.debian.org/debian-security buster/updates/main amd64 Packages [430 kB]
+Get:6 http://deb.debian.org/debian buster-updates/main amd64 Packages [8788 B]
+Fetched 8561 kB in 2s (4455 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  libapr1 libaprutil1 libgpm2 libncurses6 libprocps7 lsb-base psmisc
+  vim-common vim-runtime xxd
+Suggested packages:
+  gpm ctags vim-doc vim-scripts
+The following NEW packages will be installed:
+  apache2-utils libapr1 libaprutil1 libgpm2 libncurses6 libprocps7 lsb-base
+  procps psmisc vim vim-common vim-runtime xxd
+0 upgraded, 13 newly installed, 0 to remove and 0 not upgraded.
+Need to get 8440 kB of archives.
+After this operation, 36.8 MB of additional disk space will be used.
+Get:1 http://deb.debian.org/debian-security buster/updates/main amd64 libncurses6 amd64 6.1+20181013-2+deb10u3 [102 kB]
+Get:2 http://deb.debian.org/debian buster/main amd64 libprocps7 amd64 2:3.3.15-2 [61.7 kB]
+Get:3 http://deb.debian.org/debian buster/main amd64 lsb-base all 10.2019051400 [28.4 kB]
+Get:4 http://deb.debian.org/debian buster/main amd64 procps amd64 2:3.3.15-2 [259 kB]
+Get:5 http://deb.debian.org/debian-security buster/updates/main amd64 xxd amd64 2:8.1.0875-5+deb10u4 [141 kB]
+Get:6 http://deb.debian.org/debian-security buster/updates/main amd64 vim-common all 2:8.1.0875-5+deb10u4 [196 kB]
+Get:7 http://deb.debian.org/debian buster/main amd64 libapr1 amd64 1.6.5-1+b1 [102 kB]
+Get:8 http://deb.debian.org/debian buster/main amd64 libaprutil1 amd64 1.6.1-4 [91.8 kB]
+Get:9 http://deb.debian.org/debian buster/main amd64 apache2-utils amd64 2.4.38-3+deb10u8 [238 kB]
+Get:10 http://deb.debian.org/debian buster/main amd64 libgpm2 amd64 1.20.7-5 [35.1 kB]
+Get:11 http://deb.debian.org/debian buster/main amd64 psmisc amd64 23.2-1+deb10u1 [126 kB]
+Get:12 http://deb.debian.org/debian-security buster/updates/main amd64 vim-runtime all 2:8.1.0875-5+deb10u4 [5777 kB]
+Get:13 http://deb.debian.org/debian-security buster/updates/main amd64 vim amd64 2:8.1.0875-5+deb10u4 [1283 kB]
+debconf: delaying package configuration, since apt-utils is not installed
+Fetched 8440 kB in 0s (43.4 MB/s)
+Selecting previously unselected package libncurses6:amd64.
+(Reading database ... 6840 files and directories currently installed.)
+Preparing to unpack .../00-libncurses6_6.1+20181013-2+deb10u3_amd64.deb ...
+Unpacking libncurses6:amd64 (6.1+20181013-2+deb10u3) ...
+Selecting previously unselected package libprocps7:amd64.
+Preparing to unpack .../01-libprocps7_2%3a3.3.15-2_amd64.deb ...
+Unpacking libprocps7:amd64 (2:3.3.15-2) ...
+Selecting previously unselected package lsb-base.
+Preparing to unpack .../02-lsb-base_10.2019051400_all.deb ...
+Unpacking lsb-base (10.2019051400) ...
+Selecting previously unselected package procps.
+Preparing to unpack .../03-procps_2%3a3.3.15-2_amd64.deb ...
+Unpacking procps (2:3.3.15-2) ...
+Selecting previously unselected package xxd.
+Preparing to unpack .../04-xxd_2%3a8.1.0875-5+deb10u4_amd64.deb ...
+Unpacking xxd (2:8.1.0875-5+deb10u4) ...
+Selecting previously unselected package vim-common.
+Preparing to unpack .../05-vim-common_2%3a8.1.0875-5+deb10u4_all.deb ...
+Unpacking vim-common (2:8.1.0875-5+deb10u4) ...
+Selecting previously unselected package libapr1:amd64.
+Preparing to unpack .../06-libapr1_1.6.5-1+b1_amd64.deb ...
+Unpacking libapr1:amd64 (1.6.5-1+b1) ...
+Selecting previously unselected package libaprutil1:amd64.
+Preparing to unpack .../07-libaprutil1_1.6.1-4_amd64.deb ...
+Unpacking libaprutil1:amd64 (1.6.1-4) ...
+Selecting previously unselected package apache2-utils.
+Preparing to unpack .../08-apache2-utils_2.4.38-3+deb10u8_amd64.deb ...
+Unpacking apache2-utils (2.4.38-3+deb10u8) ...
+Selecting previously unselected package libgpm2:amd64.
+Preparing to unpack .../09-libgpm2_1.20.7-5_amd64.deb ...
+Unpacking libgpm2:amd64 (1.20.7-5) ...
+Selecting previously unselected package psmisc.
+Preparing to unpack .../10-psmisc_23.2-1+deb10u1_amd64.deb ...
+Unpacking psmisc (23.2-1+deb10u1) ...
+Selecting previously unselected package vim-runtime.
+Preparing to unpack .../11-vim-runtime_2%3a8.1.0875-5+deb10u4_all.deb ...
+Adding 'diversion of /usr/share/vim/vim81/doc/help.txt to /usr/share/vim/vim81/doc/help.txt.vim-tiny by vim-runtime'
+Adding 'diversion of /usr/share/vim/vim81/doc/tags to /usr/share/vim/vim81/doc/tags.vim-tiny by vim-runtime'
+Unpacking vim-runtime (2:8.1.0875-5+deb10u4) ...
+Selecting previously unselected package vim.
+Preparing to unpack .../12-vim_2%3a8.1.0875-5+deb10u4_amd64.deb ...
+Unpacking vim (2:8.1.0875-5+deb10u4) ...
+Setting up lsb-base (10.2019051400) ...
+Setting up libgpm2:amd64 (1.20.7-5) ...
+Setting up psmisc (23.2-1+deb10u1) ...
+Setting up libprocps7:amd64 (2:3.3.15-2) ...
+Setting up libapr1:amd64 (1.6.5-1+b1) ...
+Setting up xxd (2:8.1.0875-5+deb10u4) ...
+Setting up vim-common (2:8.1.0875-5+deb10u4) ...
+Setting up libncurses6:amd64 (6.1+20181013-2+deb10u3) ...
+Setting up procps (2:3.3.15-2) ...
+update-alternatives: using /usr/bin/w.procps to provide /usr/bin/w (w) in auto mode
+update-alternatives: warning: skip creation of /usr/share/man/man1/w.1.gz because associated file /usr/share/man/man1/w.procps.1.gz (of link group w) doesn't exist
+Setting up vim-runtime (2:8.1.0875-5+deb10u4) ...
+Setting up libaprutil1:amd64 (1.6.1-4) ...
+Setting up vim (2:8.1.0875-5+deb10u4) ...
+update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/vim (vim) in auto mode
+update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/vimdiff (vimdiff) in auto mode
+update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/rvim (rvim) in auto mode
+update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/rview (rview) in auto mode
+update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/vi (vi) in auto mode
+update-alternatives: warning: skip creation of /usr/share/man/da/man1/vi.1.gz because associated file /usr/share/man/da/man1/vim.1.gz (of link group vi) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/de/man1/vi.1.gz because associated file /usr/share/man/de/man1/vim.1.gz (of link group vi) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/fr/man1/vi.1.gz because associated file /usr/share/man/fr/man1/vim.1.gz (of link group vi) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/it/man1/vi.1.gz because associated file /usr/share/man/it/man1/vim.1.gz (of link group vi) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/ja/man1/vi.1.gz because associated file /usr/share/man/ja/man1/vim.1.gz (of link group vi) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/pl/man1/vi.1.gz because associated file /usr/share/man/pl/man1/vim.1.gz (of link group vi) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/ru/man1/vi.1.gz because associated file /usr/share/man/ru/man1/vim.1.gz (of link group vi) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/man1/vi.1.gz because associated file /usr/share/man/man1/vim.1.gz (of link group vi) doesn't exist
+update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/view (view) in auto mode
+update-alternatives: warning: skip creation of /usr/share/man/da/man1/view.1.gz because associated file /usr/share/man/da/man1/vim.1.gz (of link group view) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/de/man1/view.1.gz because associated file /usr/share/man/de/man1/vim.1.gz (of link group view) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/fr/man1/view.1.gz because associated file /usr/share/man/fr/man1/vim.1.gz (of link group view) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/it/man1/view.1.gz because associated file /usr/share/man/it/man1/vim.1.gz (of link group view) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/ja/man1/view.1.gz because associated file /usr/share/man/ja/man1/vim.1.gz (of link group view) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/pl/man1/view.1.gz because associated file /usr/share/man/pl/man1/vim.1.gz (of link group view) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/ru/man1/view.1.gz because associated file /usr/share/man/ru/man1/vim.1.gz (of link group view) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/man1/view.1.gz because associated file /usr/share/man/man1/vim.1.gz (of link group view) doesn't exist
+update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/ex (ex) in auto mode
+update-alternatives: warning: skip creation of /usr/share/man/da/man1/ex.1.gz because associated file /usr/share/man/da/man1/vim.1.gz (of link group ex) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/de/man1/ex.1.gz because associated file /usr/share/man/de/man1/vim.1.gz (of link group ex) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/fr/man1/ex.1.gz because associated file /usr/share/man/fr/man1/vim.1.gz (of link group ex) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/it/man1/ex.1.gz because associated file /usr/share/man/it/man1/vim.1.gz (of link group ex) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/ja/man1/ex.1.gz because associated file /usr/share/man/ja/man1/vim.1.gz (of link group ex) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/pl/man1/ex.1.gz because associated file /usr/share/man/pl/man1/vim.1.gz (of link group ex) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/ru/man1/ex.1.gz because associated file /usr/share/man/ru/man1/vim.1.gz (of link group ex) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/man1/ex.1.gz because associated file /usr/share/man/man1/vim.1.gz (of link group ex) doesn't exist
+update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/editor (editor) in auto mode
+update-alternatives: warning: skip creation of /usr/share/man/da/man1/editor.1.gz because associated file /usr/share/man/da/man1/vim.1.gz (of link group editor) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/de/man1/editor.1.gz because associated file /usr/share/man/de/man1/vim.1.gz (of link group editor) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/fr/man1/editor.1.gz because associated file /usr/share/man/fr/man1/vim.1.gz (of link group editor) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/it/man1/editor.1.gz because associated file /usr/share/man/it/man1/vim.1.gz (of link group editor) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/ja/man1/editor.1.gz because associated file /usr/share/man/ja/man1/vim.1.gz (of link group editor) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/pl/man1/editor.1.gz because associated file /usr/share/man/pl/man1/vim.1.gz (of link group editor) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/ru/man1/editor.1.gz because associated file /usr/share/man/ru/man1/vim.1.gz (of link group editor) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/man1/editor.1.gz because associated file /usr/share/man/man1/vim.1.gz (of link group editor) doesn't exist
+Setting up apache2-utils (2.4.38-3+deb10u8) ...
+Processing triggers for libc-bin (2.28-10+deb10u2) ...
+Removing intermediate container c05d056667b1
+ ---> b2a6689fa116
+Step 3/7 : WORKDIR /app
+ ---> Running in 499135e21439
+Removing intermediate container 499135e21439
+ ---> 7987d82bbc69
+Step 4/7 : COPY requirements.txt requirements.txt
+ ---> 721a296631ce
+Step 5/7 : RUN pip3 install -r requirements.txt
+ ---> Running in a123f4161d0b
+Collecting Flask==2.2.2
+  Downloading Flask-2.2.2-py3-none-any.whl (101 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 101.5/101.5 KB 19.4 MB/s eta 0:00:00
+Collecting itsdangerous>=2.0
+  Downloading itsdangerous-2.1.2-py3-none-any.whl (15 kB)
+Collecting Jinja2>=3.0
+  Downloading Jinja2-3.1.2-py3-none-any.whl (133 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 133.1/133.1 KB 28.6 MB/s eta 0:00:00
+Collecting click>=8.0
+  Downloading click-8.1.3-py3-none-any.whl (96 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 96.6/96.6 KB 24.0 MB/s eta 0:00:00
+Collecting Werkzeug>=2.2.2
+  Downloading Werkzeug-2.2.2-py3-none-any.whl (232 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 232.7/232.7 KB 47.7 MB/s eta 0:00:00
+Collecting importlib-metadata>=3.6.0
+  Downloading importlib_metadata-6.0.0-py3-none-any.whl (21 kB)
+Collecting zipp>=0.5
+  Downloading zipp-3.12.1-py3-none-any.whl (6.7 kB)
+Collecting MarkupSafe>=2.0
+  Downloading MarkupSafe-2.1.2-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (25 kB)
+Installing collected packages: zipp, MarkupSafe, itsdangerous, click, Werkzeug, Jinja2, importlib-metadata, Flask
+Successfully installed Flask-2.2.2 Jinja2-3.1.2 MarkupSafe-2.1.2 Werkzeug-2.2.2 click-8.1.3 importlib-metadata-6.0.0 itsdangerous-2.1.2 zipp-3.12.1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+WARNING: You are using pip version 22.0.4; however, version 23.0 is available.
+You should consider upgrading via the '/usr/local/bin/python -m pip install --upgrade pip' command.
+Removing intermediate container a123f4161d0b
+ ---> 3ed09b84becf
+Step 6/7 : COPY . .
+ ---> 32878c7a40db
+Step 7/7 : CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0"]
+ ---> Running in 9d963abc96ec
+Removing intermediate container 9d963abc96ec
+ ---> 56f87d5a4218
+Successfully built 56f87d5a4218
+Successfully tagged hello-world-flask:latest```
+
+
+```bash
+root@node1:~/lab# docker images
+REPOSITORY                                                                    TAG               IMAGE ID       CREATED         SIZE
+hello-world-flask                                                             latest            58ae2a9411fc   4 minutes ago   161MB
+
+```
+
+查看映像
+```bash
+docker iamges
+```
+
+```bash
+ubuntu $ docker images
+REPOSITORY          TAG               IMAGE ID       CREATED              SIZE
+hello-world-flask   latest            56f87d5a4218   About a minute ago   163MB
+python              3.8-slim-buster   a87430669f7e   38 hours ago         116MB
+```
+
+
+运行容器，并查看容器页面
+```bash
+docker run -d -p 8000:5000 hello-world-flask:latest
+
+docker ps 
+
+curl localhost:8000
+```
+
+
+```bash
+$ docker run -d -p 8000:5000 hello-world-flask:latest
+50f36bc7e03e925030d81677a0848be2b02d97eb9a71129de3813e03fa4879a7
+ubuntu $ docker ps    
+CONTAINER ID   IMAGE                      COMMAND                  CREATED         STATUS         PORTS                                       NAMES
+50f36bc7e03e   hello-world-flask:latest   "python3 -m flask ru…"   8 seconds ago   Up 7 seconds   0.0.0.0:8000->5000/tcp, :::8000->5000/tcp   friendly_carver
+ubuntu $ curl localhost:8000
+Hello, my first docker images! 50f36bc7e03eubuntu $ 
+```
+
+这里总结了将业务代码构建为容器镜像的基本步骤：
+
+1. 使用 `FROM` 命令指定一个已经安装了特定编程语言编译工具的基础镜像。在官方镜像仓库中可以找到所需的任何基础镜像。例如，对于 Java，可以使用 `eclipse-temurin:17-jdk-jammy`；对于 Golang，可以使用 `golang:1.16-alpine`。
+2. 使用 `WORKDIR` 命令配置镜像的工作目录，如 `WORKDIR /app`。
+3. 使用 `COPY` 命令将本地目录的源码复制到镜像的工作目录下，例如 `COPY .`。
+4. 使用 `RUN` 命令下载业务依赖，例如 `pip3 install`。如果是静态语言，则需要进一步编译源码生成可执行文件。
+5. 最后，使用 `CMD` 命令配置镜像的启动命令，即启动业务代码。
+
+
+---
+
+
+### 上传映像到 hub.docker.com
+
+
+登录到容器映像库
+```bash
+docker login
+```
+
+给本地映像打标签
+
+```bash
+docker tag hello-world-flask chengzh/hello-world-flask
+```
+
+推送映像
+
+```bash
+docker push chengzh/hello-world-flask
+```
+
+
+
+```bash
+ubuntu $ docker login
+Login with your Docker ID to push and pull images from Docker Hub. If you don't have a Docker ID, head over to https://hub.docker.com to create one.
+Username: chengzh
+Password: 
+WARNING! Your password will be stored unencrypted in /root/.docker/config.json.
+Configure a credential helper to remove this warning. See
+https://docs.docker.com/engine/reference/commandline/login/#credentials-store
+
+Login Succeeded
+ubuntu $ docker tag hello-world-flask chengzh/hello-world-flask
+ubuntu $ docker images
+REPOSITORY                  TAG               IMAGE ID       CREATED         SIZE
+chengzh/hello-world-flask   latest            56f87d5a4218   7 minutes ago   163MB
+hello-world-flask           latest            56f87d5a4218   7 minutes ago   163MB
+python                      3.8-slim-buster   a87430669f7e   38 hours ago    116MB
+ubuntu $ docker push chengzh/hello-world-flask
+Using default tag: latest
+The push refers to repository [docker.io/chengzh/hello-world-flask]
+101fce4be7c9: Pushed 
+e3cd84948409: Pushed 
+728fc464d546: Pushed 
+042c8a4e5706: Pushed 
+1176f885248c: Pushed 
+3dc8c69b841e: Mounted from library/python 
+e85196541518: Mounted from library/python 
+326bef06dac1: Mounted from library/python 
+748ccc4fc823: Mounted from library/python 
+60333954a7a8: Mounted from library/python 
+latest: digest: sha256:6cd2283913db39d4d45620d073443c4c3a2cc91b25118f4236f205556bc84044 size: 2414
+
+```
+
+
+---
+
+
+### 在另外一台 docker 宿主机上测试
+
+
+下载映像
+```bash
+docker pull chengzh/hello-world-flask:latest
+```
+
+查看映像
+```bash
+docker images
+```
+
+```bash
+ubuntu $ docker images
+REPOSITORY                  TAG       IMAGE ID       CREATED          SIZE
+chengzh/hello-world-flask   latest    56f87d5a4218   13 minutes ago   163MB
+```
+
+启动容器
+```bash
+docker run -d -p 8000:5000 chengzh/hello-world-flask:latest
+```
+
+查看容器
+```bash
+docker ps
+```
+
+
+```bash
+ubuntu $ docker ps
+CONTAINER ID   IMAGE                              COMMAND                  CREATED         STATUS         PORTS                                       NAMES
+12dbcd7f0621   chengzh/hello-world-flask:latest   "python3 -m flask ru…"   2 minutes ago   Up 2 minutes   0.0.0.0:8000->5000/tcp, :::8000->5000/tcp   bold_lumiere
+```
+
+访问宿主机8000端口
+
+```bash
+curl localhost:8000
+```
+
+```text
+Hello, my first docker images! 12dbcd7f0621
+```
+
+
+和容器进行交互
+```bash
+ docker exec -it 12dbcd7f0621 bash
+```
+
+
+```bash
+ubuntu $  docker exec -it 12dbcd7f0621 bash
+root@12dbcd7f0621:/app# ls
+Dockerfile  __pycache__  app.py  requirements.txt
+root@12dbcd7f0621:/app# 
+```
 
 
 
@@ -4147,13 +2211,1639 @@ git push origin main
 
 
 
+
+
+# 安装 Kubernetes 应用平台
+
+
+
+
+
+## 部署Kind群集
+
+
+
+### 安装 docker
+
+安装 docker, (1.23 还能支持 docker 作为容器运行时, 考虑到 docker 可以兼容更多的实验场景, 所以此例中保留使用 docker)
+
+```bash
+apt -y install apt-transport-https ca-certificates curl software-properties-common
+```
+
+
+
+```bash
+curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable"
+```
+
+
+
+```bash
+apt update -y 
+apt install docker-ce -y 
+```
+
+
+
+可选, 国际互联网直达安装方式
+
+```bash
+# curl -sSL https://get.docker.com/ | sh
+# usermod -aG docker chengzh
+```
+
+
+
+```bash
+mkdir /etc/docker
+```
+
+
+
+```bash
+cat > /etc/docker/daemon.json << EOF
+{
+    "exec-opts": ["native.cgroupdriver=systemd"],
+    "log-driver": "json-file",
+    "log-opts": {
+        "max-size": "100m",
+        "max-file": "10"
+    },
+    "registry-mirrors": ["https://pqbap4ya.mirror.aliyuncs.com"]
+}
+EOF
+```
+
+
+
+```bash
+systemctl restart docker
+systemctl enable docker
+```
+
+
+
+### 安装 kubelet
+
+```
+apt-get update && apt-get install -y apt-transport-https
+```
+
+```bash
+curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add - 
+```
+
+```bash
+cat > /etc/apt/sources.list.d/kubernetes.list << EOF 
+deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main
+EOF
+```
+
+```bash
+apt update -y 
+```
+
+安装当前最新版本 
+
+```text
+apt install -y kubelet kubeadm kubectl
+```
+
+
+
+（可选）安装指定版本此次，以 `1.23.00` 为例
+
+```bash
+apt install -y kubelet=1.23.0-00 kubeadm=1.23.0-00  kubectl=1.23.0-00
+```
+
+
+
+### 安装 Kind 
+
+官方方式
+
+```bash
+curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.17.0/kind-linux-amd64
+chmod +x ./kind
+sudo mv ./kind /usr/local/bin/kind
+```
+
+
+加速方式
+
+```bash
+curl -Lo ./kind https://chengzhstor.blob.core.windows.net/k8slab/kind-linux-amd64
+chmod +x ./kind
+sudo mv ./kind /usr/local/bin/kind
+```
+
+
+
+### 创建实验用群集（单节点）
+
+创建群集配置文件
+
+```bash
+nano  config.yaml
+```
+
+
+```yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  apiServerAddress: "192.168.1.231" # 使用虚机的IP，其他场景则设置为 127.0.0.1
+  apiServerPort: 6443
+nodes:
+- role: control-plane
+  kubeadmConfigPatches:
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "ingress-ready=true"
+  extraPortMappings:
+  - containerPort: 80
+    hostPort: 80
+    protocol: TCP
+  - containerPort: 443
+    hostPort: 443
+    protocol: TCP
+```
+
+
+创建群集
+
+```bash
+kind create cluster --config config.yaml
+```
+
+```bash
+root@node1:~# kind create cluster --config config.yaml
+Creating cluster "kind" ...
+ ✓ Ensuring node image (kindest/node:v1.25.3) 🖼
+ ✓ Preparing nodes 📦
+ ✓ Writing configuration 📜
+ ✓ Starting control-plane 🕹️
+ ✓ Installing CNI 🔌
+ ✓ Installing StorageClass 💾
+Set kubectl context to "kind-kind"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-kind
+
+Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
+root@node1:~# kubectl cluster-info --context kind-kind
+Kubernetes control plane is running at https://192.168.1.231:6443
+CoreDNS is running at https://192.168.1.231:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+```
+
+查看群集节点
+
+```bash
+kubectl get node -o wide
+```
+
+```bash
+root@node1:~# kubectl get node -o wide
+NAME                 STATUS   ROLES           AGE     VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+kind-control-plane   Ready    control-plane   3m32s   v1.25.3   172.18.0.2    <none>        Ubuntu 22.04.1 LTS   5.4.0-107-generic   containerd://1.6.9
+```
+
+
+查看目前的pod
+
+```bash
+kubectl get pod -o wide -A
+```
+
+```bash
+root@node1:~# kubectl get pod -o wide -A
+NAMESPACE            NAME                                         READY   STATUS    RESTARTS   AGE   IP           NODE                 NOMINATED NODE   READINESS GATES
+kube-system          coredns-565d847f94-7j587                     1/1     Running   0          24s   10.244.0.4   kind-control-plane   <none>           <none>
+kube-system          coredns-565d847f94-gqpnw                     1/1     Running   0          24s   10.244.0.3   kind-control-plane   <none>           <none>
+kube-system          etcd-kind-control-plane                      1/1     Running   0          38s   172.18.0.2   kind-control-plane   <none>           <none>
+kube-system          kindnet-2tpcs                                1/1     Running   0          24s   172.18.0.2   kind-control-plane   <none>           <none>
+kube-system          kube-apiserver-kind-control-plane            1/1     Running   0          39s   172.18.0.2   kind-control-plane   <none>           <none>
+kube-system          kube-controller-manager-kind-control-plane   1/1     Running   0          37s   172.18.0.2   kind-control-plane   <none>           <none>
+kube-system          kube-proxy-76lx7                             1/1     Running   0          24s   172.18.0.2   kind-control-plane   <none>           <none>
+kube-system          kube-scheduler-kind-control-plane            1/1     Running   0          37s   172.18.0.2   kind-control-plane   <none>           <none>
+local-path-storage   local-path-provisioner-684f458cdd-2jfl4      1/1     Running   0          24s   10.244.0.2   kind-control-plane   <none>           <none>
+
+```
+
+
+
+## 安装基础群集服务
+
+
+
+安装ingress
+
+```bash
+kubectl create -f https://ghproxy.com/https://raw.githubusercontent.com/cloudzun/resource/main/ingress-nginx/ingress-nginx.yaml
+```
+
+安装metrics
+
+```bash
+kubectl apply -f https://ghproxy.com/https://raw.githubusercontent.com/cloudzun/resource/main/metrics/metrics.yaml
+```
+
+安装 helm
+
+```bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+```
+
+(可选)打印kubeconfig文件
+
+```bash
+cat $HOME/.kube/config
+```
+
+(可选) 安装 Prometheus
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm upgrade prometheus prometheus-community/kube-prometheus-stack \
+--namespace prometheus  --create-namespace --install \
+--set prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues=false \
+--set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false
+```
+
+
+
+
+
+## Kubernetes基本功能测试
+
+
+
+### 在Kubernetes 群集上运行pod
+
+创建Pod定义文件
+
+```bash
+nano flask-pod.yaml
+```
+
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello-world-flask
+spec:
+  containers:
+    - name: flask
+      image: chengzh/hello-world-flask:latest
+      ports:
+        - containerPort: 5000
+```
+
+运行pod
+```bash
+kubectl apply -f flask-pod.yaml
+```
+
+
+```bash
+root@node1:~# kubectl apply -f flask-pod.yaml
+pod/hello-world-flask created
+root@node1:~# kubectl get pod
+NAME                READY   STATUS              RESTARTS   AGE
+hello-world-flask   0/1     ContainerCreating   0          6s
+root@node1:~# kubectl get pod
+NAME                READY   STATUS    RESTARTS   AGE
+hello-world-flask   1/1     Running   0          7m10s
+```
+
+
+
+端口映射
+
+```bash
+kubectl port-forward pod/hello-world-flask 8000:5000
+```
+
+
+```bash
+root@node1:~# kubectl port-forward pod/hello-world-flask 8000:5000
+Forwarding from 127.0.0.1:8000 -> 5000
+Forwarding from [::1]:8000 -> 5000
+Handling connection for 8000
+```
+
+
+打开另外一个终端会话进行访问
+
+```bash
+curl localhost:8000
+```
+
+```bash
+root@node1:~# curl localhost:8000
+Hello, my first docker images! hello-world-flaskroot@node1:~#
+```
+
+如果是在常规Kubernetes 环境中进行实验参考以下步骤
+
+```bash
+controlplane $ kubectl get pod -o wide
+NAME                READY   STATUS    RESTARTS   AGE   IP            NODE     NOMINATED NODE   READINESS GATES
+hello-world-flask   1/1     Running   0          14s   192.168.1.3   node01   <none>           <none>
+controlplane $ curl 192.168.1.3 
+curl: (7) Failed to connect to 192.168.1.3 port 80: Connection refused
+controlplane $ curl 192.168.1.3:5000 
+Hello, my first docker images! hello-world-flaskcontrolplane $ 
+```
+
+
+删除 pod
+
+```bash
+kubectl delete -f flask-pod.yaml
+```
+
+
+```bash
+root@node1:~# kubectl delete -f flask-pod.yaml
+pod "hello-world-flask" deleted
+```
+
+
+
+### 创建实验工作负载
+
+创建 deployment
+
+```bash
+kubectl create deployment hello-world-flask --image=chengzh/hello-world-flask:latest --replicas=2 
+```
+
+创建 service
+```bash
+kubectl create service clusterip hello-world-flask --tcp=5000:5000
+```
+
+
+创建 ingress
+```bash
+kubectl create ingress hello-world-flask --rule="/=hello-world-flask:5000"
+```
+
+
+部署 ingress-nginx
+```bash
+kubectl create -f https://ghproxy.com/https://raw.githubusercontent.com/lyzhang1999/resource/main/ingress-nginx/ingress-nginx.yaml
+```
+
+（可选）如果使用非kind环境，比如sandbox上，则需要为某个节点打标签 `ingress-ready: "true"`
+```bash
+kubectl label node node01 ingress-ready=true
+```
+
+
+
+```bash
+root@node1:~# kubectl create deployment hello-world-flask --image=chengzh/hello-world-flask:latest --replicas=2
+deployment.apps/hello-world-flask created
+root@node1:~# kubectl get pod
+NAME                                 READY   STATUS    RESTARTS   AGE
+hello-world-flask-6bdf7b45dc-5tdzs   1/1     Running   0          5s
+hello-world-flask-6bdf7b45dc-hnvqm   1/1     Running   0          5s
+root@node1:~# kubectl create service clusterip hello-world-flask --tcp=5000:5000
+service/hello-world-flask created
+root@node1:~# kubectl get svc
+NAME                TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+hello-world-flask   ClusterIP   10.96.196.45   <none>        5000/TCP   5s
+kubernetes          ClusterIP   10.96.0.1      <none>        443/TCP    47m
+root@node1:~# kubectl create ingress hello-world-flask --rule="/=hello-world-flask:5000"
+ingress.networking.k8s.io/hello-world-flask created
+root@node1:~# kubectl get ingress
+NAME                CLASS    HOSTS   ADDRESS   PORTS   AGE
+hello-world-flask   <none>   *                 80      9s
+root@node1:~# kubectl create -f https://ghproxy.com/https://raw.githubusercontent.com/lyzhang1999/resource/main/ingress-nginx/ingress-nginx.yaml
+namespace/ingress-nginx created
+serviceaccount/ingress-nginx created
+serviceaccount/ingress-nginx-admission created
+role.rbac.authorization.k8s.io/ingress-nginx created
+role.rbac.authorization.k8s.io/ingress-nginx-admission created
+clusterrole.rbac.authorization.k8s.io/ingress-nginx created
+clusterrole.rbac.authorization.k8s.io/ingress-nginx-admission created
+rolebinding.rbac.authorization.k8s.io/ingress-nginx created
+rolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
+clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx created
+clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
+configmap/ingress-nginx-controller created
+service/ingress-nginx-controller created
+service/ingress-nginx-controller-admission created
+deployment.apps/ingress-nginx-controller created
+job.batch/ingress-nginx-admission-create created
+job.batch/ingress-nginx-admission-patch created
+ingressclass.networking.k8s.io/nginx created
+validatingwebhookconfiguration.admissionregistration.k8s.io/ingress-nginx-admission created
+root@node1:~# kubectl get pod -n ingress-nginx
+NAME                                        READY   STATUS      RESTARTS   AGE
+ingress-nginx-admission-create-qb69f        0/1     Completed   0          2m11s
+ingress-nginx-admission-patch-m6jqg         0/1     Completed   0          2m11s
+ingress-nginx-controller-7574997855-tfpcw   1/1     Running     0          2m11s
+```
+
+
+- Pod 会被 Deployment 工作负载管理起来，例如创建和销毁等；
+- Service 相当于弹性伸缩组的负载均衡器，它能以加权轮训的方式将流量转发到多个 Pod 副本上；
+- Ingress 相当于集群的外网访问入口。
+
+
+
+### 工作负载自愈
+
+打开另外一个会话窗口访问服务
+```bash
+while true; do sleep 1; curl http://127.0.0.1; echo -e '\n'$(date);done
+```
+有了 Ingress，我们访问 Pod 就不再需要进行端口转发了，我们可以直接访问 127.0.0.1。上面的命令会每隔 1 秒钟发送一次请求，并打印出时间和返回内容：
+
+```bash
+root@node1:~# while true; do sleep 1; curl http://127.0.0.1; echo -e '\n'$(date);done
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-5tdzs
+Mon 06 Feb 2023 12:01:40 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-hnvqm
+Mon 06 Feb 2023 12:01:41 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-5tdzs
+Mon 06 Feb 2023 12:01:42 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-5tdzs
+Mon 06 Feb 2023 12:01:43 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-hnvqm
+Mon 06 Feb 2023 12:01:44 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-hnvqm
+Mon 06 Feb 2023 12:01:45 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-5tdzs
+Mon 06 Feb 2023 12:01:46 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-hnvqm
+Mon 06 Feb 2023 12:01:47 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-5tdzs
+Mon 06 Feb 2023 12:01:48 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-5tdzs
+Mon 06 Feb 2023 12:01:49 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-hnvqm
+Mon 06 Feb 2023 12:01:50 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-5tdzs
+Mon 06 Feb 2023 12:01:51 PM CST
+
+```
+在这里，“Hello, my first docker images” 后面紧接的内容是 Pod 名称。通过返回内容我们会发现，请求被平均分配到了两个 Pod 上，Pod 名称是交替出现的。我们要保留这个命令行窗口，以便继续观察。
+
+如果使用非kind环境，需要使用此前打标签的机器的名称或者地址进行观察
+
+```bash
+while true; do sleep 1; curl node01; echo -e '\n'$(date);done
+```
+
+模拟某个pod失效
+
+```bash
+kubectl get pod
+```
+
+
+```bash
+root@node1:~# kubectl get pod
+NAME                                 READY   STATUS    RESTARTS   AGE
+hello-world-flask-6bdf7b45dc-5tdzs   1/1     Running   0          12m
+hello-world-flask-6bdf7b45dc-hnvqm   1/1     Running   0          12m
+```
+
+```bash
+kubectl delete pod hello-world-flask-6bdf7b45dc-5tdzs
+```
+
+
+所有的流量被压在另一个正常的pod
+```bash
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-hnvqm
+Mon 06 Feb 2023 12:08:31 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-hnvqm
+Mon 06 Feb 2023 12:08:32 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-hnvqm
+Mon 06 Feb 2023 12:08:33 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-hnvqm
+Mon 06 Feb 2023 12:08:34 PM CST
+```
+
+
+新pod上线后，流量在新旧两个pod上负载均衡
+```bash
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-qbvf2
+Mon 06 Feb 2023 12:08:35 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-hnvqm
+Mon 06 Feb 2023 12:08:36 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-qbvf2
+Mon 06 Feb 2023 12:08:37 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-qbvf2
+Mon 06 Feb 2023 12:08:38 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-hnvqm
+Mon 06 Feb 2023 12:08:39 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-qbvf2
+Mon 06 Feb 2023 12:08:40 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-hnvqm
+Mon 06 Feb 2023 12:08:41 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-qbvf2
+Mon 06 Feb 2023 12:08:42 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-hnvqm
+Mon 06 Feb 2023 12:08:43 PM CST
+Hello, my first docker images! hello-world-flask-6bdf7b45dc-qbvf2
+```
+
+再次查看pod列表
+
+```bash
+kubectl get pod
+```
+
+```bash
+root@node1:~# kubectl get pod
+NAME                                 READY   STATUS    RESTARTS   AGE
+hello-world-flask-6bdf7b45dc-hnvqm   1/1     Running   0          17m
+hello-world-flask-6bdf7b45dc-qbvf2   1/1     Running   0          2m1s
+```
+
+首先， K8s 感知到了业务 Pod 故障，立刻进行了故障转移并隔离了有故障的 Pod，并将请求转发到了其他健康的 Pod 中。随后重启了有故障的 Pod，最后将重启后的 Pod 加入到了负载均衡并开始接收外部请求。这些过程都是自动化完成的。
+
+
+
+### 自动扩容
+
+（可选）安装 metrics 
+
+```bash
+kubectl apply -f https://ghproxy.com/https://raw.githubusercontent.com/lyzhang1999/resource/main/metrics/metrics.yaml
+```
+
+```bash
+kubectl wait deployment -n kube-system metrics-server --for condition=Available=True --timeout=90s
+```
+
+```bash
+root@node1:~# kubectl apply -f https://ghproxy.com/https://raw.githubusercontent.com/lyzhang1999/resource/main/metrics/metrics.yaml
+serviceaccount/metrics-server created
+clusterrole.rbac.authorization.k8s.io/system:aggregated-metrics-reader created
+clusterrole.rbac.authorization.k8s.io/system:metrics-server created
+rolebinding.rbac.authorization.k8s.io/metrics-server-auth-reader created
+clusterrolebinding.rbac.authorization.k8s.io/metrics-server:system:auth-delegator created
+clusterrolebinding.rbac.authorization.k8s.io/system:metrics-server created
+service/metrics-server created
+deployment.apps/metrics-server created
+apiservice.apiregistration.k8s.io/v1beta1.metrics.k8s.io created
+root@node1:~# kubectl wait deployment -n kube-system metrics-server --for condition=Available=True --timeout=90s
+deployment.apps/metrics-server condition met
+```
+
+创建自动扩缩容策略
+```bash
+kubectl autoscale deployment hello-world-flask --cpu-percent=50 --min=2 --max=10
+```
+
+
+```bash
+root@node1:~# kubectl autoscale deployment hello-world-flask --cpu-percent=50 --min=2 --max=10
+horizontalpodautoscaler.autoscaling/hello-world-flask autoscaled
+```
+
+为deployment注入资源配额
+```bash
+kubectl patch deployment hello-world-flask --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/resources", "value": {"requests": {"memory": "100Mi", "cpu": "100m"}}}]'
+```
+
+
+```bash
+root@node1:~# kubectl patch deployment hello-world-flask --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/resources", "value": {"requests": {"memory": "100Mi", "cpu": "100m"}}}]'
+deployment.apps/hello-world-flask patched
+root@node1:~# kubectl get pod
+NAME                                 READY   STATUS        RESTARTS   AGE
+hello-world-flask-5d4494cc9b-5p7vx   1/1     Running       0          12s
+hello-world-flask-5d4494cc9b-jmwxd   1/1     Running       0          8s
+hello-world-flask-6bdf7b45dc-hnvqm   1/1     Terminating   0          31m
+hello-world-flask-6bdf7b45dc-qbvf2   1/1     Terminating   0          15m
+root@node1:~# kubectl get pod
+NAME                                 READY   STATUS    RESTARTS   AGE
+hello-world-flask-5d4494cc9b-5p7vx   1/1     Running   0          49s
+hello-world-flask-5d4494cc9b-jmwxd   1/1     Running   0          45s
+```
+
+进入到某一个pod的上下文
+```bash
+kubectl exec -it kubectl exec -it hello-world-flask-5d4494cc9b-jmwxd  -- bash
+```
+
+模拟业务高峰场景
+```bash
+ab -c 50 -n 10000 http://127.0.0.1:5000/
+```
+在这条压力测试的命令中，-c 代表 50 个并发数，-n 代表一共请求 10000 次，整个过程大概会持续十几秒。
+
+
+```bash
+root@node1:~# kubectl exec -it hello-world-flask-5d4494cc9b-jmwxd -- bash
+root@hello-world-flask-5d4494cc9b-jmwxd:/app# ab -c 50 -n 10000 http://127.0.0.1:5000/
+This is ApacheBench, Version 2.3 <$Revision: 1843412 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 127.0.0.1 (be patient)
+Completed 1000 requests
+Completed 2000 requests
+Completed 3000 requests
+Completed 4000 requests
+Completed 5000 requests
+Completed 6000 requests
+Completed 7000 requests
+Completed 8000 requests
+Completed 9000 requests
+Completed 10000 requests
+Finished 10000 requests
+
+
+Server Software:        Werkzeug/2.2.2
+Server Hostname:        127.0.0.1
+Server Port:            5000
+
+Document Path:          /
+Document Length:        65 bytes
+
+Concurrency Level:      50
+Time taken for tests:   9.177 seconds
+Complete requests:      10000
+Failed requests:        0
+Total transferred:      2380000 bytes
+HTML transferred:       650000 bytes
+Requests per second:    1089.67 [#/sec] (mean)
+Time per request:       45.886 [ms] (mean)
+Time per request:       0.918 [ms] (mean, across all concurrent requests)
+Transfer rate:          253.26 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.1      0       2
+Processing:     2   46   5.6     44      80
+Waiting:        1   45   5.5     44      80
+Total:          2   46   5.6     44      80
+
+Percentage of the requests served within a certain time (ms)
+  50%     44
+  66%     46
+  75%     48
+  80%     49
+  90%     53
+  95%     56
+  98%     60
+  99%     63
+ 100%     80 (longest request)
+
+```
+
+
+再开一个会话窗口（对，第三个）
+
+```bash
+kubectl get pods --watch
+```
+
+
+```bash
+root@node1:~# kubectl get pods --watch
+NAME                                 READY   STATUS    RESTARTS   AGE
+hello-world-flask-5d4494cc9b-5p7vx   1/1     Running   0          8m
+hello-world-flask-5d4494cc9b-87vx2   1/1     Running   0          51s
+hello-world-flask-5d4494cc9b-bwh5s   1/1     Running   0          66s
+hello-world-flask-5d4494cc9b-jmwxd   1/1     Running   0          7m56s
+hello-world-flask-5d4494cc9b-mn4w9   1/1     Running   0          66s
+hello-world-flask-5d4494cc9b-r5fh5   1/1     Running   0          51s
+hello-world-flask-5d4494cc9b-trsm4   0/1     Pending   0          36s
+hello-world-flask-5d4494cc9b-vvn9v   0/1     Pending   0          36s
+hello-world-flask-5d4494cc9b-vx2kb   1/1     Running   0          51s
+hello-world-flask-5d4494cc9b-xkqxv   1/1     Running   0          51s
+```
+参数 --watch 表示持续监听 Pod 状态变化。在 ab 压力测试的过程中，会不断创建新的 Pod 副本，这说明 K8s 已经感知到了 Pod 的业务压力，并且正在自动进行横向扩容
+
+
+延长时间会观测到自动缩容
+
+```bash
+root@node1:~# kubectl get pods --watch
+NAME                                 READY   STATUS    RESTARTS   AGE
+hello-world-flask-5d4494cc9b-5p7vx   1/1     Running   0          8m
+hello-world-flask-5d4494cc9b-87vx2   1/1     Running   0          51s
+hello-world-flask-5d4494cc9b-bwh5s   1/1     Running   0          66s
+hello-world-flask-5d4494cc9b-jmwxd   1/1     Running   0          7m56s
+hello-world-flask-5d4494cc9b-mn4w9   1/1     Running   0          66s
+hello-world-flask-5d4494cc9b-r5fh5   1/1     Running   0          51s
+hello-world-flask-5d4494cc9b-trsm4   0/1     Pending   0          36s
+hello-world-flask-5d4494cc9b-vvn9v   0/1     Pending   0          36s
+hello-world-flask-5d4494cc9b-vx2kb   1/1     Running   0          51s
+hello-world-flask-5d4494cc9b-xkqxv   1/1     Running   0          51s
+hello-world-flask-5d4494cc9b-trsm4   0/1     Terminating   0          4m30s
+hello-world-flask-5d4494cc9b-vvn9v   0/1     Terminating   0          4m30s
+hello-world-flask-5d4494cc9b-trsm4   0/1     Terminating   0          4m30s
+hello-world-flask-5d4494cc9b-vvn9v   0/1     Terminating   0          4m30s
+hello-world-flask-5d4494cc9b-bwh5s   1/1     Terminating   0          5m30s
+hello-world-flask-5d4494cc9b-vx2kb   1/1     Terminating   0          5m15s
+hello-world-flask-5d4494cc9b-r5fh5   1/1     Terminating   0          5m15s
+hello-world-flask-5d4494cc9b-xkqxv   1/1     Terminating   0          5m15s
+hello-world-flask-5d4494cc9b-mn4w9   1/1     Terminating   0          5m30s
+hello-world-flask-5d4494cc9b-87vx2   1/1     Terminating   0          5m15s
+hello-world-flask-5d4494cc9b-xkqxv   0/1     Terminating   0          5m46s
+hello-world-flask-5d4494cc9b-xkqxv   0/1     Terminating   0          5m46s
+hello-world-flask-5d4494cc9b-xkqxv   0/1     Terminating   0          5m46s
+hello-world-flask-5d4494cc9b-mn4w9   0/1     Terminating   0          6m1s
+hello-world-flask-5d4494cc9b-mn4w9   0/1     Terminating   0          6m1s
+hello-world-flask-5d4494cc9b-mn4w9   0/1     Terminating   0          6m1s
+hello-world-flask-5d4494cc9b-vx2kb   0/1     Terminating   0          5m46s
+hello-world-flask-5d4494cc9b-vx2kb   0/1     Terminating   0          5m46s
+hello-world-flask-5d4494cc9b-vx2kb   0/1     Terminating   0          5m46s
+hello-world-flask-5d4494cc9b-87vx2   0/1     Terminating   0          5m47s
+hello-world-flask-5d4494cc9b-87vx2   0/1     Terminating   0          5m47s
+hello-world-flask-5d4494cc9b-87vx2   0/1     Terminating   0          5m47s
+hello-world-flask-5d4494cc9b-bwh5s   0/1     Terminating   0          6m2s
+hello-world-flask-5d4494cc9b-bwh5s   0/1     Terminating   0          6m3s
+hello-world-flask-5d4494cc9b-bwh5s   0/1     Terminating   0          6m3s
+hello-world-flask-5d4494cc9b-r5fh5   0/1     Terminating   0          5m48s
+hello-world-flask-5d4494cc9b-r5fh5   0/1     Terminating   0          5m48s
+hello-world-flask-5d4494cc9b-r5fh5   0/1     Terminating   0          5m48s
+
+```
+
+```bash
+root@node1:~# kubectl get pod
+NAME                                 READY   STATUS    RESTARTS   AGE
+hello-world-flask-5d4494cc9b-5p7vx   1/1     Running   0          15m
+hello-world-flask-5d4494cc9b-jmwxd   1/1     Running   0          15m
+```
+
+
+
+
+
+# 示例应用的部署和解析
+
+
+
+## 组件分析和部署
+
+
+
+数据库配置分析
+
+```yaml
+apiVersion: v1
+data:
+  CreateDB.sql: |-
+    CREATE TABLE text (
+        id serial PRIMARY KEY,
+        text VARCHAR ( 100 ) UNIQUE NOT NULL
+    );
+kind: ConfigMap
+metadata:
+  name: pg-init-script
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels:
+    app: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database
+  template:
+    metadata:
+      labels:
+        app: database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: sqlscript
+          mountPath: /docker-entrypoint-initdb.d
+        env:
+          - name: POSTGRES_USER
+            value: "postgres"
+          - name: POSTGRES_PASSWORD
+            value: "postgres"
+      volumes:
+        - name: sqlscript
+          configMap:
+            name: pg-init-script
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pg-service
+  labels:
+    app: database
+spec:
+  type: ClusterIP
+  selector:
+    app: database
+  ports:
+  - port: 5432
+```
+
+这个 Kubernetes 清单文件定义了一个使用 Postgres 镜像的 Deployment，其中包含一个初始化脚本（在 ConfigMap 中定义）来创建一个 "text" 表。同时，它还创建了一个 ClusterIP 类型的 Service，用于在集群内部访问 Postgres 数据库。
+
+通过这个配置，当 Postgres 容器启动时，会自动执行 ConfigMap 中的 "CreateDB.sql" 脚本来创建 "text" 表。服务 "pg-service" 则提供了一个在集群内访问该 Postgres 数据库的统一入口，其他应用可以通过该服务与数据库进行通信。这种方式使得部署和管理 Postgres 数据库变得更加简单和灵活。
+
+1.  ConfigMap:
+    
+    -   `apiVersion: v1`: 使用 Kubernetes API 的 v1 版本。
+    -   `kind: ConfigMap`: 表示创建一个 ConfigMap 资源。
+    -   `metadata`: ConfigMap 的元数据，包括名称 "pg-init-script"。
+    -   `data`: 包含一个 SQL 脚本 "CreateDB.sql"，用于创建一个名为 "text" 的表。这个表有两个字段：一个名为 "id" 的自增主键和一个名为 "text" 的唯一非空 VARCHAR 字段。
+2.  Deployment:
+    
+    -   `apiVersion: apps/v1`: 使用 Kubernetes API 的 apps/v1 版本。
+    -   `kind: Deployment`: 表示创建一个 Deployment 资源。
+    -   `metadata`: Deployment 的元数据，包括名称 "postgres" 和一个标签 "app: database"。
+    -   `spec`: Deployment 的详细规格。
+        -   `replicas: 1`: 只创建一个副本。
+        -   `selector`: 用于选择具有 "app: database" 标签的 Pods。
+        -   `template`: 定义了 Pod 的模板。
+            -   `metadata`: 指定 Pod 的标签 "app: database"。
+            -   `spec`: Pod 的详细规格。
+                -   `containers`: 容器的列表，只有一个容器 "postgres"。
+                    -   `name: postgres`: 容器的名称。
+                    -   `image: postgres`: 容器的镜像。
+                    -   `imagePullPolicy: IfNotPresent`: 如果镜像已经存在，就不需要拉取。
+                    -   `ports`: 容器暴露的端口列表，这里只有一个端口 5432。
+                    -   `volumeMounts`: 挂载的卷列表，挂载名为 "sqlscript" 的卷到容器内的 "/docker-entrypoint-initdb.d" 目录。
+                    -   `env`: 定义了环境变量 "POSTGRES_USER" 和 "POSTGRES_PASSWORD"，分别设置为 "postgres" 和 "postgres"。
+                -   `volumes`: 卷的列表，这里只有一个卷 "sqlscript"。
+                    -   `name: sqlscript`: 卷的名称。
+                    -   `configMap`: 从 ConfigMap "pg-init-script" 创建卷。
+3.  Service:
+    
+    -   `apiVersion: v1`: 使用 Kubernetes API 的 v1 版本。
+    -   `kind: Service`: 表示创建一个 Service 资源。
+    -   `metadata`: Service 的元数据，包括名称 "pg-service" 和一个标签 "app: database"。
+    -   `spec`: Service 的详细规格。
+        -   `type: ClusterIP`: 使用 ClusterIP 类型的 Service。
+        -   `selector`: 选择具有 "app: database" 标签的 Pods。
+        -   `ports`: 服务暴露的端口列表，这里只有一个端口 5432。
+
+后端服务分析
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: flask-backend
+        image: chengzh/backend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5000
+        env:
+        - name: DATABASE_URI
+          value: pg-service
+        - name: DATABASE_USERNAME
+          value: postgres
+        - name: DATABASE_PASSWORD
+          value: postgres
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "128m"
+          limits:
+            memory: "256Mi"
+            cpu: "256m"
+        readinessProbe: 
+          httpGet:
+            path: /healthy
+            port: 5000
+            scheme: HTTP
+          initialDelaySeconds: 10
+          failureThreshold: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        livenessProbe: 
+          httpGet:
+            path: /healthy
+            port: 5000
+            scheme: HTTP
+          failureThreshold: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        startupProbe: 
+          httpGet:
+            path: /healthy
+            port: 5000
+            scheme: HTTP
+          initialDelaySeconds: 10
+          failureThreshold: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  labels:
+    app: backend
+spec:
+  type: ClusterIP
+  selector:
+    app: backend
+  ports:
+  - port: 5000
+    targetPort: 5000
+```
+
+这个 Kubernetes 清单文件定义了一个基于 Flask 的后端应用的 Deployment 和一个 ClusterIP 类型的 Service。部署中的容器使用了一个自定义镜像 "chengzh/backend:latest"，并暴露了 5000 端口。同时设置了环境变量以连接到前面创建的 Postgres 数据库。Service "backend-service" 则提供了一个统一的访问点，使得集群内其他服务可以与此后端应用通信。此外，还配置了探针以确保应用的正常运行和故障恢复。
+
+1.  Deployment:
+    
+    -   `apiVersion: apps/v1`: 使用 Kubernetes API 的 apps/v1 版本。
+    -   `kind: Deployment`: 表示创建一个 Deployment 资源。
+    -   `metadata`: Deployment 的元数据，包括名称 "backend" 和一个标签 "app: backend"。
+    -   `spec`: Deployment 的详细规格。
+        -   `replicas: 1`: 只创建一个副本。
+        -   `selector`: 用于选择具有 "app: backend" 标签的 Pods。
+        -   `template`: 定义了 Pod 的模板。
+            -   `metadata`: 指定 Pod 的标签 "app: backend"。
+            -   `spec`: Pod 的详细规格。
+                -   `containers`: 容器的列表，只有一个容器 "flask-backend"。
+                    -   `name: flask-backend`: 容器的名称。
+                    -   `image: chengzh/backend:latest`: 容器的镜像。
+                    -   `imagePullPolicy: IfNotPresent`: 如果镜像已经存在，就不需要拉取。
+                    -   `ports`: 容器暴露的端口列表，这里只有一个端口 5000。
+                    -   `env`: 定义了环境变量 "DATABASE_URI"、"DATABASE_USERNAME" 和 "DATABASE_PASSWORD"，用于连接到前面创建的 Postgres 数据库。
+                    -   `resources`: 定义容器的资源限制和请求。
+                    -   `readinessProbe`: 定义容器的就绪探针，用于检查应用是否准备好接受流量。
+                    -   `livenessProbe`: 定义容器的存活探针，用于检查应用是否仍在运行。
+                    -   `startupProbe`: 定义容器的启动探针，用于检查应用是否成功启动。
+2.  Service:
+    
+    -   `apiVersion: v1`: 使用 Kubernetes API 的 v1 版本。
+    -   `kind: Service`: 表示创建一个 Service 资源。
+    -   `metadata`: Service 的元数据，包括名称 "backend-service" 和一个标签 "app: backend"。
+    -   `spec`: Service 的详细规格。
+        -   `type: ClusterIP`: 使用 ClusterIP 类型的 Service。
+        -   `selector`: 选择具有 "app: backend" 标签的 Pods。
+        -   `ports`: 服务暴露的端口列表，这里只有一个端口 5000，对应容器的 5000 端口。
+
+探针配置说明：
+
+-   `readinessProbe`: 就绪探针
+    
+    -   `httpGet`: 使用 HTTP GET 请求检查应用是否准备好接受流量。
+    -   `path`: 探针访问的路径，这里设置为 "/healthy"。
+    -   `port`: 探针访问的端口，这里设置为 5000。
+    -   `initialDelaySeconds`: 容器启动后多少秒开始进行探测，默认值为 0。
+    -   `failureThreshold`: 探测失败多少次后认为容器不健康，默认值为 3。
+    -   `periodSeconds`: 探测的周期，默认值为 10。
+    -   `successThreshold`: 探测成功多少次后认为容器健康，默认值为 1。
+    -   `timeoutSeconds`: 探测超时时间，默认值为 1。
+-   `livenessProbe`: 存活探针
+    
+    -   使用与就绪探针相同的设置进行存活探测。
+-   `startupProbe`: 启动探针
+    
+    -   使用与就绪探针相同的设置进行启动探测。
+
+通过这个配置，应用在启动、运行过程中和准备好接收请求时，Kubernetes 都会根据探针的配置检查应用的状态。这有助于确保应用在出现问题时能够自动恢复，提高了应用的可用性和稳定性。
+
+
+
+前端服务分析
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: react-frontend
+        image: chengzh/frontend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "128m"
+          limits:
+            memory: "256Mi"
+            cpu: "256m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend
+  ports:
+  - port: 3000
+    targetPort: 3000
+```
+
+这个 Kubernetes 清单文件定义了一个基于 React 的前端应用的 Deployment 和一个 ClusterIP 类型的 Service。部署中的容器使用了一个自定义镜像 "chengzh/frontend:latest"，并暴露了 3000 端口。Service "frontend-service" 则提供了一个统一的访问点，使得集群内其他服务可以与此前端应用通信。
+
+1.  Deployment:
+    
+    -   `apiVersion: apps/v1`: 使用 Kubernetes API 的 apps/v1 版本。
+    -   `kind: Deployment`: 表示创建一个 Deployment 资源。
+    -   `metadata`: Deployment 的元数据，包括名称 "frontend" 和一个标签 "app: frontend"。
+    -   `spec`: Deployment 的详细规格。
+        -   `replicas: 1`: 只创建一个副本。
+        -   `selector`: 用于选择具有 "app: frontend" 标签的 Pods。
+        -   `template`: 定义了 Pod 的模板。
+            -   `metadata`: 指定 Pod 的标签 "app: frontend"。
+            -   `spec`: Pod 的详细规格。
+                -   `containers`: 容器的列表，只有一个容器 "react-frontend"。
+                    -   `name: react-frontend`: 容器的名称。
+                    -   `image: chengzh/frontend:latest`: 容器的镜像。
+                    -   `imagePullPolicy: IfNotPresent`: 如果镜像已经存在，就不需要拉取。
+                    -   `ports`: 容器暴露的端口列表，这里只有一个端口 3000。
+                    -   `resources`: 定义容器的资源限制和请求。
+2.  Service:
+    
+    -   `apiVersion: v1`: 使用 Kubernetes API 的 v1 版本。
+    -   `kind: Service`: 表示创建一个 Service 资源。
+    -   `metadata`: Service 的元数据，包括名称 "frontend-service"。
+    -   `spec`: Service 的详细规格。
+        -   `type: ClusterIP`: 使用 ClusterIP 类型的 Service。
+        -   `selector`: 选择具有 "app: frontend" 标签的 Pods。
+        -   `ports`: 服务暴露的端口列表，这里只有一个端口 3000，对应容器的 3000 端口。
+
+ ingress 分析
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /?(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 3000
+          - path: /api/?(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-service
+                port:
+                  number: 5000
+  ingressClassName: nginx
+```
+
+这个 Kubernetes 清单文件定义了一个 Ingress 资源，用于配置基于 Nginx Ingress 控制器的应用路由规则。它将根路径（及其子路径）的请求路由到 "frontend-service" 服务（端口 3000），将以 "/api" 开头的请求路由到 "backend-service" 服务（端口 5000）。这为前端和后端服务提供了一个统一的访问点。
+
+1.  Ingress:
+    
+    -   `apiVersion: networking.k8s.io/v1`: 使用 Kubernetes API 的 `networking.k8s.io/v1` 版本。
+    -   `kind: Ingress`: 表示创建一个 Ingress 资源。
+    -   `metadata`: Ingress 的元数据，包括名称 "frontend-ingress"。
+    -   `annotations`: Ingress 的注解，用于配置 Ingress 控制器的行为。
+        -   `nginx.ingress.kubernetes.io/rewrite-target: /$1`: 为 Nginx Ingress 控制器设置 URL 重写规则。
+2.  `spec`: Ingress 的详细规格。
+    
+    -   `rules`: 定义 Ingress 的路由规则。
+        -   第一条规则：
+            -   `path: /?(.*)`: 匹配根路径及其子路径。问号表示该子组是可选的，星号表示匹配任意字符。
+            -   `pathType: Prefix`: 表示路径匹配类型为前缀匹配。
+            -   `backend`: 定义后端服务的信息。
+                -   `service`: 指定后端服务的名称和端口。
+                    -   `name: frontend-service`: 指定后端服务名称为 "frontend-service"。
+                    -   `port`: 指定后端服务端口号为 3000。
+        -   第二条规则：
+            -   `path: /api/?(.*)`: 匹配以 "/api" 开头的路径及其子路径。
+            -   `pathType: Prefix`: 表示路径匹配类型为前缀匹配。
+            -   `backend`: 定义后端服务的信息。
+                -   `service`: 指定后端服务的名称和端口。
+                    -   `name: backend-service`: 指定后端服务名称为 "backend-service"。
+                    -   `port`: 指定后端服务端口号为 5000。
+    -   `ingressClassName: nginx`: 指定使用名为 "nginx" 的 Ingress 类。
+
+HPA策略分析
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: frontend
+spec:
+  scaleTargetRef:
+    kind: Deployment
+    name: frontend
+    apiVersion: apps/v1
+  minReplicas: 2
+  maxReplicas: 2
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend
+spec:
+  scaleTargetRef:
+    kind: Deployment
+    name: backend
+    apiVersion: apps/v1
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 50
+```
+
+这个 Kubernetes 清单文件定义了两个 HorizontalPodAutoscaler（HPA）资源，用于自动伸缩前端和后端应用的 Deployment。前端应用的 HPA 配置会根据 CPU 利用率进行伸缩，最小和最大副本数均为 2。后端应用的 HPA 配置会根据 CPU 和内存利用率进行伸缩，最小副本数为 2，最大副本数为 10。这些配置将确保在负载变化时，应用能够根据需要自动调整副本数量，以提供稳定的性能和资源利用率。
+
+1.  前端应用的 HPA 配置：
+    
+    -   `apiVersion: autoscaling/v2`: 使用 Kubernetes API 的 autoscaling/v2 版本。
+    -   `kind: HorizontalPodAutoscaler`: 表示创建一个 HorizontalPodAutoscaler 资源。
+    -   `metadata`: HPA 的元数据，包括名称 "frontend"。
+    -   `spec`: HPA 的详细规格。
+        -   `scaleTargetRef`: 需要伸缩的目标资源的引用。
+            -   `kind: Deployment`: 目标资源类型是 Deployment。
+            -   `name: frontend`: 目标资源的名称为 "frontend"。
+            -   `apiVersion: apps/v1`: 目标资源的 API 版本为 apps/v1。
+        -   `minReplicas: 2`: 最小副本数为 2。
+        -   `maxReplicas: 2`: 最大副本数为 2。
+        -   `metrics`: 用于驱动伸缩行为的指标。
+            -   `type: Resource`: 指标类型为资源。
+            -   `resource`: 目标资源的详细信息。
+                -   `name: cpu`: 目标资源名称为 CPU。
+                -   `target`: 目标资源的使用目标。
+                    -   `type: Utilization`: 目标类型为利用率。
+                    -   `averageUtilization: 80`: 平均利用率目标为 80%。
+2.  后端应用的 HPA 配置：
+    
+    -   `apiVersion: autoscaling/v2`: 使用 Kubernetes API 的 autoscaling/v2 版本。
+    -   `kind: HorizontalPodAutoscaler`: 表示创建一个 HorizontalPodAutoscaler 资源。
+    -   `metadata`: HPA 的元数据，包括名称 "backend"。
+    -   `spec`: HPA 的详细规格。
+        -   `scaleTargetRef`: 需要伸缩的目标资源的引用。
+            -   `kind: Deployment`: 目标资源类型是 Deployment。
+            -   `name: backend`: 目标资源的名称为 "backend"。
+            -   `apiVersion: apps/v1`: 目标资源的 API 版本为 apps/v1。
+        -   `minReplicas: 2`: 最小副本数为 2。
+        -   `maxReplicas: 10`: 最大副本数为 10。
+        -   `metrics`: 用于驱动伸缩行为的指标。
+            -   第一个指标：
+                -   `type: Resource`: 指标类型为资源。
+                -   `resource`: 目标资源的详细信息。
+                    -   `name: cpu`: 目标资源名称为 CPU。
+                    -   `target`: 目标资源的使用目标。
+                        -   `type: Utilization`: 目标类型为利用率。
+                        -   `averageUtilization: 50`: 平均利用率目标为 50%。
+            -   第二个指标：
+                -   `type: Resource`: 指标类型为资源。
+                -   `resource`: 目标资源的详细信息。
+                    -   `name: memory`: 目标资源名称为内存。 
+                    -  `target`: 目标资源的使用目标。 
+                        -   `type: Utilization`: 目标类型为利用率。 
+                        -   `averageUtilization: 50`: 平均利用率目标为 50%。
+
+部署示例应用
+
+```bash
+kubectl create namespace example
+
+git clone https://ghproxy.com/https://github.com/cloudzun/kubernetes-example && cd kubernetes-example
+
+kubectl apply -f deploy -n example
+```
+
+检查pod是否部署到位
+
+```bash
+kubectl wait --for=condition=Ready pods --all -n example
+```
+
+```bash
+root@node1:~# kubectl wait --for=condition=Ready pods --all -n example
+pod/backend-6b55f869fd-5mnxq condition met
+pod/frontend-6b5b58d5f8-97cmm condition met
+pod/postgres-fbd8f9f49-n89tl condition met
+```
+
+检查 example 命名空间所有的资源对象是否正常
+
+```bash
+kubectl get all -n example
+```
+
+```bash
+root@node1:~# kubectl get all -n example
+NAME                            READY   STATUS    RESTARTS        AGE
+pod/backend-6b55f869fd-5mnxq    1/1     Running   0               12m
+pod/backend-6b55f869fd-xfsdr    1/1     Running   0               44s
+pod/frontend-6b5b58d5f8-97cmm   1/1     Running   3 (9m53s ago)   12m
+pod/frontend-6b5b58d5f8-zszmq   1/1     Running   0               44s
+pod/postgres-fbd8f9f49-n89tl    1/1     Running   0               13m
+
+NAME                       TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+service/backend-service    ClusterIP   10.96.194.109   <none>        5000/TCP   12m
+service/frontend-service   ClusterIP   10.96.95.46     <none>        3000/TCP   12m
+service/pg-service         ClusterIP   10.96.66.228    <none>        5432/TCP   13m
+
+NAME                       READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/backend    2/2     2            2           12m
+deployment.apps/frontend   2/2     2            2           12m
+deployment.apps/postgres   1/1     1            1           13m
+
+NAME                                  DESIRED   CURRENT   READY   AGE
+replicaset.apps/backend-6b55f869fd    2         2         2       12m
+replicaset.apps/frontend-6b5b58d5f8   2         2         2       12m
+replicaset.apps/postgres-fbd8f9f49    1         1         1       13m
+
+NAME                                           REFERENCE             TARGETS           MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/backend    Deployment/backend    26%/50%, 0%/50%   2         10        2          60s
+horizontalpodautoscaler.autoscaling/frontend   Deployment/frontend   0%/80%            2         2         2          60s
+```
+
+
+
+
+
+## 示例应用功能解析
+
+
+
+### 服务调用和发布
+
+
+
+查看 backend 的pod
+
+```bash
+kubectl get pods --selector=app=backend -n example -o wide
+```
+
+```bash
+root@node1:~# kubectl get pods --selector=app=backend -n example -o wide
+NAME                       READY   STATUS    RESTARTS   AGE     IP            NODE                 NOMINATED NODE   READINESS GATES
+backend-6b55f869fd-5mnxq   1/1     Running   0          5h31m   10.244.0.11   kind-control-plane   <none>           <none>
+backend-6b55f869fd-xfsdr   1/1     Running   0          5h20m   10.244.0.13   kind-control-plane   <none>           <none>
+```
+
+特别关注某个pod的ip地址，并记录，比如 `10.244.0.11`
+
+查看服务
+
+```bash
+kubectl get service -n example
+```
+
+```bash
+root@node1:~# kubectl get svc -n example
+NAME               TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+backend-service    ClusterIP   10.96.194.109   <none>        5000/TCP   5h32m
+frontend-service   ClusterIP   10.96.95.46     <none>        3000/TCP   5h32m
+pg-service         ClusterIP   10.96.66.228    <none>        5432/TCP   5h33m
+```
+
+特比关注`backend-service`  的 ip 地址，比如 `10.96.194.109`
+
+进入到某个前端的pod，进行测试
+
+```bash
+kubectl exec -it $(kubectl get pods --selector=app=frontend -n example -o jsonpath="{.items[0].metadata.name}") -n example -- sh
+```
+
+访问此前记录的后端pod ip
+
+```bash
+wget -O - http://10.244.0.11:5000/healthy
+```
+
+```bash
+root@node1:~# kubectl exec -it $(kubectl get pods --selector=app=frontend -n example -o jsonpath="{.items[0].metadata.name}") -n example -- sh
+/frontend # wget -O - http://10.244.0.11:5000/healthy
+Connecting to 10.244.0.11:5000 (10.244.0.11:5000)
+writing to stdout
+{"healthy":true}
+-                    100% |***************************************************************************************************************|    17  0:00:00 ETA
+written to stdout
+```
+
+
+访问 `backend-service` 的service ip
+
+```bash
+while true; do wget -q -O- http://10.96.194.109:5000/host_name && sleep 1; done
+```
+
+```bash
+/frontend # while true; do wget -q -O- http://10.96.194.109:5000/host_name && sleep 1; done
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-xfsdr"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-xfsdr"}
+{"host_name":"backend-6b55f869fd-xfsdr"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-xfsdr"}
+{"host_name":"backend-6b55f869fd-xfsdr"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+^C
+```
+
+使用backend-service的完全限定域名 `backend-service.example.svc.cluster.local` 进行访问
+
+```bash
+while true; do wget -q -O- http://backend-service.example.svc.cluster.local:5000/host_name && sleep 1; done
+```
+
+```bash
+/frontend # while true; do wget -q -O- http://backend-service.example.svc.cluster.local:5000/host_name && sleep 1; done
+{"host_name":"backend-6b55f869fd-xfsdr"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-xfsdr"}
+{"host_name":"backend-6b55f869fd-xfsdr"}
+{"host_name":"backend-6b55f869fd-xfsdr"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+^C
+```
+
+
+使用backend-service的相对域名 `backend-service`  进行访问
+
+```bash
+while true; do wget -q -O- http://backend-service:5000/host_name && sleep 1; done
+```
+
+```bash
+/frontend # while true; do wget -q -O- http://backend-service:5000/host_name && sleep 1; done
+{"host_name":"backend-6b55f869fd-xfsdr"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-xfsdr"}
+{"host_name":"backend-6b55f869fd-xfsdr"}
+{"host_name":"backend-6b55f869fd-xfsdr"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+{"host_name":"backend-6b55f869fd-5mnxq"}
+^C
+```
+
+退出pod
+
+```bash
+/frontend # exit
+command terminated with exit code 130
+root@node1:~#
+```
+
+
+
+
+
+### 应用配置
+
+连接到后端应用pod查看 env
+
+```bash
+kubectl exec -it $(kubectl get pods --selector=app=backend -n example -o jsonpath="{.items[0].metadata.name}") -n example -- sh
+```
+
+
+```bash
+env | grep DATABASE
+```
+
+
+```bash
+root@node1:~# kubectl exec -it $(kubectl get pods --selector=app=backend -n example -o jsonpath="{.items[0].metadata.name}") -n example -- sh
+# env | grep DATABASE
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=postgres
+DATABASE_URI=pg-service
+```
+
+```bash
+exit
+```
+
+
+连接到数据库 pod 查看 configmap
+
+```bash
+kubectl exec -it $(kubectl get pods --selector=app=database -n example -o jsonpath="{.items[0].metadata.name}") -n example -- sh
+```
+
+```bash
+ls  /docker-entrypoint-initdb.d
+```
+
+```bash
+cat /docker-entrypoint-initdb.d/CreateDB.sql
+```
+
+
+```bash
+root@node1:~# kubectl exec -it $(kubectl get pods --selector=app=database -n example -o jsonpath="{.items[0].metadata.name}") -n example -- sh
+# ls  /docker-entrypoint-initdb.d
+CreateDB.sql
+# cat /docker-entrypoint-initdb.d/CreateDB.sql
+CREATE TABLE text (
+    id serial PRIMARY KEY,
+    text VARCHAR ( 100 ) UNIQUE NOT NULL
+);#
+```
+
+```bash
+exit
+```
+
+
+
+
+
+### 应用扩缩容
+
+
+
+查看HPA设置
+
+```bash
+kubectl get hpa -n example
+```
+
+```bash
+root@node1:~# kubectl get hpa -n example
+NAME       REFERENCE             TARGETS           MINPODS   MAXPODS   REPLICAS   AGE
+backend    Deployment/backend    28%/50%, 0%/50%   2         10        2          17h
+frontend   Deployment/frontend   0%/80%            2         2         2          17h
+```
+
+查看pod数量
+
+```bash
+kubectl get pod -n example
+```
+
+```bash
+root@node1:~# kubectl get pod -n example
+NAME                        READY   STATUS    RESTARTS      AGE
+backend-6b55f869fd-59vcn    1/1     Running   0             17h
+backend-6b55f869fd-mbppw    1/1     Running   0             17h
+frontend-6b5b58d5f8-4h5tz   1/1     Running   3 (16h ago)   17h
+frontend-6b5b58d5f8-s2pm6   1/1     Running   1 (16h ago)   17h
+postgres-fbd8f9f49-dsdr7    1/1     Running   0             17h
+```
+
+访问 http://192.168.1.231/api/ab
+
+查看pod的性能负载，可以观察到已经开始横向扩容了
+
+```bash
+kubectl top pod -n example
+```
+
+```bash
+root@node1:~# kubectl top pod -n example
+NAME                        CPU(cores)   MEMORY(bytes)
+backend-6b55f869fd-59vcn    255m         38Mi
+backend-6b55f869fd-l5tlz    39m          33Mi
+backend-6b55f869fd-mbppw    1m           35Mi
+frontend-6b5b58d5f8-4h5tz   1m           183Mi
+frontend-6b5b58d5f8-s2pm6   1m           172Mi
+postgres-fbd8f9f49-dsdr7    1m           31Mi
+```
+
+查看 HPA
+
+```bash
+kubectl get hpa -n example
+```
+
+```bash
+root@node1:~# kubectl get hpa -n example
+NAME       REFERENCE             TARGETS             MINPODS   MAXPODS   REPLICAS   AGE
+backend    Deployment/backend    27%/50%, 100%/50%   2         10        4          17h
+frontend   Deployment/frontend   0%/80%              2         2         2          17h
+```
+
+
+多刷新几次页面，让性能负荷暴涨，再次观察HPA和pod
+
+```bash
+root@node1:~# kubectl get hpa -n example
+NAME       REFERENCE             TARGETS             MINPODS   MAXPODS   REPLICAS   AGE
+backend    Deployment/backend    30%/50%, 198%/50%   2         10        8          17h
+frontend   Deployment/frontend   0%/80%              2         2         2          17h
+root@node1:~# kubectl get pod -n example
+NAME                        READY   STATUS    RESTARTS      AGE
+backend-6b55f869fd-59vcn    1/1     Running   0             17h
+backend-6b55f869fd-5vv9h    0/1     Pending   0             13s
+backend-6b55f869fd-dc7mk    0/1     Pending   0             28s
+backend-6b55f869fd-l5tlz    1/1     Running   0             4m43s
+backend-6b55f869fd-lcgb4    0/1     Pending   0             28s
+backend-6b55f869fd-mbppw    1/1     Running   0             17h
+backend-6b55f869fd-pg5wp    0/1     Pending   0             28s
+backend-6b55f869fd-rdwpb    1/1     Running   0             4m43s
+backend-6b55f869fd-rr8s2    0/1     Pending   0             28s
+backend-6b55f869fd-xx4gq    0/1     Pending   0             13s
+frontend-6b5b58d5f8-4h5tz   1/1     Running   3 (17h ago)   17h
+frontend-6b5b58d5f8-s2pm6   1/1     Running   1 (17h ago)   17h
+postgres-fbd8f9f49-dsdr7    1/1     Running   0             17h
+```
+
+
+
+
+
+
+
 # 使用 Helm 定义应用
 
 
 
 
 
-## 改造实例应用
+## 改造示例应用
 
 
 
@@ -4679,6 +4369,12 @@ helm rollback my-kubernetes-example 1 -n example
 ```bash
 helm uninstall my-kubernetes-example -n example
 ```
+
+
+
+
+
+
 
 
 
@@ -6537,3 +6233,4 @@ kubectl argo rollouts set image canary-demo canary-demo=argoproj/rollouts-demo:y
 
 
 # 应用可观测性
+
