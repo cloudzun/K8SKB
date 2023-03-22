@@ -18,7 +18,7 @@
 
 
 
-1.  Docker 技术实战：该课程专注于容器技术，通过实例教程的形式深入讲解Docker的运作原理和核心组件，并讲解如何使用Docker进行应用部署和监控管理。
+1.  [Docker 技术实战](01-dockerlab/README.md)：该课程专注于容器技术，通过实例教程的形式深入讲解Docker的运作原理和核心组件，并讲解如何使用Docker进行应用部署和监控管理。
 2.  Kubernetes 部署和管理实战：该课程为Kubernetes初学者量身打造，深入浅出地讲解Kubernetes的核心概念和基础组件，并给出大量实践演练，使学员能够熟练掌握Kubernetes的部署、管理、监控等核心技能。
 3.  Kubernetes Ingress 管理与运维：该课程将帮助听众了解Kubernetes Ingress的概念、工作机制、部署方式和运维管理方法。
 4.  Kubernetes 持久化存储实践：该课程将讲解Kubernetes持久化存储的概念、原理、实现方式和实际应用。
