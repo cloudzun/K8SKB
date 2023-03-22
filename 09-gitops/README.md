@@ -6220,5 +6220,534 @@ kubectl argo rollouts set image canary-demo canary-demo=argoproj/rollouts-demo:y
 
 
 
-# 应用可观测性
+# 实现管理特性
+
+
+
+## 多环境部署
+
+
+
+### 示例应用简介
+
+该项目的目录结构包括 `Chart.yaml`、`applicationset.yaml`、`env` 目录和 `templates` 目录。熟悉 Helm 的用户很容易就能看出，实际上它是一个 Helm Chart。不同之处在于，Helm 的配置文件 `values.yaml` 并未放置在 Chart 的根目录，而是存放在 `env` 目录下。
+
+`templates` 目录存储了示例应用程序的 Kubernetes 对象。为了简化演示过程，我们只部署前端相关的对象，即 `frontend.yaml`。
+
+```bash
+├── Chart.yaml
+├── applicationset.yaml
+├── env
+│   ├── dev
+│   │   └── values.yaml
+│   ├── prod
+│   │   └── values.yaml
+│   └── test
+│       └── values.yaml
+└── templates
+    ├── frontend.yaml
+    └── ingress.yaml
+```
+
+查看 ingress 配置
+
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: {{ .Release.Namespace }}.env.my
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 3000
+```
+
+
+1.  `apiVersion` 和 `kind`：定义了这是一个 Kubernetes Ingress 资源对象。
+2.  `metadata`：设置 Ingress 的名称和相关注解。
+    -   `name`：Ingress 资源的名称。
+    -   `annotations`：Ingress 资源的注解，这里设置了 Nginx Ingress 控制器作为处理此 Ingress 的控制器。
+3.  `spec`：定义 Ingress 的配置。
+    -   `rules`：定义 Ingress 的路由规则。
+        -   `host`：定义请求的主机名，这里使用 `{{ .Release.Namespace }}.env.my`，其中 `{{ .Release.Namespace }}` 是一个 Helm 模板变量，表示当前资源所属的命名空间。请注意，这里需要将双大括号（`{{` 和 `}}`）包裹在引号中，以便正确解析。
+        -   `http`：定义 HTTP 规则。
+            -   `paths`：定义基于路径的路由规则。
+                -   `path`：定义请求路径，这里是根路径 `/`。
+                -   `pathType`：定义路径类型，这里是 `Prefix`，表示匹配以 `/` 开头的所有路径。
+                -   `backend`：定义后端服务。
+                    -   `service`：指定后端服务的名称和端口。
+                        -   `name`：后端服务的名称，这里是 `frontend-service`。
+                        -   `port`：后端服务的端口，这里是 `3000`。
+
+这个 Ingress 配置文件定义了一个 HTTP 路由规则，将所有以 `/` 开头的请求路由到名为 `frontend-service` 的后端服务的 3000 端口。主机名根据当前资源所属的命名空间动态设置。
+
+
+
+需要注意的是，在 `Ingress` 对象中使用了 Helm 的内置变量 `Release.Namespace`，它实际上指的是 Helm Chart 部署的命名空间。在示例中，将 `Release.Namespace` 与域名拼接以生成访问地址。不同环境将被部署到独立的命名空间下，从而具有独立的访问域名。
+
+
+
+
+### 创建 ApplicationSet
+
+`ApplicationSet` 是本节课的重点，可以自动生成多个 `Application` 对象，每个对象对应着不同的环境。
+
+示例应用目录中有一个名为 `applicationset.yaml` 的文件，其中定义了 `ApplicationSet` 的内容。
+
+```bash
+nano applicationset.yaml
+```
+
+```yaml
+
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: frontend
+  namespace: argocd
+spec:
+  generators:
+  - git:
+      repoURL: "https://github.com/cloudzun/kubernetes-example.git"
+      revision: HEAD
+      files:
+      - path: "helm-env/env/*/values.yaml"
+  template:
+    metadata:
+      name: "{{path.basename}}"
+    spec:
+      project: default
+      source:
+        repoURL: "https://github.com/cloudzun/kubernetes-example.git"
+        targetRevision: HEAD
+        path: "helm-env"
+        helm:
+          valueFiles:
+          - "env/{{path.basename}}/values.yaml"
+      destination:
+        server: 'https://kubernetes.default.svc'
+        namespace: '{{path.basename}}'
+      syncPolicy:
+        automated: {}
+        syncOptions:
+          - CreateNamespace=true
+```
+
+这是一个 ArgoCD ApplicationSet 的配置文件，用于在 ArgoCD 中创建多个应用（Application）实例，这些实例基于相同的源代码仓库和模板配置，但具有不同的参数和目标集群/命名空间。
+
+1.  `apiVersion` 和 `kind`：定义了这是一个 ArgoCD 的 ApplicationSet 资源对象。
+2.  `metadata`：设置 ApplicationSet 的名称和命名空间。
+3.  `spec`：定义 ApplicationSet 的配置：
+    -   `generators`：生成器用于为 ApplicationSet 创建应用实例。在这里，我们使用 Git 生成器从 Git 仓库中获取配置文件。
+        -   `repoURL`：源代码仓库的地址。
+        -   `revision`：要使用的 Git 仓库的分支或标签。
+        -   `files`：一个文件列表，用于查找 Helm values 文件，这里会匹配 `helm-env/env/*/values.yaml` 路径下的所有 values 文件。
+    -   `template`：定义应用实例的基本模板。
+        -   `metadata`：设置应用实例的名称，这里使用 `{{path.basename}}` 模板变量从 values 文件路径中提取名称。
+        -   `spec`：定义应用实例的配置。
+            -   `project`：设置 ArgoCD 项目。
+            -   `source`：指定源代码仓库、路径和参数。
+                -   `repoURL`：源代码仓库的地址。
+                -   `targetRevision`：要使用的 Git 仓库的分支或标签。
+                -   `path`：仓库中 Helm chart 的路径。
+                -   `helm`：指定 Helm 相关配置。
+                    -   `valueFiles`：指定 Helm values 文件的路径，使用 `{{path.basename}}` 模板变量匹配生成器中的 values 文件。
+            -   `destination`：设置目标集群和命名空间，这里使用 `{{path.basename}}` 从 values 文件路径中提取命名空间名称。
+            -   `syncPolicy`：设置同步策略。
+                -   `automated`：启用自动同步。
+                -   `syncOptions`：设置同步选项，这里将在同步时自动创建目标命名空间。
+
+这个配置文件的目的是根据 Git 仓库中的 Helm values 文件创建多个 ArgoCD 应用实例，每个实例使用相同的源代码仓库和 Helm chart，但具有不同的参数和目标集群/命名空间。
+
+```bash
+kubectl apply -f applicationset.yaml
+```
+
+
+
+### 验证多环境部署
+
+从ArgoCD 界面中进行查看
+
+![img](README.assets/03cd75b21a01ed44yy6d88fb75dbd1b6.png)
+
+在hosts文件中增加以下条目
+
+```
+192.168.1.231 dev.env.my
+192.168.1.231 test.env.my
+192.168.1.231 prod.env.my
+192.168.1.231 staging.env.my
+```
+
+分别查看各个环境的页面，以dev为例
+
+![img](README.assets/bb72afa9eb288c138318b28559dcyy3e.png)
+
+
+
+## 密钥管理
+
+### 安装 sealed-secrets
+
+安装CLI
+
+```bash
+wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.20.2/kubeseal-0.20.2-linux-amd64.tar.gz
+tar -xvzf kubeseal-0.20.2-linux-amd64.tar.gz kubeseal
+sudo install -m 755 kubeseal /usr/local/bin/kubeseal
+```
+
+安装 Controller 控制器
+
+```bash
+helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
+```
+
+```bash
+helm install sealed-secrets -n kube-system --set-string fullnameOverride=sealed-secrets-controller sealed-secrets/sealed-secrets
+```
+
+```bash
+kubectl wait deployment -n kube-system sealed-secrets-controller --for condition=Available=True --timeout=300s
+```
+
+
+
+查看secret对象
+
+在本地使用 kubeseal 加密 Secret 对象时，kubeseal 会从集群内下载 RSA 公钥并使用它对 Secret 对象进行加密。接着，生成加密后的 SealedSecret CRD 资源，即 SealedSecret 对象。当集群内控制器检测到新的 SealedSecret 对象被部署时，控制器将使用集群内的 RSA 私钥解密信息，并在集群内重新生成 Secret 对象，以供工作负载使用。
+
+```bash
+kubectl get secret -n kube-system
+```
+
+```bash
+root@node1:~# kubectl get secret -n kube-system
+NAME                                   TYPE                 DATA   AGE
+sealed-secrets-keywgh7h                kubernetes.io/tls    2      28h
+sh.helm.release.v1.sealed-secrets.v1   helm.sh/release.v1   1      28h
+```
+
+```bash
+kubectl get secret sealed-secrets-keywgh7h -n kube-system -o yaml
+```
+
+```bash
+root@node1:~# kubectl get secret sealed-secrets-keywgh7h -n kube-system -o yaml
+apiVersion: v1
+data:
+  tls.crt: LS0tLS...tLS0tLQo=
+  tls.key: LS0tLS...tLS0K
+kind: Secret
+metadata:
+  creationTimestamp: "2023-03-21T02:40:04Z"
+  generateName: sealed-secrets-key
+  labels:
+    sealedsecrets.bitnami.com/sealed-secrets-key: active
+  name: sealed-secrets-keywgh7h
+  namespace: kube-system
+  resourceVersion: "102417"
+  uid: b5566b9f-ad31-4e1e-b44f-14d9e23839ae
+type: kubernetes.io/tls
+```
+
+
+
+
+### 分析示例应用
+
+https://github.com/cloudzun/kubernetes-example/blob/main/sealed-secret/manifest/deployment.yaml
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-spring
+spec:
+    ......
+    spec:
+      imagePullSecrets:
+      - name: github-regcred
+      containers:
+      - name: sample-spring
+        image: ghcr.io/cloudzun/sample-kotlin-spring:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+          - name: PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: password
+                name: sample-secret
+```
+
+这是一个Kubernetes的部署（Deployment）配置文件，用于部署一个名为`sample-spring`的应用。以下是对这个配置文件各部分的解释：
+
+1.  `apiVersion: apps/v1`：指定Kubernetes API版本，这里是apps/v1，用于部署资源。    
+2.  `kind: Deployment`：指定资源类型为Deployment，用于管理应用的生命周期，例如滚动更新、回滚等。    
+3.  `metadata`：资源元数据。    
+    -   `name: sample-spring`：指定部署的名称为`sample-spring`。
+4.  `spec`：部署的规格，描述了部署的属性。    
+    -   `...`：省略了其他部署配置，例如副本数（replicas）、更新策略（updateStrategy）等。
+5.  `spec`：容器规格，描述了Pod中的容器属性。    
+    -   `imagePullSecrets`：用于从私有仓库拉取镜像的凭据。
+        -   `name: github-regcred`：使用名为`github-regcred`的Secret作为镜像拉取凭据。
+    -   `containers`：定义容器列表。
+        -   `name: sample-spring`：指定容器名称为`sample-spring`。
+        -   `image: ghcr.io/cloudzun/sample-kotlin-spring:latest`：指定容器使用的镜像为`ghcr.io/cloudzun/sample-kotlin-spring`的latest标签。
+        -   `ports`：容器的端口配置。
+            -   `containerPort: 8080`：指定容器监听的端口为8080。
+            -   `name: http`：给这个端口命名为`http`。
+        -   `env`：容器的环境变量配置。
+            -   `name: PASSWORD`：设置环境变量名为`PASSWORD`。
+            -   `valueFrom`：从其他资源中获取环境变量的值。
+                -   `secretKeyRef`：从Secret资源中获取环境变量的值。
+                    -   `key: password`：指定从Secret中获取名为`password`的键值。
+                    -   `name: sample-secret`：指定Secret资源的名称为`sample-secret`。
+
+这个配置文件定义了一个名为`sample-spring`的部署，使用`ghcr.io/cloudzun/sample-kotlin-spring:latest`镜像。容器监听8080端口，并从名为`sample-secret`的Secret中获取名为`PASSWORD`的环境变量。同时，它还使用名为`github-regcred`的Secret来从私有仓库拉取镜像。
+
+在本示例中，应用镜像被存储在GitHub Package仓库中，即域名为ghcr.io的镜像仓库，并设置为私有仓库类型。如果没有向Kubernetes集群提供拉取凭据，将无法拉取镜像。这意味着直接将此工作负载部署到集群会导致ImagePullBackOff事件。`imagePullSecret`用于提供镜像拉取凭据，稍后将通过kubeseal创建此凭据。另外，还为工作负载配置了`Env`环境变量，其值来自名为`sample-secret`的Secret对象。稍后也将通过kubeseal创建这个Secret对象。
+
+
+
+### 创建 ArgoCD 应用
+
+https://github.com/cloudzun/kubernetes-example/blob/main/sealed-secret/application.yaml
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: spring-demo
+  namespace: argocd
+spec:
+   project: default
+   source:
+     repoURL: https://github.com/cloudzun/kubernetes-example.git
+     targetRevision: HEAD
+     path: sealed-secret/manifest
+   destination:
+     server: https://kubernetes.default.svc
+     namespace: secret-demo
+   syncPolicy:
+     automated:
+       prune: false
+       selfHeal: false
+     syncOptions:
+      - CreateNamespace=true
+```
+
+这是一个用于 Argo CD 的 Kubernetes Application 自定义资源（CR）配置文件。Argo CD 是一个持续部署（Continuous Deployment，CD）工具，用于管理 Kubernetes 应用程序。它可以自动将 Git 仓库中的配置文件同步到 Kubernetes 集群中。这个配置文件定义了一个名为 "spring-demo" 的 Argo CD 应用，并说明了如何将 Git 仓库中的 Kubernetes 配置部署到目标集群。
+
+让我们详细解释一下各个部分：
+
+1. apiVersion 和 kind：这两个字段用于定义这是一个 Argo CD Application 资源，使用 "argoproj.io/v1alpha1" 版本。
+2. metadata：该部分包含关于 Application 的元数据，如名称（name）和命名空间（namespace）。在这个例子中，名为 "spring-demo" 的应用将在 "argocd" 命名空间中创建。
+3. spec：这是 Application 的配置规范，其中包含以下字段：
+   - project：指定应用所属的 Argo CD 项目。在这里，应用属于默认（default）项目。
+   - source：定义了 Git 仓库的相关信息和要同步的文件路径。其中包括：
+     - repoURL：Git 仓库的 URL，本例中是 "https://github.com/cloudzun/kubernetes-example.git"。
+     - targetRevision：要检出的 Git 仓库分支或提交。这里使用 HEAD，表示最新的提交。
+     - path：在 Git 仓库中要部署的 Kubernetes 配置文件所在的目录。本例中，位于 "sealed-secret/manifest" 目录。
+   - destination：描述了应用的目标集群和命名空间。其中：
+     - server：目标 Kubernetes 集群的 API 服务器地址。这里使用 "[https://kubernetes.default.svc"，表示使用当前](https://kubernetes.default.xn--svc"%2C-vc6ko2stq0bsg4chhkm71c/) Argo CD 所在的集群。
+     - namespace：要部署应用的目标命名空间。在本例中，为 "secret-demo"。
+   - syncPolicy：定义了同步策略，包括以下设置：
+     - automated：此字段启用自动同步。在本例中，prune 和 selfHeal 都设置为 false，表示 Argo CD 不会自动删除多余的资源，也不会自动修复资源。
+     - syncOptions：同步选项。本例中，仅包含一个选项 "CreateNamespace=true"，表示在同步时创建目标命名空间（如果不存在）。
+
+这个配置文件的目的是在 "secret-demo" 命名空间中部署位于 "sealed-secret/manifest" 目录的 Kubernetes 配置，同时启用自动同步。
+
+安装应用
+
+
+```bash
+kubectl apply -f application.yaml
+```
+
+```bash
+root@node1:~/kubernetes-example/sealed-secret# kubectl apply -f application.yaml
+```
+
+从Argo CD界面上观察有一颗破碎的红心
+
+![img](README.assets/8e37bb0bdb794bab48009fb112601ffe.png)
+
+到终端查看线索
+
+```bash
+root@node1:~/kubernetes-example/sealed-secret# kubectl get pod -n secret-demo
+NAME                            READY   STATUS             RESTARTS   AGE
+sample-spring-b55d8b446-jldpd   0/1     ImagePullBackOff   0          96s
+root@node1:~/kubernetes-example/sealed-secret# kubectl logs sample-spring-b55d8b446-jldpd -n secret-demo
+Error from server (BadRequest): container "sample-spring" in pod "sample-spring-b55d8b446-jldpd" is waiting to start: trying and failing to pull image
+```
+
+详细解析这个错误：
+
+1. Error from server (BadRequest)：这表示 API 服务器返回了一个错误，类型为 BadRequest。
+2. container "sample-spring" in pod "sample-spring-b55d8b446-jldpd"：指出问题发生在名为 "sample-spring" 的容器中，它属于名为 "sample-spring-b55d8b446-jldpd" 的 Pod。
+3. is waiting to start：表示此容器尚未启动，正在等待启动。
+4. trying and failing to pull image：表明在尝试从镜像仓库拉取镜像时失败了。这可能是由于多种原因导致的，例如错误的镜像名称、错误的镜像版本、镜像仓库无法访问、网络问题、认证问题等。
+
+要解决这个问题，首先需要检查容器配置中的镜像名称和版本是否正确。然后，确保你的集群可以访问镜像仓库。如果镜像仓库需要认证，请确保提供了正确的凭据。最后，检查集群的网络连接，确保节点可以正常访问外部资源。根据具体的错误原因，可能需要调整配置或解决基础设施问题。
+
+
+
+### 创建加密后的对象
+
+尝试使用 Github PAT 登陆
+
+```bash
+export PAT="Your PAT"
+echo $PAT | docker login ghcr.io --username cloudzun --password-stdin
+```
+
+查看.dockerconfigjson
+
+```bash
+nano /root/.docker/config.json
+```
+
+```json
+{
+        "auths": {
+                "ghcr.io": {
+                        "auth": "Y2xvdWR6dW46Z2hwX3JEdGJtcHFmTlhvMTRheW1QbHg3cTRlanZlVWw0ZDJjSk5SSg=="
+                },
+                "https://index.docker.io/v1/": {
+                        "auth": "Y2hlbmd6aDoyd3N4I0VEQyRSRlY="
+                }
+        }
+}
+```
+
+对整个文件进行base64编码，https://base64.us/
+
+```bash
+ewogICAgICAgICJhdXRocyI6IHsKICAgICAgICAgICAgICAgICJnaGNyLmlvIjogewogICAgICAgICAgICAgICAgICAgICAgICAiYXV0aCI6ICJZMnh2ZFdSNmRXNDZaMmh3WDNKRWRHSnRjSEZtVGxodk1UUmhlVzFRYkhnM2NUUmxhblpsVld3MFpESmpTazVTU2c9PSIKICAgICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgICAiaHR0cHM6Ly9pbmRleC5kb2NrZXIuaW8vdjEvIjogewogICAgICAgICAgICAgICAgICAgICAgICAiYXV0aCI6ICJZMmhsYm1kNmFEb3lkM040STBWRVF5UlNSbFk9IgogICAgICAgICAgICAgICAgfQogICAgICAgIH0KfQo=
+```
+
+将上述数值替换到sealed-secret/image-pull-secret.yaml 文件中
+```yaml
+kind: Secret
+type: kubernetes.io/dockerconfigjson
+apiVersion: v1
+metadata:
+  name: github-regcred
+data:      .dockerconfigjson:ewogICAgICAgICJhdXRocyI6IHsKICAgICAgICAgICAgICAgICJnaGNyLmlvIjogewogICAgICAgICAgICAgICAgICAgICAgICAiYXV0aCI6ICJZMnh2ZFdSNmRXNDZaMmh3WDNKRWRHSnRjSEZtVGxodk1UUmhlVzFRYkhnM2NUUmxhblpsVld3MFpESmpTazVTU2c9PSIKICAgICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgICAiaHR0cHM6Ly9pbmRleC5kb2NrZXIuaW8vdjEvIjogewogICAgICAgICAgICAgICAgICAgICAgICAiYXV0aCI6ICJZMmhsYm1kNmFEb3lkM040STBWRVF5UlNSbFk9IgogICAgICAgICAgICAgICAgfQogICAgICAgIH0KfQo=
+  
+```
+
+### 创建 Image Pull Secret 对象
+
+```bash
+kubeseal -f image-pull-secret.yaml -w manifest/image-pull-sealed-secret.yaml --scope cluster-wide
+```
+
+简单解释一下这个命令。首先，-f 参数指定了原始 Sceret 对象文件，也就是 image-pull-secret.yaml。-w 参数表示将加密后的 Secret 对象写入 manifest 目录的 image-pull-sealed-secret.yaml 文件内，这样 ArgoCD 就可以将它一并部署到集群内。–scope 参数表示加密后的 Secret 对象可以在集群的任何命名空间下使用。然后，你可以查看 manifest/image-pull-sealed-secret.yaml 文件，加密后的 Secret 对象如下。
+
+```bash
+root@node1:~/kubernetes-example/sealed-secret/manifest# nano image-pull-sealed-secret.yaml
+```
+
+```yaml
+piVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  annotations:
+    sealedsecrets.bitnami.com/cluster-wide: "true"
+  creationTimestamp: null
+  name: github-regcred
+spec:
+  encryptedData:
+    .dockerconfigjson: AgC0eBsAZrQAbVzVj2NiBlaYhIxlDMWoTsJId+Wsi50nWwS+B6FHnhsWpimgCpNv0KsavFkF6vAuWiClBGsb>
+  template:
+    metadata:
+      annotations:
+        sealedsecrets.bitnami.com/cluster-wide: "true"
+      creationTimestamp: null
+      name: github-regcred
+    type: kubernetes.io/dockerconfigjson
+```
+
+
+
+### 创建 Secret 对象
+
+```bash
+kubeseal -f sample-secret.yaml -w manifest/sample-sealed-secret.yaml --scope cluster-wide
+```
+
+运行命令后，在 manifest 目录下生成 sample-sealed-secret.yaml 文件，它包含加密后的 Secret 内容。
+
+```yaml
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  annotations:
+    sealedsecrets.bitnami.com/cluster-wide: "true"
+  creationTimestamp: null
+  name: sample-secret
+spec:
+  encryptedData:
+    password: AgBc+wWk84ddVXhwZKo9KbLHnPIlXZqWXsvIOQDrFmRA5rNzmb1+Q3Pk0yXJZ94KLr/DQjsgxJqrciYK9NTRGFYEHoDS9>
+  template:
+    metadata:
+      annotations:
+        sealedsecrets.bitnami.com/cluster-wide: "true"
+      creationTimestamp: null
+      name: sample-secret
+```
+
+上述两个文件更新到github，建议采用`git push`，如果手动复制，则需要使用`cat`显示文本全文
+
+```bash
+git add .
+git commit -a -m 'add secret'
+git push origin main
+```
+
+
+
+### 验证 image pull secret
+
+进入 ArgoCD 控制台的应用详情，手动点击“SYCN”按钮同步新增的 `Secret` 对象。此时，应用状态应变为 Healthy 健康状态。同时，`Sealed-Secret` 控制器会对刚才创建的 `SealedSecret` 对象进行解密，并重新创建原始的 Kubernetes `Secret` 对象以供 Deployment 工作负载使用。
+
+![img](README.assets/61fc598030dcbd89e83dd0bf3cb93004.png)
+
+### 验证Secret
+
+除了镜像凭据，此前还创建了一个提供工作负载密码的 `Secret` 对象。该密码通过环境变量注入到 `Pod` 中。接下来，将验证应用是否能够获取来自 `Secret` 对象提供的密码
+
+
+
+```bash
+kubectl port-forward svc/sample-spring 8081:8080 -n secret-demo
+```
+
+```bash
+curl http://localhost:8081/actuator/env/PASSWORD
+```
+
+```bash
+root@node1:~/kubernetes-example/sealed-secret/manifest# curl http://localhost:8081/actuator/env/PASSWORD
+{"property":{"source":"systemEnvironment","value":"******"},"activeProfiles":[],"propertySources":[{"name":"server.ports"},{"name":"servletConfigInitParams"},{"name":"servletContextInitParams"},{"name":"systemProperties"},{"name":"systemEnvironment","property":{"value":"******","origin":"System Environment Property \"PASSWORD\""}},{"name":"random"},{"name":"Config resource 'class path resource [application.yml]' via location 'optional:classpath:/'"},{"name":"Management Server"}]}
+```
+
+从返回结果可以发现，应用已经成功获取到了 PASSWORD 环境变量，这说明 Sealed-Secret  控制器也已经生成了原始的 Secret 对象。
 
