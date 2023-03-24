@@ -9,6 +9,7 @@
 ## 构建容器镜像
 
 
+
 ### 创建映像
 
 创建实验目录
@@ -95,204 +96,6 @@ app.py  Dockerfile  requirements.txt
 docker build -t hello-world-flask .
 ```
 
-
-```bash
-ubuntu $ docker build -t hello-world-flask .
-Sending build context to Docker daemon  4.096kB
-Step 1/7 : FROM python:3.8-slim-buster
-3.8-slim-buster: Pulling from library/python
-0cf508b37688: Pull complete 
-73f2d4ecfb17: Pull complete 
-4ccbacf6c31d: Pull complete 
-80e5be4781de: Pull complete 
-6c0c9359aa08: Pull complete 
-Digest: sha256:ae7186c947f47090f450f1a438ddcffbd7463cbf14484c2e7869a9c05d900287
-Status: Downloaded newer image for python:3.8-slim-buster
- ---> a87430669f7e
-Step 2/7 : RUN apt-get update && apt-get install -y procps vim apache2-utils && rm -rf /var/lib/apt/lists/*
- ---> Running in c05d056667b1
-Get:1 http://deb.debian.org/debian buster InRelease [122 kB]
-Get:2 http://deb.debian.org/debian-security buster/updates InRelease [34.8 kB]
-Get:3 http://deb.debian.org/debian buster-updates InRelease [56.6 kB]
-Get:4 http://deb.debian.org/debian buster/main amd64 Packages [7909 kB]
-Get:5 http://deb.debian.org/debian-security buster/updates/main amd64 Packages [430 kB]
-Get:6 http://deb.debian.org/debian buster-updates/main amd64 Packages [8788 B]
-Fetched 8561 kB in 2s (4455 kB/s)
-Reading package lists...
-Reading package lists...
-Building dependency tree...
-Reading state information...
-The following additional packages will be installed:
-  libapr1 libaprutil1 libgpm2 libncurses6 libprocps7 lsb-base psmisc
-  vim-common vim-runtime xxd
-Suggested packages:
-  gpm ctags vim-doc vim-scripts
-The following NEW packages will be installed:
-  apache2-utils libapr1 libaprutil1 libgpm2 libncurses6 libprocps7 lsb-base
-  procps psmisc vim vim-common vim-runtime xxd
-0 upgraded, 13 newly installed, 0 to remove and 0 not upgraded.
-Need to get 8440 kB of archives.
-After this operation, 36.8 MB of additional disk space will be used.
-Get:1 http://deb.debian.org/debian-security buster/updates/main amd64 libncurses6 amd64 6.1+20181013-2+deb10u3 [102 kB]
-Get:2 http://deb.debian.org/debian buster/main amd64 libprocps7 amd64 2:3.3.15-2 [61.7 kB]
-Get:3 http://deb.debian.org/debian buster/main amd64 lsb-base all 10.2019051400 [28.4 kB]
-Get:4 http://deb.debian.org/debian buster/main amd64 procps amd64 2:3.3.15-2 [259 kB]
-Get:5 http://deb.debian.org/debian-security buster/updates/main amd64 xxd amd64 2:8.1.0875-5+deb10u4 [141 kB]
-Get:6 http://deb.debian.org/debian-security buster/updates/main amd64 vim-common all 2:8.1.0875-5+deb10u4 [196 kB]
-Get:7 http://deb.debian.org/debian buster/main amd64 libapr1 amd64 1.6.5-1+b1 [102 kB]
-Get:8 http://deb.debian.org/debian buster/main amd64 libaprutil1 amd64 1.6.1-4 [91.8 kB]
-Get:9 http://deb.debian.org/debian buster/main amd64 apache2-utils amd64 2.4.38-3+deb10u8 [238 kB]
-Get:10 http://deb.debian.org/debian buster/main amd64 libgpm2 amd64 1.20.7-5 [35.1 kB]
-Get:11 http://deb.debian.org/debian buster/main amd64 psmisc amd64 23.2-1+deb10u1 [126 kB]
-Get:12 http://deb.debian.org/debian-security buster/updates/main amd64 vim-runtime all 2:8.1.0875-5+deb10u4 [5777 kB]
-Get:13 http://deb.debian.org/debian-security buster/updates/main amd64 vim amd64 2:8.1.0875-5+deb10u4 [1283 kB]
-debconf: delaying package configuration, since apt-utils is not installed
-Fetched 8440 kB in 0s (43.4 MB/s)
-Selecting previously unselected package libncurses6:amd64.
-(Reading database ... 6840 files and directories currently installed.)
-Preparing to unpack .../00-libncurses6_6.1+20181013-2+deb10u3_amd64.deb ...
-Unpacking libncurses6:amd64 (6.1+20181013-2+deb10u3) ...
-Selecting previously unselected package libprocps7:amd64.
-Preparing to unpack .../01-libprocps7_2%3a3.3.15-2_amd64.deb ...
-Unpacking libprocps7:amd64 (2:3.3.15-2) ...
-Selecting previously unselected package lsb-base.
-Preparing to unpack .../02-lsb-base_10.2019051400_all.deb ...
-Unpacking lsb-base (10.2019051400) ...
-Selecting previously unselected package procps.
-Preparing to unpack .../03-procps_2%3a3.3.15-2_amd64.deb ...
-Unpacking procps (2:3.3.15-2) ...
-Selecting previously unselected package xxd.
-Preparing to unpack .../04-xxd_2%3a8.1.0875-5+deb10u4_amd64.deb ...
-Unpacking xxd (2:8.1.0875-5+deb10u4) ...
-Selecting previously unselected package vim-common.
-Preparing to unpack .../05-vim-common_2%3a8.1.0875-5+deb10u4_all.deb ...
-Unpacking vim-common (2:8.1.0875-5+deb10u4) ...
-Selecting previously unselected package libapr1:amd64.
-Preparing to unpack .../06-libapr1_1.6.5-1+b1_amd64.deb ...
-Unpacking libapr1:amd64 (1.6.5-1+b1) ...
-Selecting previously unselected package libaprutil1:amd64.
-Preparing to unpack .../07-libaprutil1_1.6.1-4_amd64.deb ...
-Unpacking libaprutil1:amd64 (1.6.1-4) ...
-Selecting previously unselected package apache2-utils.
-Preparing to unpack .../08-apache2-utils_2.4.38-3+deb10u8_amd64.deb ...
-Unpacking apache2-utils (2.4.38-3+deb10u8) ...
-Selecting previously unselected package libgpm2:amd64.
-Preparing to unpack .../09-libgpm2_1.20.7-5_amd64.deb ...
-Unpacking libgpm2:amd64 (1.20.7-5) ...
-Selecting previously unselected package psmisc.
-Preparing to unpack .../10-psmisc_23.2-1+deb10u1_amd64.deb ...
-Unpacking psmisc (23.2-1+deb10u1) ...
-Selecting previously unselected package vim-runtime.
-Preparing to unpack .../11-vim-runtime_2%3a8.1.0875-5+deb10u4_all.deb ...
-Adding 'diversion of /usr/share/vim/vim81/doc/help.txt to /usr/share/vim/vim81/doc/help.txt.vim-tiny by vim-runtime'
-Adding 'diversion of /usr/share/vim/vim81/doc/tags to /usr/share/vim/vim81/doc/tags.vim-tiny by vim-runtime'
-Unpacking vim-runtime (2:8.1.0875-5+deb10u4) ...
-Selecting previously unselected package vim.
-Preparing to unpack .../12-vim_2%3a8.1.0875-5+deb10u4_amd64.deb ...
-Unpacking vim (2:8.1.0875-5+deb10u4) ...
-Setting up lsb-base (10.2019051400) ...
-Setting up libgpm2:amd64 (1.20.7-5) ...
-Setting up psmisc (23.2-1+deb10u1) ...
-Setting up libprocps7:amd64 (2:3.3.15-2) ...
-Setting up libapr1:amd64 (1.6.5-1+b1) ...
-Setting up xxd (2:8.1.0875-5+deb10u4) ...
-Setting up vim-common (2:8.1.0875-5+deb10u4) ...
-Setting up libncurses6:amd64 (6.1+20181013-2+deb10u3) ...
-Setting up procps (2:3.3.15-2) ...
-update-alternatives: using /usr/bin/w.procps to provide /usr/bin/w (w) in auto mode
-update-alternatives: warning: skip creation of /usr/share/man/man1/w.1.gz because associated file /usr/share/man/man1/w.procps.1.gz (of link group w) doesn't exist
-Setting up vim-runtime (2:8.1.0875-5+deb10u4) ...
-Setting up libaprutil1:amd64 (1.6.1-4) ...
-Setting up vim (2:8.1.0875-5+deb10u4) ...
-update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/vim (vim) in auto mode
-update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/vimdiff (vimdiff) in auto mode
-update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/rvim (rvim) in auto mode
-update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/rview (rview) in auto mode
-update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/vi (vi) in auto mode
-update-alternatives: warning: skip creation of /usr/share/man/da/man1/vi.1.gz because associated file /usr/share/man/da/man1/vim.1.gz (of link group vi) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/de/man1/vi.1.gz because associated file /usr/share/man/de/man1/vim.1.gz (of link group vi) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/fr/man1/vi.1.gz because associated file /usr/share/man/fr/man1/vim.1.gz (of link group vi) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/it/man1/vi.1.gz because associated file /usr/share/man/it/man1/vim.1.gz (of link group vi) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/ja/man1/vi.1.gz because associated file /usr/share/man/ja/man1/vim.1.gz (of link group vi) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/pl/man1/vi.1.gz because associated file /usr/share/man/pl/man1/vim.1.gz (of link group vi) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/ru/man1/vi.1.gz because associated file /usr/share/man/ru/man1/vim.1.gz (of link group vi) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/man1/vi.1.gz because associated file /usr/share/man/man1/vim.1.gz (of link group vi) doesn't exist
-update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/view (view) in auto mode
-update-alternatives: warning: skip creation of /usr/share/man/da/man1/view.1.gz because associated file /usr/share/man/da/man1/vim.1.gz (of link group view) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/de/man1/view.1.gz because associated file /usr/share/man/de/man1/vim.1.gz (of link group view) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/fr/man1/view.1.gz because associated file /usr/share/man/fr/man1/vim.1.gz (of link group view) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/it/man1/view.1.gz because associated file /usr/share/man/it/man1/vim.1.gz (of link group view) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/ja/man1/view.1.gz because associated file /usr/share/man/ja/man1/vim.1.gz (of link group view) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/pl/man1/view.1.gz because associated file /usr/share/man/pl/man1/vim.1.gz (of link group view) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/ru/man1/view.1.gz because associated file /usr/share/man/ru/man1/vim.1.gz (of link group view) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/man1/view.1.gz because associated file /usr/share/man/man1/vim.1.gz (of link group view) doesn't exist
-update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/ex (ex) in auto mode
-update-alternatives: warning: skip creation of /usr/share/man/da/man1/ex.1.gz because associated file /usr/share/man/da/man1/vim.1.gz (of link group ex) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/de/man1/ex.1.gz because associated file /usr/share/man/de/man1/vim.1.gz (of link group ex) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/fr/man1/ex.1.gz because associated file /usr/share/man/fr/man1/vim.1.gz (of link group ex) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/it/man1/ex.1.gz because associated file /usr/share/man/it/man1/vim.1.gz (of link group ex) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/ja/man1/ex.1.gz because associated file /usr/share/man/ja/man1/vim.1.gz (of link group ex) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/pl/man1/ex.1.gz because associated file /usr/share/man/pl/man1/vim.1.gz (of link group ex) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/ru/man1/ex.1.gz because associated file /usr/share/man/ru/man1/vim.1.gz (of link group ex) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/man1/ex.1.gz because associated file /usr/share/man/man1/vim.1.gz (of link group ex) doesn't exist
-update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/editor (editor) in auto mode
-update-alternatives: warning: skip creation of /usr/share/man/da/man1/editor.1.gz because associated file /usr/share/man/da/man1/vim.1.gz (of link group editor) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/de/man1/editor.1.gz because associated file /usr/share/man/de/man1/vim.1.gz (of link group editor) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/fr/man1/editor.1.gz because associated file /usr/share/man/fr/man1/vim.1.gz (of link group editor) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/it/man1/editor.1.gz because associated file /usr/share/man/it/man1/vim.1.gz (of link group editor) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/ja/man1/editor.1.gz because associated file /usr/share/man/ja/man1/vim.1.gz (of link group editor) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/pl/man1/editor.1.gz because associated file /usr/share/man/pl/man1/vim.1.gz (of link group editor) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/ru/man1/editor.1.gz because associated file /usr/share/man/ru/man1/vim.1.gz (of link group editor) doesn't exist
-update-alternatives: warning: skip creation of /usr/share/man/man1/editor.1.gz because associated file /usr/share/man/man1/vim.1.gz (of link group editor) doesn't exist
-Setting up apache2-utils (2.4.38-3+deb10u8) ...
-Processing triggers for libc-bin (2.28-10+deb10u2) ...
-Removing intermediate container c05d056667b1
- ---> b2a6689fa116
-Step 3/7 : WORKDIR /app
- ---> Running in 499135e21439
-Removing intermediate container 499135e21439
- ---> 7987d82bbc69
-Step 4/7 : COPY requirements.txt requirements.txt
- ---> 721a296631ce
-Step 5/7 : RUN pip3 install -r requirements.txt
- ---> Running in a123f4161d0b
-Collecting Flask==2.2.2
-  Downloading Flask-2.2.2-py3-none-any.whl (101 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 101.5/101.5 KB 19.4 MB/s eta 0:00:00
-Collecting itsdangerous>=2.0
-  Downloading itsdangerous-2.1.2-py3-none-any.whl (15 kB)
-Collecting Jinja2>=3.0
-  Downloading Jinja2-3.1.2-py3-none-any.whl (133 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 133.1/133.1 KB 28.6 MB/s eta 0:00:00
-Collecting click>=8.0
-  Downloading click-8.1.3-py3-none-any.whl (96 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 96.6/96.6 KB 24.0 MB/s eta 0:00:00
-Collecting Werkzeug>=2.2.2
-  Downloading Werkzeug-2.2.2-py3-none-any.whl (232 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 232.7/232.7 KB 47.7 MB/s eta 0:00:00
-Collecting importlib-metadata>=3.6.0
-  Downloading importlib_metadata-6.0.0-py3-none-any.whl (21 kB)
-Collecting zipp>=0.5
-  Downloading zipp-3.12.1-py3-none-any.whl (6.7 kB)
-Collecting MarkupSafe>=2.0
-  Downloading MarkupSafe-2.1.2-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (25 kB)
-Installing collected packages: zipp, MarkupSafe, itsdangerous, click, Werkzeug, Jinja2, importlib-metadata, Flask
-Successfully installed Flask-2.2.2 Jinja2-3.1.2 MarkupSafe-2.1.2 Werkzeug-2.2.2 click-8.1.3 importlib-metadata-6.0.0 itsdangerous-2.1.2 zipp-3.12.1
-WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
-WARNING: You are using pip version 22.0.4; however, version 23.0 is available.
-You should consider upgrading via the '/usr/local/bin/python -m pip install --upgrade pip' command.
-Removing intermediate container a123f4161d0b
- ---> 3ed09b84becf
-Step 6/7 : COPY . .
- ---> 32878c7a40db
-Step 7/7 : CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0"]
- ---> Running in 9d963abc96ec
-Removing intermediate container 9d963abc96ec
- ---> 56f87d5a4218
-Successfully built 56f87d5a4218
-Successfully tagged hello-world-flask:latest
-```
-
 查看映像
 ```bash
 docker iamges
@@ -338,6 +141,7 @@ Hello, my first docker images! 50f36bc7e03eubuntu $
 ---
 
 
+
 ### 上传映像到 hub.docker.com
 
 
@@ -357,8 +161,6 @@ docker tag hello-world-flask chengzh/hello-world-flask
 ```bash
 docker push chengzh/hello-world-flask
 ```
-
-
 
 ```bash
 ubuntu $ docker login
@@ -394,6 +196,7 @@ latest: digest: sha256:6cd2283913db39d4d45620d073443c4c3a2cc91b25118f4236f205556
 
 
 ---
+
 
 
 ### 在另外一台 docker 宿主机上测试
@@ -578,20 +381,14 @@ CMD ["java", "-jar", "/opt/app/*.jar" ]
 docker build -t spring-boot .
 ```
 
-
-
 ```bash
 docker run --publish 8080:8080 spring-boot
 ```
 
 
-
-
 ```bash
 curl localhost:8080/hello
 ```
-
-
 
 ```bash
 root@node1:~# curl localhost:8080/hello
@@ -782,7 +579,6 @@ drwxr-xr-x  7 root root  4096 Feb 11 12:42 ..
 drwxr-xr-x 59 root root  4096 Feb 11 12:42 node_modules
 -rw-r--r--  1 root root   251 Feb 11 12:42 package.json
 -rw-r--r--  1 root root 39326 Feb 11 12:42 package-lock.json
-
 ```
 
 ```bash
@@ -861,8 +657,6 @@ CMD ["dumb-init", "node", "app.js"]
 13. `COPY --chown=node:node . /usr/src/app`：将本地目录下的所有文件和文件夹复制到容器内的当前工作目录。
 
 14. `CMD ["dumb-init", "node", "app.js"]`：设置容器启动时执行的默认命令，即使用 dumb-init 启动 node 进程执行 app.js 文件。
-
-
 
 
 ```bash
@@ -1124,8 +918,6 @@ COPY --from=build /opt/app/example ./example
 CMD ["/opt/app/example
 ```
 
-
-
 这是一个 Dockerfile，用于构建一个 GO 应用的容器镜像。以下是对每条指令的解释：
 
 1. `FROM --platform=$BUILDPLATFORM golang:1.18 as build`：从官方的 Golang 镜像中拉取一个标记为 1.18 的版本，并将其命名为 build。
@@ -1150,8 +942,6 @@ CMD ["/opt/app/example
 
 11. `CMD ["/opt/app/example"]`：设置容器启动时执行的默认命令，即运行 /opt/app/example 可执行文件。
 
-
-
 登录到容器镜像库，默认是docker hub
 ```bash
 docker login
@@ -1160,75 +950,6 @@ docker login
 构建多平台镜像
 ```bash
 docker buildx build --platform linux/amd64,linux/arm64 -t chengzh/multi-arch:latest --push  .
-```
-
-
-```bash
-chengzh@TB15P:~/gitops/docker/13/multi-arch$ docker buildx build --platform linux/amd64,linux/arm64 -t chengzh/multi-arch:latest --push  .
-[+] Building 139.3s (28/28) FINISHED
- => [internal] load .dockerignore                                                                                                                                              0.1s
- => => transferring context: 2B                                                                                                                                                0.0s
- => [internal] load build definition from Dockerfile                                                                                                                           0.1s
- => => transferring dockerfile: 428B                                                                                                                                           0.0s
- => resolve image config for docker.io/docker/dockerfile:1                                                                                                                     6.9s
- => [auth] docker/dockerfile:pull token for registry-1.docker.io                                                                                                               0.0s
- => docker-image://docker.io/docker/dockerfile:1@sha256:d2d74ff22a0e47b21f4bbde337e2ac4cd0a02a2226ef79264878db3dc7e87df8                                                      12.4s
- => => resolve docker.io/docker/dockerfile:1@sha256:d2d74ff22a0e47b21f4bbde337e2ac4cd0a02a2226ef79264878db3dc7e87df8                                                           0.0s
- => => sha256:dd092abd7f3683f4e8e7a66e770a1cc279b2132ac7f66d3c11b7d4a0cb529b7d 11.55MB / 11.55MB                                                                              12.0s
- => => extracting sha256:dd092abd7f3683f4e8e7a66e770a1cc279b2132ac7f66d3c11b7d4a0cb529b7d                                                                                      0.3s
- => [linux/arm64 internal] load metadata for docker.io/library/ubuntu:latest                                                                                                   9.6s
- => [linux/amd64 internal] load metadata for docker.io/library/ubuntu:latest                                                                                                   9.0s
- => [linux/amd64 internal] load metadata for docker.io/library/golang:1.18                                                                                                     9.6s
- => [auth] library/ubuntu:pull token for registry-1.docker.io                                                                                                                  0.0s
- => [auth] library/golang:pull token for registry-1.docker.io                                                                                                                  0.0s
- => [internal] load build context                                                                                                                                              0.2s
- => => transferring context: 8.97kB                                                                                                                                            0.0s
- => [linux/amd64 stage-1 1/3] FROM docker.io/library/ubuntu:latest@sha256:9a0bdde4188b896a372804be2384015e90e3f84906b750c1a53539b585fbbe7f                                    25.9s
- => => resolve docker.io/library/ubuntu:latest@sha256:9a0bdde4188b896a372804be2384015e90e3f84906b750c1a53539b585fbbe7f                                                         0.1s
- => => sha256:677076032cca0a2362d25cf3660072e738d1b96fe860409a33ce901d695d7ee8 29.53MB / 29.53MB                                                                              21.0s
- => => extracting sha256:677076032cca0a2362d25cf3660072e738d1b96fe860409a33ce901d695d7ee8                                                                                      4.7s
- => [linux/amd64 build 1/6] FROM docker.io/library/golang:1.18@sha256:50c889275d26f816b5314fc99f55425fa76b18fcaf16af255f5d57f09e1f48da                                        50.2s
- => => resolve docker.io/library/golang:1.18@sha256:50c889275d26f816b5314fc99f55425fa76b18fcaf16af255f5d57f09e1f48da                                                           0.1s
- => => sha256:cc7973a07a5b4a44399c5d36fa142f37bb343bb123a3736357365fd9040ca38a 156B / 156B                                                                                     0.4s
- => => sha256:06d0c5d18ef41fa1c2382bd2afd189a01ebfff4910b868879b6dcfeef46bc003 141.98MB / 141.98MB                                                                            37.0s
- => => sha256:bfcb68b5bd105d3f88a2c15354cff6c253bedc41d83c1da28b3d686c37cd9103 85.98MB / 85.98MB                                                                              26.9s
- => => sha256:9bd150679dbdb02d9d4df4457d54211d6ee719ca7bc77747a7be4cd99ae03988 54.58MB / 54.58MB                                                                               6.6s
- => => sha256:56261d0e6b05ece42650b14830960db5b42a9f23479d868256f91d96869ac0c2 10.88MB / 10.88MB                                                                               2.6s
- => => sha256:f049f75f014ee8fec2d4728b203c9cbee0502ce142aec030f874aa28359e25f1 5.16MB / 5.16MB                                                                                 1.1s
- => => sha256:bbeef03cda1f5d6c9e20c310c1c91382a6b0a1a2501c3436b28152f13896f082 55.03MB / 55.03MB                                                                               9.9s
- => => extracting sha256:bbeef03cda1f5d6c9e20c310c1c91382a6b0a1a2501c3436b28152f13896f082                                                                                      5.9s
- => => extracting sha256:f049f75f014ee8fec2d4728b203c9cbee0502ce142aec030f874aa28359e25f1                                                                                      0.6s
- => => extracting sha256:56261d0e6b05ece42650b14830960db5b42a9f23479d868256f91d96869ac0c2                                                                                      0.5s
- => => extracting sha256:9bd150679dbdb02d9d4df4457d54211d6ee719ca7bc77747a7be4cd99ae03988                                                                                      5.6s
- => => extracting sha256:bfcb68b5bd105d3f88a2c15354cff6c253bedc41d83c1da28b3d686c37cd9103                                                                                      3.6s
- => => extracting sha256:06d0c5d18ef41fa1c2382bd2afd189a01ebfff4910b868879b6dcfeef46bc003                                                                                      8.8s
- => => extracting sha256:cc7973a07a5b4a44399c5d36fa142f37bb343bb123a3736357365fd9040ca38a                                                                                      0.0s
- => [linux/arm64 stage-1 1/3] FROM docker.io/library/ubuntu:latest@sha256:9a0bdde4188b896a372804be2384015e90e3f84906b750c1a53539b585fbbe7f                                     7.6s
- => => resolve docker.io/library/ubuntu:latest@sha256:9a0bdde4188b896a372804be2384015e90e3f84906b750c1a53539b585fbbe7f                                                         0.1s
- => => sha256:8b150fd943bcd54ef788cece17523d19031f745b099a798de65247900d102e18 27.34MB / 27.34MB                                                                               4.6s
- => => extracting sha256:8b150fd943bcd54ef788cece17523d19031f745b099a798de65247900d102e18                                                                                      2.8s
- => [linux/arm64 stage-1 2/3] WORKDIR /opt/app                                                                                                                                 0.5s
- => [linux/amd64 stage-1 2/3] WORKDIR /opt/app                                                                                                                                 0.6s
- => [linux/amd64 build 2/6] WORKDIR /opt/app                                                                                                                                   2.1s
- => [linux/amd64 build 3/6] COPY go.* ./                                                                                                                                       0.1s
- => [linux/amd64->arm64 build 4/6] RUN go mod download                                                                                                                        11.1s
- => [linux/amd64 build 4/6] RUN go mod download                                                                                                                               11.1s
- => [linux/amd64 build 5/6] COPY . .                                                                                                                                           0.2s
- => [linux/amd64->arm64 build 5/6] COPY . .                                                                                                                                    0.2s
- => [linux/amd64 build 6/6] RUN --mount=type=cache,target=/root/.cache/go-build GOOS=linux GOARCH=amd64 go build -o /opt/app/example .                                         9.6s
- => [linux/amd64->arm64 build 6/6] RUN --mount=type=cache,target=/root/.cache/go-build GOOS=linux GOARCH=arm64 go build -o /opt/app/example .                                 21.0s
- => [linux/amd64 stage-1 3/3] COPY --from=build /opt/app/example ./example                                                                                                     0.2s
- => [linux/arm64 stage-1 3/3] COPY --from=build /opt/app/example ./example                                                                                                     0.1s
- => exporting to image                                                                                                                                                        25.0s
- => => exporting layers                                                                                                                                                        0.7s
- => => exporting manifest sha256:b90296633a64276c5387fe40be97c007daff45af552e0948d9fce2ea98b0cd71                                                                              0.0s
- => => exporting config sha256:468ff1c170c3aab2c74687571337651cc2aeb379136cb6fcf4e59d11b2a50140                                                                                0.0s
- => => exporting manifest sha256:b262a3e6c23afd2d819b33658327b61ccb8f1c618177074ce79e79e0373a4bca                                                                              0.0s
- => => exporting config sha256:ee491744bf4f1ed45db984405b1a01d0b2924394c3bc7ac3b29ab83522091661                                                                                0.0s
- => => exporting manifest list sha256:06d6b2cabc7bbf8ad57faebc6dee8e50e23abac65d21afa02277a5cfc3b489c4                                                                         0.0s
- => => pushing layers                                                                                                                                                         21.5s
- => => pushing manifest for docker.io/chengzh/multi-arch:latest@sha256:06d6b2cabc7bbf8ad57faebc6dee8e50e23abac65d21afa02277a5cfc3b489c4                                        2.7s
- => [auth] chengzh/multi-arch:pull,push token for registry-1.docker.io
 ```
 
 
@@ -1273,7 +994,8 @@ drwxr-xr-x 7 root root    4096 Feb 11 12:42 ..
 -rw-r--r-- 1 root root     240 Feb 11 12:42 main.go
 ```
 
-Dockerfile-1
+**Dockerfile-1**
+
 ```Dockerfile
 # syntax=docker/dockerfile:1
 FROM golang:1.17
@@ -1283,49 +1005,11 @@ RUN go build -o example
 CMD ["/opt/app/example"]
 
 ```
-这个 Dockerfile 描述的构建过程非常简单，我们首选 Golang:1.17 版本的镜像作为编译环境，将源码拷贝到镜像中，然后运行 go build 编译源码生成二进制可执行文件，最后配置启动命令。
+这个 Dockerfile 描述的构建过程非常简单，首选 Golang:1.17 版本的镜像作为编译环境，将源码拷贝到镜像中，然后运行 go build 编译源码生成二进制可执行文件，最后配置启动命令。
 
 ```bash
 docker build -t golang:1 -f Dockerfile-1 .
 ```
-
-```bash
-root@node1:~/gitops/docker/13/golang# docker build -t golang:1 -f Dockerfile-1 .
-DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
-            Install the buildx component to build images with BuildKit:
-            https://docs.docker.com/go/buildx/
-
-Sending build context to Docker daemon  6.733MB
-Step 1/5 : FROM golang:1.17
- ---> 276895edf967
-Step 2/5 : WORKDIR /opt/app
- ---> Using cache
- ---> 50abe4ea5fa7
-Step 3/5 : COPY . .
- ---> c0256f566166
-Step 4/5 : RUN go build -o example
- ---> Running in 44ed5545552b
-go: downloading github.com/labstack/echo/v4 v4.9.0
-go: downloading github.com/labstack/gommon v0.3.1
-go: downloading golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
-go: downloading golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f
-go: downloading github.com/mattn/go-colorable v0.1.11
-go: downloading github.com/mattn/go-isatty v0.0.14
-go: downloading github.com/valyala/fasttemplate v1.2.1
-go: downloading golang.org/x/sys v0.0.0-20211103235746-7861aae1554b
-go: downloading golang.org/x/text v0.3.7
-go: downloading github.com/valyala/bytebufferpool v1.0.0
-Removing intermediate container 44ed5545552b
- ---> 8942dac702f4
-Step 5/5 : CMD ["/opt/app/example"]
- ---> Running in ddf4e9610d7d
-Removing intermediate container ddf4e9610d7d
- ---> 40897efc32d5
-Successfully built 40897efc32d5
-Successfully tagged golang:1
-```
-
-
 
 查看映像
 
@@ -1338,8 +1022,6 @@ docker images
 ```bash
 docker history golang:1
 ```
-
-
 
 ```bash
 root@node1:~/gitops/docker/13/golang# docker images
@@ -1368,17 +1050,35 @@ df00d7d44056   12 minutes ago   /bin/sh -c #(nop) WORKDIR /opt/app              
 <missing>      13 months ago    /bin/sh -c set -eux;  apt-get update;  apt-g…   10.7MB
 <missing>      13 months ago    /bin/sh -c #(nop)  CMD ["bash"]                 0B
 <missing>      13 months ago    /bin/sh -c #(nop) ADD file:c03517c5ddbed4053…   124MB
-
 ```
 
-从返回的结果来看，这个 Dockerfile 构建的镜像大小非常惊人，Golang 示例程序使用 go build 命令编译后，二进制可执行文件大约 6M 左右，但容器化之后，镜像达到 900M，显然我们需要进一步优化镜像大小。
+从返回的结果来看，这个 Dockerfile 构建的镜像大小非常惊人，Golang 示例程序使用 go build 命令编译后，二进制可执行文件大约 6M 左右，但容器化之后，镜像达到 900M，显然需要进一步优化镜像大小。
 
+1. `74dbc784726c` - 创建于12分钟前，用于设置默认命令。CMD ["/opt/app/example"] 指定了当容器运行时将执行的命令。
+2. `f32a98328157` - 创建于12分钟前，用于构建Go应用程序。go build -o example 会编译Go代码并输出一个名为`example`的可执行文件。
+3. `09aefcaec12f` - 创建于12分钟前，复制文件到镜像。COPY dir:f9adead7af783e6c7… 将当前目录下的文件复制到镜像中。
+4. `df00d7d44056` - 创建于12分钟前，设置工作目录。WORKDIR /opt/app 指定了在容器内执行命令时使用的默认工作目录。
+5. `276895edf967` - 创建于13个月前，设置工作目录。WORKDIR /go 是旧的Go工作目录，已被废弃但仍存在于这个镜像中。
+6. `<missing>` - 创建于13个月前，创建目录。这个层创建了 "$GOPATH/src" 和 "$GOPATH/bin" 两个目录。
+7. `<missing>` - 创建于13个月前，设置环境变量。ENV PATH=/go/bin:/usr/loc… 设置了PATH环境变量，将Go的bin目录加入到PATH中。
+8. `<missing>` - 创建于13个月前，设置环境变量。ENV GOPATH=/go 设置了Go的GOPATH环境变量。
+9. `<missing>` - 创建于13个月前，安装Go编程语言。这一层用于下载和安装Go编程语言的特定版本。
+10. `<missing>` - 创建于13个月前，设置环境变量。ENV GOLANG_VERSION=1.17.5 设置了Go的版本。
+11. `<missing>` - 创建于13个月前，设置环境变量。ENV PATH=/usr/local/go/bi… 将Go的bin目录加入到PATH中。
+12. `<missing>` - 创建于13个月前，更新软件包和安装依赖。这一层用于更新Debian软件包并安装一些必要的依赖。
+13. `<missing>` - 创建于13个月前，更新软件包和安装依赖。这一层用于更新Debian软件包并安装一些必要的依赖。
+14. `<missing>` - 创建于13个月前，安装GPG。这一层用于安装GPG工具，用于验证下载文件的签名。
+15. `<missing>` - 创建于13个月前，更新软件包和安装依赖。这一层用于更新Debian软件包并安装一些必要的依赖。
+16. `<missing>` - 创建于13个月前，设置默认命令。CMD ["bash"] 指定了当容器运行时，如果没有其他命令被指定，将执行`bash`。
+17. `<missing>` - 创建于13个月前，添加文件到镜像。ADD file:c03517c5ddbed4053… 这一层将一个文件（很可能是基础镜像所需的文件系统）添加到镜像中。这是构建这个Golang镜像的基础层，通常基于某个Linux发行版，如Debian或Alpine。
 
+总结：这个Docker镜像是基于Golang编程语言构建的。它包含了Go编程环境以及一些必要的依赖。这个镜像的主要目的是为了编译和运行Go应用程序。在这个镜像的基础上，有一些额外的层被添加，用于设置工作目录，复制文件，构建Go应用程序，以及设置默认的运行命令。当运行一个基于这个镜像的容器时，它会执行`/opt/app/example`作为默认命令
 
 
 ### 替换镜像
 
-Dockerfile-2
+**Dockerfile-2**
+
 ```Dockerfile
 # syntax=docker/dockerfile:1
 FROM golang:1.17-alpine
@@ -1391,51 +1091,6 @@ CMD ["/opt/app/example"]
 
 ```bash
 docker build -t golang:2 -f Dockerfile-2 .
-```
-
-```bash
-root@node1:~/gitops/docker/13/golang# docker build -t golang:2 -f Dockerfile-2 .
-DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
-            Install the buildx component to build images with BuildKit:
-            https://docs.docker.com/go/buildx/
-
-Sending build context to Docker daemon  6.733MB
-Step 1/5 : FROM golang:1.17-alpine
-1.17-alpine: Pulling from library/golang
-59bf1c3509f3: Already exists
-666ba61612fd: Pull complete
-8ed8ca486205: Pull complete
-1ff5b6d8b8c6: Pull complete
-40fcfd711f8d: Pull complete
-Digest: sha256:4918412049183afe42f1ecaf8f5c2a88917c2eab153ce5ecf4bf2d55c1507b74
-Status: Downloaded newer image for golang:1.17-alpine
- ---> d8bf44a3f6b4
-Step 2/5 : WORKDIR /opt/app
- ---> Running in d52bb40ba30b
-Removing intermediate container d52bb40ba30b
- ---> 79ab27824978
-Step 3/5 : COPY . .
- ---> 76206dcc81e5
-Step 4/5 : RUN go build -o example
- ---> Running in 698a63c24501
-go: downloading github.com/labstack/echo/v4 v4.9.0
-go: downloading github.com/labstack/gommon v0.3.1
-go: downloading golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
-go: downloading golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f
-go: downloading github.com/mattn/go-colorable v0.1.11
-go: downloading github.com/mattn/go-isatty v0.0.14
-go: downloading github.com/valyala/fasttemplate v1.2.1
-go: downloading golang.org/x/sys v0.0.0-20211103235746-7861aae1554b
-go: downloading golang.org/x/text v0.3.7
-go: downloading github.com/valyala/bytebufferpool v1.0.0
-Removing intermediate container 698a63c24501
- ---> 43480b9dfb9c
-Step 5/5 : CMD ["/opt/app/example"]
- ---> Running in 97d398d6f2da
-Removing intermediate container 97d398d6f2da
- ---> 056ccad9a6ab
-Successfully built 056ccad9a6ab
-Successfully tagged golang:2
 ```
 
 查看映像
@@ -1479,14 +1134,13 @@ d8bf44a3f6b4   14 months ago    /bin/sh -c #(nop) WORKDIR /go                   
 <missing>      14 months ago    /bin/sh -c apk add --no-cache ca-certificates   519kB
 <missing>      14 months ago    /bin/sh -c #(nop)  CMD ["/bin/sh"]              0B
 <missing>      14 months ago    /bin/sh -c #(nop) ADD file:9233f6f2237d79659…   5.59MB
-
 ```
 
 
 
 ### 本地编译
 
-Dockerfile-3
+**Dockerfile-3**
 
 在本地先编译出可执行文件，再将它复制到一个更小体积的 ubuntu 镜像内，直接引入了不包含 Golang 编译工具的 ubuntu 镜像作为基础运行环境，接下来使用 docker build 命令构建镜像
 
@@ -1508,8 +1162,6 @@ go: downloading github.com/valyala/bytebufferpool v1.0.0
 go: downloading golang.org/x/text v0.3.7
 ```
 
-
-
 ```Dockerfile
 # syntax=docker/dockerfile:1
 FROM ubuntu:latest
@@ -1523,29 +1175,6 @@ CMD ["/opt/app/example"]
 docker build -t golang:3 -f Dockerfile-3 .
 ```
 
-```bash
-root@node1:~/gitops/docker/13/golang# docker build -t golang:3 -f Dockerfile-3 .
-Sending build context to Docker daemon      7MB
-Step 1/4 : FROM ubuntu:latest
-latest: Pulling from library/ubuntu
-76769433fd8a: Pull complete 
-Digest: sha256:2adf22367284330af9f832ffefb717c78239f6251d9d0f58de50b86229ed1427
-Status: Downloaded newer image for ubuntu:latest
- ---> 74f2314a03de
-Step 2/4 : WORKDIR /opt/app
- ---> Running in 819e907b075b
-Removing intermediate container 819e907b075b
- ---> 0398b920df19
-Step 3/4 : COPY example ./
- ---> e4e0c73fee4e
-Step 4/4 : CMD ["/opt/app/example"]
- ---> Running in c53349c11c4f
-Removing intermediate container c53349c11c4f
- ---> 27414418a1cb
-Successfully built 27414418a1cb
-Successfully tagged golang:3
-```
-
 查看映像
 
 ```bash
@@ -1557,8 +1186,6 @@ docker images
 ```bash
 docker history golang:3
 ```
-
-
 
 ```bash
 root@node1:~/gitops/docker/13/golang# docker images
@@ -1583,8 +1210,21 @@ e4e0c73fee4e   About a minute ago   /bin/sh -c #(nop) COPY file:20d600ca265b298d
 <missing>      13 days ago          /bin/sh -c #(nop)  LABEL org.opencontainers.…   0B        
 <missing>      13 days ago          /bin/sh -c #(nop)  ARG LAUNCHPAD_BUILD_ARCH     0B        
 <missing>      13 days ago          /bin/sh -c #(nop)  ARG RELEASE                  0B   
-
 ```
+
+这是另一个Golang Docker镜像的构建历史。以下是对这个输出的详细解释：
+
+1. `27414418a1cb` - 创建于大约1分钟前，用于设置默认命令。CMD ["/opt/app/example"] 指定了当容器运行时将执行的命令。
+2. `e4e0c73fee4e` - 创建于大约1分钟前，复制文件到镜像。COPY file:20d600ca265b298d… 将指定文件复制到镜像中。
+3. `0398b920df19` - 创建于大约1分钟前，设置工作目录。WORKDIR /opt/app 指定了在容器内执行命令时使用的默认工作目录。
+4. `74f2314a03de` - 创建于13天前，设置默认命令。CMD ["/bin/bash"] 指定了当容器运行时，如果没有其他命令被指定，将执行`/bin/bash`。
+5. `<missing>` - 创建于13天前，添加文件到镜像。ADD file:fb4c8244f4468cdd3… 这一层将一个文件（很可能是基础镜像所需的文件系统）添加到镜像中。这是构建这个Golang镜像的基础层，通常基于某个Linux发行版，如Debian或Alpine。
+6. `<missing>` - 创建于13天前，设置标签。LABEL org.opencontainers… 设置了一个标签，提供有关镜像的元数据。
+7. `<missing>` - 创建于13天前，设置标签。LABEL org.opencontainers… 设置了另一个标签，提供有关镜像的元数据。
+8. `<missing>` - 创建于13天前，设置构建参数。ARG LAUNCHPAD_BUILD_ARCH 设置了一个构建参数，用于指定构建时的体系结构。
+9. `<missing>` - 创建于13天前，设置构建参数。ARG RELEASE 设置了一个构建参数，用于指定构建时的Golang版本。
+
+总结：这个Docker镜像也是基于Golang编程语言构建的。它包含了Go编程环境以及一些必要的依赖。在这个镜像的基础上，有一些额外的层被添加，用于设置工作目录，复制文件，以及设置默认的运行命令。当运行一个基于这个镜像的容器时，它会执行`/opt/app/example`作为默认命令。与前一个镜像相比，这个镜像具有更少的层次和更简洁的构建历史。
 
 从返回内容可以看出，这种构建方式生成的镜像只有 84.8M，在体积上比最初的 1.04G 缩小了 90% 。镜像的最终大小就相当于 ubuntu:latest 的大小加上 Golang 二进制可执行文件的大小。
 
@@ -1618,45 +1258,12 @@ CMD ["/opt/app/example"]
 
 这段内容里有两个 FROM 语句，所以这是一个包含两个阶段的构建过程。
 
-第一个阶段是从第 4 行至第 7 行，它的作用是编译生成二进制可执行文件，就像我们之前在本地执行的编译操作一样。
+第一个阶段是从第 4 行至第 7 行，它的作用是编译生成二进制可执行文件，就像之前在本地执行的编译操作一样。
 
 第二阶段在第 10 行到 13 行，它的作用是将第一阶段生成的二进制可执行文件复制到当前阶段，把 ubuntu:latest 作为运行环境，并设置 CMD 启动命令。
 
 ```bash
 docker build -t golang:4 -f Dockerfile-4 .
-```
-
-```bash
-root@node1:~/gitops/docker/13/golang# docker build -t golang:4 -f Dockerfile-4 .
-DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
-            Install the buildx component to build images with BuildKit:
-            https://docs.docker.com/go/buildx/
-
-Sending build context to Docker daemon  6.733MB
-Step 1/8 : FROM golang:1.17 as builder
- ---> 276895edf967
-Step 2/8 : WORKDIR /opt/app
- ---> Using cache
- ---> 50abe4ea5fa7
-Step 3/8 : COPY . .
- ---> Using cache
- ---> c0256f566166
-Step 4/8 : RUN go build -o example
- ---> Using cache
- ---> 8942dac702f4
-Step 5/8 : FROM ubuntu:latest
- ---> ba6acccedd29
-Step 6/8 : WORKDIR /opt/app
- ---> Using cache
- ---> d61000368cb4
-Step 7/8 : COPY --from=builder /opt/app/example ./example
- ---> 69bd446cbbf6
-Step 8/8 : CMD ["/opt/app/example"]
- ---> Running in ccff4bd8c0f8
-Removing intermediate container ccff4bd8c0f8
- ---> b2ef776eca71
-Successfully built b2ef776eca71
-Successfully tagged golang:4
 ```
 
 查看映像
@@ -1704,7 +1311,8 @@ IMAGE          CREATED          CREATED BY                                      
 
 ### 进一步压缩
 
-Dockerfile-5
+**Dockerfile-5**
+
 ```Dockerfile
 # syntax=docker/dockerfile:1
 
@@ -1721,58 +1329,12 @@ COPY --from=builder /opt/app/example ./example
 CMD ["/opt/app/example"]
 
 ```
-要进一步缩小体积，我们可以继续使用其他更小的镜像作为第二阶段的运行镜像，这就要说到 Alpine 了。
+要进一步缩小体积，可以继续使用其他更小的镜像作为第二阶段的运行镜像，这就要说到 Alpine 了。
 
-Alpine 镜像是专门为容器化定制的 Linux 发行版，它的最大特点是体积非常小。现在，我们尝试使用它，将第二阶段构建的镜像替换为 Alpine 镜像
+Alpine 镜像是专门为容器化定制的 Linux 发行版，它的最大特点是体积非常小。现在，尝试使用它，将第二阶段构建的镜像替换为 Alpine 镜像
 
 ```bash
 docker build -t golang:5 -f Dockerfile-5 .
-```
-
-
-```bash
-root@node1:~/gitops/docker/13/golang# docker build -t golang:5 -f Dockerfile-5 .
-Sending build context to Docker daemon      7MB
-Step 1/8 : FROM golang:1.17 as builder
- ---> 742df529b073
-Step 2/8 : WORKDIR /opt/app
- ---> Using cache
- ---> 40d9e3b11f11
-Step 3/8 : COPY . .
- ---> Using cache
- ---> 88f9fa240559
-Step 4/8 : RUN CGO_ENABLED=0 go build -o example
- ---> Running in 9a9597b50e70
-go: downloading github.com/labstack/echo/v4 v4.9.0
-go: downloading github.com/labstack/gommon v0.3.1
-go: downloading golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
-go: downloading golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f
-go: downloading github.com/mattn/go-colorable v0.1.11
-go: downloading github.com/mattn/go-isatty v0.0.14
-go: downloading github.com/valyala/fasttemplate v1.2.1
-go: downloading golang.org/x/sys v0.0.0-20211103235746-7861aae1554b
-go: downloading github.com/valyala/bytebufferpool v1.0.0
-go: downloading golang.org/x/text v0.3.7
-Removing intermediate container 9a9597b50e70
- ---> a4de3e3e3d49
-Step 5/8 : FROM alpine
-latest: Pulling from library/alpine
-63b65145d645: Pull complete 
-Digest: sha256:ff6bdca1701f3a8a67e328815ff2346b0e4067d32ec36b7992c1fdc001dc8517
-Status: Downloaded newer image for alpine:latest
- ---> b2aa39c304c2
-Step 6/8 : WORKDIR /opt/app
- ---> Running in 0fee197555a5
-Removing intermediate container 0fee197555a5
- ---> 4a7f1f27187d
-Step 7/8 : COPY --from=builder /opt/app/example ./example
- ---> f98d161a91f7
-Step 8/8 : CMD ["/opt/app/example"]
- ---> Running in 4ea83833228b
-Removing intermediate container 4ea83833228b
- ---> 419b26609935
-Successfully built 419b26609935
-Successfully tagged golang:5
 ```
 
 查看映像
@@ -1815,13 +1377,23 @@ b2aa39c304c2   4 weeks ago          /bin/sh -c #(nop)  CMD ["/bin/sh"]          
 <missing>      4 weeks ago          /bin/sh -c #(nop) ADD file:40887ab7c06977737…   7.05MB
 ```
 
+这是另一个Golang Docker镜像的构建历史。以下是对这个输出的详细解释：
+
+1. `419b26609935` - 创建于大约1分钟前，用于设置默认命令。CMD ["/opt/app/example"] 指定了当容器运行时将执行的命令。
+2. `f98d161a91f7` - 创建于大约1分钟前，复制文件到镜像。COPY file:767cca1c08627393… 将指定文件复制到镜像中。
+3. `4a7f1f27187d` - 创建于大约1分钟前，设置工作目录。WORKDIR /opt/app 指定了在容器内执行命令时使用的默认工作目录。
+4. `b2aa39c304c2` - 创建于4周前，设置默认命令。CMD ["/bin/sh"] 指定了当容器运行时，如果没有其他命令被指定，将执行`/bin/sh`。
+5. `<missing>` - 创建于4周前，添加文件到镜像。ADD file:40887ab7c06977737… 这一层将一个文件（很可能是基础镜像所需的文件系统）添加到镜像中。这是构建这个Golang镜像的基础层，通常基于某个Linux发行版，如Debian或Alpine。
+
+总结：这个Docker镜像也是基于Golang编程语言构建的。它包含了Go编程环境以及一些必要的依赖。在这个镜像的基础上，有一些额外的层被添加，用于设置工作目录，复制文件，以及设置默认的运行命令。当运行一个基于这个镜像的容器时，它会执行`/opt/app/example`作为默认命令。这个镜像的层次和构建历史比之前镜像更简洁，只包含了必要的层。
+
 由于 Alpine 镜像和常规 Linux 发行版存在一些差异，通常并不推荐在生产环境下使用 Alpine 镜像作为业务的运行镜像
 
 
 
 ### 极限压缩
 
-把第二个阶段的镜像替换为一个“空镜像”，这个空镜像称为 scratch 镜像，我们将 Dockerfile-4 第二阶段的构建替换为 scratch 镜像
+把第二个阶段的镜像替换为一个“空镜像”，这个空镜像称为 scratch 镜像，将 Dockerfile-4 第二阶段的构建替换为 scratch 镜像
 
 Dockerfile-6
 ```Dockerfile
@@ -1839,40 +1411,10 @@ WORKDIR /opt/app
 COPY --from=builder /opt/app/example ./example
 CMD ["/opt/app/example"]
 ```
-由于 scratch 镜像不包含任何内容，所以我们在编译 Golang 可执行文件的时候禁用了 CGO，这样才能让编译出来的程序在 scratch 镜像中运行
+由于 scratch 镜像不包含任何内容，所以在编译 Golang 可执行文件的时候禁用了 CGO，这样才能让编译出来的程序在 scratch 镜像中运行
 
 ```bash
 docker build -t golang:6 -f Dockerfile-6 .
-```
-
-```bash
-root@node1:~/gitops/docker/13/golang# docker build -t golang:6 -f Dockerfile-6 .
-Sending build context to Docker daemon      7MB
-Step 1/8 : FROM golang:1.17 as builder
- ---> 742df529b073
-Step 2/8 : WORKDIR /opt/app
- ---> Using cache
- ---> 40d9e3b11f11
-Step 3/8 : COPY . .
- ---> Using cache
- ---> 88f9fa240559
-Step 4/8 : RUN CGO_ENABLED=0 go build -o example
- ---> Using cache
- ---> a4de3e3e3d49
-Step 5/8 : FROM scratch
- ---> 
-Step 6/8 : WORKDIR /opt/app
- ---> Running in 4bc677ec0f7f
-Removing intermediate container 4bc677ec0f7f
- ---> b3cfc770d142
-Step 7/8 : COPY --from=builder /opt/app/example ./example
- ---> 26a048c3fc5b
-Step 8/8 : CMD ["/opt/app/example"]
- ---> Running in 6afd5b0574b9
-Removing intermediate container 6afd5b0574b9
- ---> d05c2b689d37
-Successfully built d05c2b689d37
-Successfully tagged golang:6
 ```
 
 查看映像
@@ -1886,8 +1428,6 @@ docker images
 ```bash
 docker history golang:6
 ```
-
-
 
 ```bash
 root@node1:~/gitops/docker/13/golang# docker images
@@ -1913,6 +1453,14 @@ d05c2b689d37   57 seconds ago   /bin/sh -c #(nop)  CMD ["/opt/app/example"]     
 26a048c3fc5b   58 seconds ago   /bin/sh -c #(nop) COPY file:767cca1c08627393…   6.82MB    
 b3cfc770d142   58 seconds ago   /bin/sh -c #(nop) WORKDIR /opt/app              0B  
 ```
+
+这是又一个Golang Docker镜像的构建历史。以下是对这个输出的详细解释：
+
+1. `d05c2b689d37` - 创建于57秒前，用于设置默认命令。CMD ["/opt/app/example"] 指定了当容器运行时将执行的命令。
+2. `26a048c3fc5b` - 创建于58秒前，复制文件到镜像。COPY file:767cca1c08627393… 将指定文件复制到镜像中。
+3. `b3cfc770d142` - 创建于58秒前，设置工作目录。WORKDIR /opt/app 指定了在容器内执行命令时使用的默认工作目录。
+
+总结：这个Docker镜像也是基于Golang编程语言构建的。然而，与之前的镜像相比，这个镜像的层次和构建历史更加简洁。它仅包含了设置工作目录，复制文件，以及设置默认的运行命令这三个层。当运行一个基于这个镜像的容器时，它会执行`/opt/app/example`作为默认命令。注意，这个镜像可能不包含完整的Golang编程环境，因此在使用这个镜像时需要注意确保环境的兼容性。
 
 scratch 镜像是一个空白镜像，甚至连 shell 都没有，所以也无法进入容器查看文件或进行调试。在生产环境中，如果对安全有极高的要求，可以考虑把 scratch 作为程序的运行镜像。
 
@@ -1944,45 +1492,6 @@ CMD ["/opt/app/example"]
 
 ```bash
 docker build -t golang:7 -f Dockerfile-7 .
-```
-
-```bash
-root@node1:~/gitops/docker/13/golang# docker build -t golang:7 -f Dockerfile-7 .
-DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
-            Install the buildx component to build images with BuildKit:
-            https://docs.docker.com/go/buildx/
-
-Sending build context to Docker daemon  6.734MB
-Step 1/10 : FROM golang:1.17 as builder
- ---> 276895edf967
-Step 2/10 : WORKDIR /opt/app
- ---> Using cache
- ---> 50abe4ea5fa7
-Step 3/10 : COPY go.* ./
- ---> Using cache
- ---> a92d3e22d2f1
-Step 4/10 : RUN go mod download
- ---> Using cache
- ---> a32e9966c989
-Step 5/10 : COPY . .
- ---> 62de3afbbcb1
-Step 6/10 : RUN go build -o example
- ---> Running in 467d2d11cba9
-Removing intermediate container 467d2d11cba9
- ---> 09dead76b62d
-Step 7/10 : FROM alpine:latest
- ---> c059bfaa849c
-Step 8/10 : WORKDIR /opt/app
- ---> Using cache
- ---> 89442c35f1c4
-Step 9/10 : COPY --from=builder /opt/app/example ./example
- ---> 05461692b3d1
-Step 10/10 : CMD ["/opt/app/example"]
- ---> Running in f54f0afa5838
-Removing intermediate container f54f0afa5838
- ---> 32d7ee5d6a76
-Successfully built 32d7ee5d6a76
-Successfully tagged golang:7
 ```
 
 查看映像
@@ -2040,7 +1549,6 @@ b2aa39c304c2   4 weeks ago      /bin/sh -c #(nop)  CMD ["/bin/sh"]              
 示例repo：https://github.com/cloudzun/kubernetes-example/tree/main/.github/workflows
 
 ```yaml
-
 name: build
 
 on:
@@ -2083,8 +1591,6 @@ jobs:
           tags: ${{ env.DOCKERHUB_USERNAME }}/frontend:${{ steps.vars.outputs.sha_short }}
 ```
 
-解析：
-
 这是一个GitHub Actions的工作流程配置文件，用于在推送到`main`分支时自动构建并推送Docker镜像到Docker Hub。以下是详细解释：
 
 1. `name: build`：为此GitHub Actions工作流程命名为"build"。
@@ -2092,7 +1598,7 @@ jobs:
    - `push`：当有新的推送事件时触发。
    - `branches`：指定仅在推送到`main`分支时触发此工作流程。
 3. `env`：设置环境变量。
-   - `DOCKERHUB_USERNAME: cloudzun`：设置Docker Hub用户名为"cloudzun"。请将此值替换为你自己的Docker Hub用户名。
+   - `DOCKERHUB_USERNAME: cloudzun`：设置Docker Hub用户名为"cloudzun"。请将此值替换为自己的Docker Hub用户名。
 4. `jobs`：定义工作流程中的任务。
    - `docker`：定义一个名为"docker"的任务。
    - `runs-on: ubuntu-latest`：指定任务运行在最新版的Ubuntu虚拟环境上。
@@ -2132,16 +1638,16 @@ jobs:
 
 要在Docker Hub上创建一个访问令牌（Access Token），请按照以下步骤操作：
 
-1.  登录到你的Docker Hub账户。    
+1.  登录到的Docker Hub账户。    
 2.  点击右上角的头像，然后从下拉菜单中选择`Account Settings`（帐户设置）。    
 3.  在左侧的导航菜单中，点击`Security`（安全）。    
 4.  点击`New Access Token`（新访问令牌）按钮。    
 5.  输入一个描述性的令牌名称，例如“GitHub Actions”，然后点击`Create`（创建）按钮。
-6.  成功创建令牌后，一个弹出窗口会显示新生成的访问令牌。请务必立即复制此令牌，因为你以后将无法再次查看它。如果你不小心关闭了窗口，你需要生成一个新的访问令牌。    
+6.  成功创建令牌后，一个弹出窗口会显示新生成的访问令牌。请务必立即复制此令牌，因为以后将无法再次查看它。如果不小心关闭了窗口，需要生成一个新的访问令牌。    
 
-现在你已经创建了一个Docker Hub访问令牌，可以在API调用、命令行工具或GitHub Actions工作流程中使用它进行身份验证。为了安全起见，请不要在公共场所共享你的访问令牌。
+现在已经创建了一个Docker Hub访问令牌，可以在API调用、命令行工具或GitHub Actions工作流程中使用它进行身份验证。为了安全起见，请不要在公共场所共享的访问令牌。
 
-接下来，你可以在GitHub仓库中创建一个Docker Hub Secret，用于存储你刚刚创建的访问令牌。这样，在GitHub Actions工作流程中，你可以通过`${{ secrets.DOCKERHUB_TOKEN }}`引用这个Secret。
+接下来，可以在GitHub仓库中创建一个Docker Hub Secret，用于存储刚刚创建的访问令牌。这样，在GitHub Actions工作流程中，可以通过`${{ secrets.DOCKERHUB_TOKEN }}`引用这个Secret。
 
 
 
@@ -2149,17 +1655,17 @@ jobs:
 
 进入 kubernetes-example 仓库的 Settings 页面，点击左侧的“Secrets”，进入“Actions”菜单，然后点击右侧“New repository secret”创建新的 Secret。
 
-在 Name 输入框中输入 DOCKERHUB_TOKEN，这样在 GitHub Action 的 Step 中，就可以通过 ${{ secrets.DOCKERHUB_TOKEN }} 表达式来获取它的值。在 Secret 输入框中输入刚才我们复制的 Docker Hub Token，点击“Add secret”创建。
+在 Name 输入框中输入 DOCKERHUB_TOKEN，这样在 GitHub Action 的 Step 中，就可以通过 ${{ secrets.DOCKERHUB_TOKEN }} 表达式来获取它的值。在 Secret 输入框中输入刚才复制的 Docker Hub Token，点击“Add secret”创建。
 
-要在GitHub仓库中创建一个Docker Hub Secret，你需要执行以下步骤：
+要在GitHub仓库中创建一个Docker Hub Secret，需要执行以下步骤：
 
-1.  登录到你的GitHub账户，然后转到要为其创建Secret的仓库。    
+1.  登录到的GitHub账户，然后转到要为其创建Secret的仓库。    
 2.  点击仓库页面顶部的`Settings`（设置）选项卡。    
 3.  在左侧的导航菜单中，点击`Secrets and Variables`。    
 4.  点击页面右上角的`New repository secret`（新建仓库密钥）按钮。    
-5.  输入一个名称，例如`DOCKERHUB_TOKEN`，并输入你的Docker Hub访问令牌（也可以是密码）作为值。点击`Add secret`（添加密钥）按钮以保存。    
+5.  输入一个名称，例如`DOCKERHUB_TOKEN`，并输入的Docker Hub访问令牌（也可以是密码）作为值。点击`Add secret`（添加密钥）按钮以保存。    
 
-现在，你已经成功创建了一个名为`DOCKERHUB_TOKEN`的Secret，它存储了你的Docker Hub访问令牌。在GitHub Actions工作流程中，你可以通过`${{ secrets.DOCKERHUB_TOKEN }}`引用这个Secret。
+现在，已经成功创建了一个名为`DOCKERHUB_TOKEN`的Secret，它存储了的Docker Hub访问令牌。在GitHub Actions工作流程中，可以通过`${{ secrets.DOCKERHUB_TOKEN }}`引用这个Secret。
 
 请注意，为了安全起见，GitHub不允许在工作流程日志中显示Secret的值，因此它们会自动被隐藏。此外，为了防止泄露，GitHub不允许在公共仓库的Forks上的工作流程中使用Secret。
 
@@ -2207,7 +1713,7 @@ git push origin main
 
 
 
-## 部署Kind群集
+## 部署 Kind 群集
 
 
 
@@ -2219,21 +1725,15 @@ git push origin main
 apt -y install apt-transport-https ca-certificates curl software-properties-common
 ```
 
-
-
 ```bash
 curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | sudo apt-key add -
 sudo add-apt-repository "deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable"
 ```
 
-
-
 ```bash
 apt update -y 
 apt install docker-ce -y 
 ```
-
-
 
 可选, 国际互联网直达安装方式
 
@@ -2242,13 +1742,9 @@ apt install docker-ce -y
 # usermod -aG docker chengzh
 ```
 
-
-
 ```bash
 mkdir /etc/docker
 ```
-
-
 
 ```bash
 cat > /etc/docker/daemon.json << EOF
@@ -2263,8 +1759,6 @@ cat > /etc/docker/daemon.json << EOF
 }
 EOF
 ```
-
-
 
 ```bash
 systemctl restart docker
@@ -2298,8 +1792,6 @@ apt update -y
 ```text
 apt install -y kubelet kubeadm kubectl
 ```
-
-
 
 （可选）安装指定版本此次，以 `1.23.00` 为例
 
@@ -2469,11 +1961,11 @@ helm upgrade prometheus prometheus-community/kube-prometheus-stack \
 
 
 
-## Kubernetes基本功能测试
+## Kubernetes 基本功能测试
 
 
 
-### 在Kubernetes 群集上运行pod
+### 在 Kubernetes 群集上运行pod
 
 创建Pod定义文件
 
@@ -2589,7 +2081,7 @@ kubectl create ingress hello-world-flask --rule="/=hello-world-flask:5000"
 
 部署 ingress-nginx
 ```bash
-kubectl create -f https://ghproxy.com/https://raw.githubusercontent.com/lyzhang1999/resource/main/ingress-nginx/ingress-nginx.yaml
+kubectl create -f https://ghproxy.com/https://raw.githubusercontent.com/cloudzun/resource/main/ingress-nginx/ingress-nginx.yaml
 ```
 
 （可选）如果使用非kind环境，比如sandbox上，则需要为某个节点打标签 `ingress-ready: "true"`
@@ -2598,51 +2090,6 @@ kubectl label node node01 ingress-ready=true
 ```
 
 
-
-```bash
-root@node1:~# kubectl create deployment hello-world-flask --image=chengzh/hello-world-flask:latest --replicas=2
-deployment.apps/hello-world-flask created
-root@node1:~# kubectl get pod
-NAME                                 READY   STATUS    RESTARTS   AGE
-hello-world-flask-6bdf7b45dc-5tdzs   1/1     Running   0          5s
-hello-world-flask-6bdf7b45dc-hnvqm   1/1     Running   0          5s
-root@node1:~# kubectl create service clusterip hello-world-flask --tcp=5000:5000
-service/hello-world-flask created
-root@node1:~# kubectl get svc
-NAME                TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
-hello-world-flask   ClusterIP   10.96.196.45   <none>        5000/TCP   5s
-kubernetes          ClusterIP   10.96.0.1      <none>        443/TCP    47m
-root@node1:~# kubectl create ingress hello-world-flask --rule="/=hello-world-flask:5000"
-ingress.networking.k8s.io/hello-world-flask created
-root@node1:~# kubectl get ingress
-NAME                CLASS    HOSTS   ADDRESS   PORTS   AGE
-hello-world-flask   <none>   *                 80      9s
-root@node1:~# kubectl create -f https://ghproxy.com/https://raw.githubusercontent.com/lyzhang1999/resource/main/ingress-nginx/ingress-nginx.yaml
-namespace/ingress-nginx created
-serviceaccount/ingress-nginx created
-serviceaccount/ingress-nginx-admission created
-role.rbac.authorization.k8s.io/ingress-nginx created
-role.rbac.authorization.k8s.io/ingress-nginx-admission created
-clusterrole.rbac.authorization.k8s.io/ingress-nginx created
-clusterrole.rbac.authorization.k8s.io/ingress-nginx-admission created
-rolebinding.rbac.authorization.k8s.io/ingress-nginx created
-rolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
-clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx created
-clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
-configmap/ingress-nginx-controller created
-service/ingress-nginx-controller created
-service/ingress-nginx-controller-admission created
-deployment.apps/ingress-nginx-controller created
-job.batch/ingress-nginx-admission-create created
-job.batch/ingress-nginx-admission-patch created
-ingressclass.networking.k8s.io/nginx created
-validatingwebhookconfiguration.admissionregistration.k8s.io/ingress-nginx-admission created
-root@node1:~# kubectl get pod -n ingress-nginx
-NAME                                        READY   STATUS      RESTARTS   AGE
-ingress-nginx-admission-create-qb69f        0/1     Completed   0          2m11s
-ingress-nginx-admission-patch-m6jqg         0/1     Completed   0          2m11s
-ingress-nginx-controller-7574997855-tfpcw   1/1     Running     0          2m11s
-```
 
 
 - Pod 会被 Deployment 工作负载管理起来，例如创建和销毁等；
@@ -2657,7 +2104,7 @@ ingress-nginx-controller-7574997855-tfpcw   1/1     Running     0          2m11s
 ```bash
 while true; do sleep 1; curl http://127.0.0.1; echo -e '\n'$(date);done
 ```
-有了 Ingress，我们访问 Pod 就不再需要进行端口转发了，我们可以直接访问 127.0.0.1。上面的命令会每隔 1 秒钟发送一次请求，并打印出时间和返回内容：
+有了 Ingress，访问 Pod 就不再需要进行端口转发了，可以直接访问 127.0.0.1。上面的命令会每隔 1 秒钟发送一次请求，并打印出时间和返回内容：
 
 ```bash
 root@node1:~# while true; do sleep 1; curl http://127.0.0.1; echo -e '\n'$(date);done
@@ -2687,7 +2134,7 @@ Hello, my first docker images! hello-world-flask-6bdf7b45dc-5tdzs
 Mon 06 Feb 2023 12:01:51 PM CST
 
 ```
-在这里，“Hello, my first docker images” 后面紧接的内容是 Pod 名称。通过返回内容我们会发现，请求被平均分配到了两个 Pod 上，Pod 名称是交替出现的。我们要保留这个命令行窗口，以便继续观察。
+在这里，“Hello, my first docker images” 后面紧接的内容是 Pod 名称。通过返回内容会发现，请求被平均分配到了两个 Pod 上，Pod 名称是交替出现的。要保留这个命令行窗口，以便继续观察。
 
 如果使用非kind环境，需要使用此前打标签的机器的名称或者地址进行观察
 
@@ -2772,27 +2219,14 @@ hello-world-flask-6bdf7b45dc-qbvf2   1/1     Running   0          2m1s
 （可选）安装 metrics 
 
 ```bash
-kubectl apply -f https://ghproxy.com/https://raw.githubusercontent.com/lyzhang1999/resource/main/metrics/metrics.yaml
+kubectl apply -f https://ghproxy.com/https://raw.githubusercontent.com/cloudzun/resource/main/metrics/metrics.yaml
 ```
 
 ```bash
 kubectl wait deployment -n kube-system metrics-server --for condition=Available=True --timeout=90s
 ```
 
-```bash
-root@node1:~# kubectl apply -f https://ghproxy.com/https://raw.githubusercontent.com/lyzhang1999/resource/main/metrics/metrics.yaml
-serviceaccount/metrics-server created
-clusterrole.rbac.authorization.k8s.io/system:aggregated-metrics-reader created
-clusterrole.rbac.authorization.k8s.io/system:metrics-server created
-rolebinding.rbac.authorization.k8s.io/metrics-server-auth-reader created
-clusterrolebinding.rbac.authorization.k8s.io/metrics-server:system:auth-delegator created
-clusterrolebinding.rbac.authorization.k8s.io/system:metrics-server created
-service/metrics-server created
-deployment.apps/metrics-server created
-apiservice.apiregistration.k8s.io/v1beta1.metrics.k8s.io created
-root@node1:~# kubectl wait deployment -n kube-system metrics-server --for condition=Available=True --timeout=90s
-deployment.apps/metrics-server condition met
-```
+
 
 创建自动扩缩容策略
 ```bash
@@ -2919,7 +2353,7 @@ hello-world-flask-5d4494cc9b-vvn9v   0/1     Pending   0          36s
 hello-world-flask-5d4494cc9b-vx2kb   1/1     Running   0          51s
 hello-world-flask-5d4494cc9b-xkqxv   1/1     Running   0          51s
 ```
-参数 --watch 表示持续监听 Pod 状态变化。在 ab 压力测试的过程中，会不断创建新的 Pod 副本，这说明 K8s 已经感知到了 Pod 的业务压力，并且正在自动进行横向扩容
+参数 `--watch` 表示持续监听 Pod 状态变化。在 ab 压力测试的过程中，会不断创建新的 Pod 副本，这说明 K8s 已经感知到了 Pod 的业务压力，并且正在自动进行横向扩容
 
 
 延长时间会观测到自动缩容
@@ -2984,8 +2418,6 @@ hello-world-flask-5d4494cc9b-jmwxd   1/1     Running   0          15m
 
 
 ## 组件分析和部署
-
-
 
 数据库配置分析
 
@@ -3228,8 +2660,6 @@ spec:
     -   使用与就绪探针相同的设置进行启动探测。
 
 通过这个配置，应用在启动、运行过程中和准备好接收请求时，Kubernetes 都会根据探针的配置检查应用的状态。这有助于确保应用在出现问题时能够自动恢复，提高了应用的可用性和稳定性。
-
-
 
 前端服务分析
 
@@ -3530,8 +2960,6 @@ horizontalpodautoscaler.autoscaling/frontend   Deployment/frontend   0%/80%     
 
 ### 服务调用和发布
 
-
-
 查看 backend 的pod
 
 ```bash
@@ -3666,8 +3094,6 @@ root@node1:~#
 
 
 
-
-
 ### 应用配置
 
 连接到后端应用pod查看 env
@@ -3727,11 +3153,7 @@ exit
 
 
 
-
-
 ### 应用扩缩容
-
-
 
 查看HPA设置
 
@@ -3865,18 +3287,18 @@ version: 0.1.0
 appVersion: "0.1.0"
 ```
 
-- apiVersion 字段设置为 v2，代表使用 Helm 3 来安装应用。
-- name 表示 Helm Chart 的名称，当使用 helm install 命令安装 Helm Chart 时，指定的名称也就是这里配置的名称。
-- description 表示 Helm Chart 的描述信息，你可以根据需要填写。
-- type 表示类型，这里我们将其固定为 application，代表 Kubernetes 应用。
-- version 表示我们打包的 Helm Chart 的版本，当使用 helm install 时，可以指定这里定义的版本号。Helm Chart 的版本就是通过这个字段来管理的，当我们发布新的 Chart 时，需要更新这里的版本号。
-- appVersion 和 Helm Chart 无关，它用于定义应用的版本号，建立当前 Helm Chart 和应用版本的关系。
+- `<apiVersion>` 字段设置为 `v2`，表示使用 Helm 3 来安装应用。
+- `<name>` 表示 Helm Chart 的名称，当使用 `helm install` 命令安装 Helm Chart 时，指定的名称也是此处配置的名称。
+- `<description>` 表示 Helm Chart 的描述信息，可根据需要填写。
+- `<type>` 表示类型，此处固定为 `application`，代表 Kubernetes 应用。
+- `<version>` 表示打包的 Helm Chart 的版本，当使用 `helm install` 时，可以指定此处定义的版本号。Helm Chart 的版本通过这个字段来管理，发布新的 Chart 时，需要更新此版本号。
+- `<appVersion>` 与 Helm Chart 无关，用于定义应用的版本号，建立当前 Helm Chart 和应用版本的关系。
 
 
 
-### 填充 helm/tamplates
+### 填充 helm/templates
 
-helm/tamplates 目录是用来存放模板文件的，这个模板文件也可以是 Kubernetes Manifest。所以，我们现在尝试不使用 Helm Chart 的模板功能，而是直接将 deploy 目录下的 Kubernetes Manifest 复制到 helm/tamplates 目录下
+`helm/templates` 目录用于存放模板文件，这些模板文件可以是 Kubernetes Manifest。因此，现在可以尝试不使用 Helm Chart 的模板功能，而是直接将 `deploy` 目录下的 Kubernetes Manifest 复制到 `helm/templates` 目录下。
 
 ```bash
 cp -r deploy/ helm/templates/
@@ -3897,31 +3319,32 @@ helm
 
 其中，values.yaml 的文件内容为空。
 
-到这里，一个最简单的 Helm Chart 就编写完成了。在这个 Helm Chart 中，templates 目录下的 Manifest 的内容是确定的，安装这个 Helm Chart 等同于使用 kubectl apply 命令，接下来我们尝试使用 helm install 命令来安装这个 Helm Chart。
+到这里，一个最简单的 Helm Chart 就编写完成了。在这个 Helm Chart 中，templates 目录下的 Manifest 的内容是确定的，安装这个 Helm Chart 等同于使用 kubectl apply 命令，接下来尝试使用 helm install 命令来安装这个 Helm Chart。
 
 ```bash
 helm install my-kubernetes-example ./helm --namespace example --create-namespace
 ```
 
-在上面这条命令中，我们指定了应用的名称为 my-kubernetes-example，Helm Chart 目录为 ./helm 目录，并且为应用指定了命名空间为 example。要注意的是，example 命名空间并不存在，所以我同时使用 --create-namespace 来让 Helm 自动创建这个命名空间。
+在此命令中，指定应用的名称为 `my-kubernetes-example`，Helm Chart 目录为 `./helm` 目录，并为应用指定命名空间为 `example`。需要注意的是，`example` 命名空间并不存在，因此同时使用 `--create-namespace` 选项来让 Helm 自动创建这个命名空间。
 
-此外，这里还有一个非常重要的概念：Release Name。在安装时，我们需要指定 Release Name 也就是 my-kubernetes-example，它和 Helm Chart Name 有本质的区别。Release Name 是在安装时指定的，Helm Chart Name 在定义阶段就已经固定了。
+此外，这里还涉及一个非常重要的概念：Release Name。在安装时，需要指定 Release Name，即 `my-kubernetes-example`，它与 Helm Chart Name 存在本质区别。Release Name 是在安装时指定的，而 Helm Chart Name 在定义阶段就已经固定。
 
 
 
 ### 使用模板变量
 
-不过，刚才改造的最简单的 Helm Chart 并不能满足我们的目标。到目前为止，它只是一个纯静态的应用，无法应对多环境对配置差异的需求。
+然而，刚才改造的最简单的 Helm Chart 无法满足多环境配置差异化的需求。到目前为止，它只是一个纯静态应用。
 
-要将这个静态的 Helm Chart 改造成参数动态可控制的，我们需要用到模板变量和 values.yaml。
+为了将这个静态的 Helm Chart 改造成参数动态可控制的，需要使用模板变量和 `values.yaml`。
 
-还记得我之前提到的 values.yaml 的概念吗？模板变量的值都会引自这个文件。在这个例子中，根据我们对不同环境配置差异化的要求，我抽象了这几个可配置项：
+还记得之前提到的 `values.yaml` 的概念吗？模板变量的值都会引自这个文件。在这个例子中，根据对不同环境配置差异化的要求，抽象了以下可配置项：
+
 - 镜像版本
 - HPA CPU 平均使用率
 - 是否启用集群内
-- 数据库数据库连接地址、账号和密码
+- 数据库连接地址、账号和密码
 
-这些可配置项都需要从 values.yaml 文件中读取，所以，你需要将下面的内容复制到 helm/values.yaml 文件内。
+这些可配置项都需要从 `values.yaml` 文件中读取，因此，需要将以下内容复制到 `helm/values.yaml` 文件内。
 
 ```yaml
 
@@ -3945,13 +3368,13 @@ database:
   
 ```
 
-除了 values.yaml，我们还需要让 helm/templates 目录下的文件能够读取到 values.yaml 的内容，这就需要模板变量了。
+除了 `values.yaml`，还需要让 `helm/templates` 目录下的文件能够读取 `values.yaml` 的内容，这就需要使用模板变量。
 
-举一个最简单的例子，要读取 values.yaml 中的 frontend.image 字段，可以通过 “{{ .Values.frontend.image }}” 模板变量来获取值。
+以一个简单的例子来说明，要读取 `values.yaml` 中的 `frontend.image` 字段，可以通过 `{{ .Values.frontend.image }}` 模板变量来获取值。
 
-所以，要将这个“静态”的 Helm Chart 改造成“动态”的，我们只需要用模板变量来替换 templates 目录下需要实现“动态”的字段。
+因此，为了将这个“静态”的 Helm Chart 改造成“动态”的，只需用模板变量替换 `templates` 目录下需要实现“动态”的字段。
 
-了解原理后，我们来修改 helm/templates/backend.yaml 文件，用模板替换需要从 values.yaml 读取的字段。
+了解原理后，接下来修改 `helm/templates/backend.yaml` 文件，用模板替换需要从 `values.yaml` 读取的字段
 
 ```yaml
 apiVersion: apps/v1
@@ -3974,7 +3397,7 @@ spec:
           value: "{{ .Values.database.password }}"
 ```
 
-同理，修改 helm/templates/frontend.yaml 文件的 image 字段。
+同理，修改 `helm/templates/frontend.yaml` 文件的 image 字段。
 
 ```yaml
 apiVersion: apps/v1
@@ -3990,7 +3413,7 @@ spec:
         image: "{{ .Values.frontend.image }}:{{ .Values.frontend.tag }}" 
 ```
 
-此外，还需要修改 helm/templates/hpa.yaml 文件的 averageUtilization 字段。
+此外，还需要修改 `helm/templates/hpa.yaml` 文件的 averageUtilization 字段。
 
 ```yaml
 
@@ -4021,9 +3444,9 @@ spec:
         averageUtilization: {{ .Values.backend.autoscaling.averageUtilization }}
 ```
 
-注意，相比较其他的模板变量，在这里我们没有在模板变量的外部使用双引号，这是因为 averageUtilization 字段是一个 integer 类型，而双引号加上模板变量的意思是 string 类型。
+需要注意的是，与其他模板变量不同，在这里没有在模板变量的外部使用双引号。这是因为 `averageUtilization` 字段是一个整数（integer）类型，而双引号加上模板变量表示字符串（string）类型。
 
-最后，我们希望使用 values.yaml 中的 database.enable 字段来控制是否向集群提交 helm/templates/database.yaml 文件。所以我们可以在文件首行和最后一行增加下面的内容。
+最后，希望使用 `values.yaml` 中的 `database.enable` 字段来控制是否向集群提交 `helm/templates/database.yaml` 文件。因此，在文件的首行和最后一行可以添加以下内容：
 
 ```yaml
 
@@ -4032,7 +3455,7 @@ spec:
 {{- end }}
 ```
 
-到这里，我们就成功地将“静态”的 Helm Chart 改造为了“动态”的 Helm Chart。
+到这里，就成功地将“静态”的 Helm Chart 改造为了“动态”的 Helm Chart。
 
 
 
@@ -4040,13 +3463,13 @@ spec:
 
 ## 部署 Helm Chart
 
-在将示例应用改造成 Helm Chart 之后，我们就可以使用 helm install 进行安装了。这里我会将 Helm Chart 分别安装到 helm-staging 和 helm-prod 命名空间，它们对应预发布环境和生产环境，接着我会介绍如何为不同的环境传递不同的参数。
+在将示例应用改造成 Helm Chart 之后，就可以使用 helm install 进行安装了。这里我会将 Helm Chart 分别安装到 helm-staging 和 helm-prod 命名空间，它们对应预发布环境和生产环境，接着我会介绍如何为不同的环境传递不同的参数。
 
 
 
 ### 部署预发布环境
 
-我们为 Helm Chart 创建的 values.yaml 实际上是默认值，在预发布环境，我们希望将前后端的 HPA CPU averageUtilization 从默认的 90 调整为 60，你可以在安装时使用 --set 来调整特定的字段，不需要修改 values.yaml 文件。
+为 Helm Chart 创建的 values.yaml 实际上是默认值，在预发布环境，希望将前后端的 HPA CPU averageUtilization 从默认的 90 调整为 60，可以在安装时使用 --set 来调整特定的字段，不需要修改 values.yaml 文件。
 
 ```bash
 helm install my-kubernetes-example ./helm --namespace helm-staging --create-namespace --set frontend.autoscaling.averageUtilization=60 --set backend.autoscaling.averageUtilization=60
@@ -4074,9 +3497,9 @@ autoscaling/v1
 autoscaling/v2
 ```
 
-在这个安装例子中，我们使用 --set 参数来调整 frontend.autoscaling.averageUtilization  字段值，其它的字段值仍然采用 values.yaml 提供的默认值。
+在这个安装例子中，使用 --set 参数来调整 frontend.autoscaling.averageUtilization  字段值，其它的字段值仍然采用 values.yaml 提供的默认值。
 
-部署完成后，你可以查看我们为预发布环境配置的后端服务 HPA averageUtilization 字段值。
+部署完成后，可以查看为预发布环境配置的后端服务 HPA averageUtilization 字段值。
 
 ```bash
 kubectl get hpa backend -n helm-staging --output jsonpath='{.spec.metrics[0].resource.target.averageUtilization}'
@@ -4086,9 +3509,9 @@ kubectl get hpa backend -n helm-staging --output jsonpath='{.spec.metrics[0].res
 controlplane $ kubectl get hpa backend -n helm-staging --output jsonpath='{.spec.metrics[0].resource.target.averageUtilization}'
 60controlplane $ 
 ```
-返回值为 60，和我们配置的安装参数一致。
+返回值为 60，和配置的安装参数一致。
 
-同时，你也可以查看是否部署了数据库，也就是 postgres 工作负载。
+同时，也可以查看是否部署了数据库，也就是 postgres 工作负载。
 
 ```bash
 kubectl get deployment postgres -n helm-staging
@@ -4102,7 +3525,7 @@ postgres   1/1     1            1           4m32s
 
 postgres 工作负载存在，符合预期。
 
-最后，你可以查看 backend Deployment 的 Env 环境变量，以便检查是否使用集群内的数据库实例
+最后，可以查看 backend Deployment 的 Env 环境变量，以便检查是否使用集群内的数据库实例
 
 ```bash
 kubectl get deployment backend -n helm-staging --output jsonpath='{.spec.template.spec.containers[0].env[*]}'
@@ -4118,9 +3541,9 @@ controlplane $ kubectl get deployment backend -n helm-staging --output jsonpath=
 
 ### 部署生产环境
 
-部署到生产环境的例子相对来说配置项会更多，除了需要修改 database.enable 字段，禁用集群内数据库实例以外，还需要修改数据库连接的三个环境变量。所以，我们使用另一种安装参数传递方式：使用文件传递。要使用文件来传递安装参数，
+部署到生产环境的例子相对来说配置项会更多，除了需要修改 database.enable 字段，禁用集群内数据库实例以外，还需要修改数据库连接的三个环境变量。所以，使用另一种安装参数传递方式：使用文件传递。要使用文件来传递安装参数，
 
-首先需要准备这个文件。你需要将下面的内容保存为 helm/values-prod.yaml 文件。
+首先需要准备这个文件。需要将下面的内容保存为 helm/values-prod.yaml 文件。
 
 ```yaml
 frontend:
@@ -4138,13 +3561,13 @@ database:
   password: external_postgres
 ```
 
-接下来，我们使用 helm install 命令来安装它，同时指定新的 values-prod.yaml 文件作为安装参数。
+接下来，使用 helm install 命令来安装它，同时指定新的 values-prod.yaml 文件作为安装参数。
 
 ```bash
 helm install my-kubernetes-example ./helm -f ./helm/values-prod.yaml --namespace helm-prod --create-namespace
 ```
 
-部署完成后，你可以查看我们为生产环境配置的后端服务 HPA averageUtilization 字段值。
+部署完成后，可以查看为生产环境配置的后端服务 HPA averageUtilization 字段值。
 
 ```bash
 kubectl get hpa backend -n helm-prod --output jsonpath='{.spec.metrics[0].resource.target.averageUtilization}'
@@ -4154,9 +3577,9 @@ kubectl get hpa backend -n helm-prod --output jsonpath='{.spec.metrics[0].resour
 controlplane $ kubectl get hpa backend -n helm-prod --output jsonpath='{.spec.metrics[0].resource.target.averageUtilization}'
 50controlplane $ 
 ```
-返回值为 50，和我们在 values-prod.yaml 文件中定义的安装参数一致。
+返回值为 50，和在 values-prod.yaml 文件中定义的安装参数一致。
 
-同时，你也可以查看是否部署了数据库，也就是 postgres 工作负载。
+同时，也可以查看是否部署了数据库，也就是 postgres 工作负载。
 
 ```bash
 kubectl get deployment postgres -n helm-prod   
@@ -4166,7 +3589,7 @@ kubectl get deployment postgres -n helm-prod
 controlplane $ kubectl get deployment postgres -n helm-prod   
 Error from server (NotFound): deployments.apps "postgres" not found
 ```
-可以发现，postgres 工作负载并不存在，符合预期。最后，你可以查看 backend Deployment 的 Env 环境变量，检查是否使用了外部数据库。
+可以发现，postgres 工作负载并不存在，符合预期。最后，可以查看 backend Deployment 的 Env 环境变量，检查是否使用了外部数据库。
 
 ```bash
 kubectl get deployment backend -n helm-prod --output jsonpath='{.spec.template.spec.containers[0].env[*]}'
@@ -4181,9 +3604,11 @@ controlplane $ kubectl get deployment backend -n helm-prod --output jsonpath='{.
 
 
 
+
+
 ## 发布 Helm Chart
 
-在 Helm Chart 编写完成之后，我们便能够在本地安装它了。不过，我们通常还会有和其他人分享 Helm Chart 的需求。
+在 Helm Chart 编写完成之后，便能够在本地安装它了。不过，通常还会有和其他人分享 Helm Chart 的需求。
 
 为实现这个需求，需要将在上面创建的 Helm Chart 打包并且上传到 Helm 仓库中即可。这里以 GitHub Package 为例，介绍如何将 Helm Chart 上传到镜像仓库。
 
@@ -4237,7 +3662,7 @@ Password:
 Login Succeeded
 ```
 
-请注意，由于 GitHub Package 使用的是 OCI 标准的存储格式，如果你使用的 helm 版本小于 3.8.0，则需要在运行这条命令之前增加 HELM_EXPERIMENTAL_OCI=1 的环境变量启用实验性功能。然后，返回到示例应用的根目录下，执行 helm package 命令来打包 Helm Chart。
+请注意，由于 GitHub Package 使用的是 OCI 标准的存储格式，如果使用的 helm 版本小于 3.8.0，则需要在运行这条命令之前增加 HELM_EXPERIMENTAL_OCI=1 的环境变量启用实验性功能。然后，返回到示例应用的根目录下，执行 helm package 命令来打包 Helm Chart。
 
 然后，返回到示例应用的根目录下，执行 helm package 命令来打包 Helm Chart。
 
@@ -4264,7 +3689,7 @@ Digest: sha256:2f3d04c9f2fda3e948dd31a96ba60b9bd2a939f16708ef5fb964f5d81314281f
 
 ### 安装远端仓库的 Helm Chart
 
-当我们成功把 Helm Chart 推送到 GitHub Package 之后，就可以直接使用远端仓库来安装 Helm Chart 了。和一般的安装步骤不同的是，由于 GitHub Package 仓库使用的是 OCI 标准的存储方式，所以无需执行 helm repo add 命令添加仓库，可以直接使用 helm install 命令来安装。
+当成功把 Helm Chart 推送到 GitHub Package 之后，就可以直接使用远端仓库来安装 Helm Chart 了。和一般的安装步骤不同的是，由于 GitHub Package 仓库使用的是 OCI 标准的存储方式，所以无需执行 helm repo add 命令添加仓库，可以直接使用 helm install 命令来安装。
 
 ```bash
 helm install my-kubernetes-example oci://ghcr.io/cloudzun/helm/kubernetes-example --version 0.1.0 --namespace remote-helm-staging --create-namespace --set frontend.autoscaling.averageUtilization=60 --set backend.autoscaling.averageUtilization=60
@@ -4290,19 +3715,19 @@ TEST SUITE: None
 
 ## Helm 应用管理
 
-总结来说，Helm Chart 和 Manifest 之间一个最大的区别是，Helm 从应用的角度出发，提供了应用的管理功能，通常我们在实际使用 Helm 过程中会经常遇到下面几种场景。
+总结来说，Helm Chart 和 Manifest 之间一个最大的区别是，Helm 从应用的角度出发，提供了应用的管理功能，通常在实际使用 Helm 过程中会经常遇到下面几种场景。
 
 
 
 ### 调试 Helm Chart
 
-在编写 Helm Chart 的过程中，为了方便验证，我们会经常渲染完整的 Helm 模板而又不安装它，这时候你就可以使用 helm template 命令来调试 Helm Chart。
+在编写 Helm Chart 的过程中，为了方便验证，会经常渲染完整的 Helm 模板而又不安装它，这时候就可以使用 helm template 命令来调试 Helm Chart。
 
 ```bash
 helm template ./helm -f ./helm/values-prod.yaml
 ```
 
-此外，你还可以在运行 helm install 命令时增加 --dry-run 参数来实现同样的效果。
+此外，还可以在运行 helm install 命令时增加 --dry-run 参数来实现同样的效果。
 
 ```bash
 helm install my-kubernetes-example oci://ghcr.io/cloudzun/helm/kubernetes-example --version 0.1.0 --dry-run
@@ -4332,7 +3757,7 @@ helm upgrade my-kubernetes-example ./helm -n example
 
 ### 查看 Helm Release 历史版本
 
-要查看 Helm Release 的历史版本，你可以使用 helm history 命令。
+要查看 Helm Release 的历史版本，可以使用 helm history 命令。
 
 ```bash
 helm history my-kuebrnetes-example -n example
@@ -4342,7 +3767,7 @@ helm history my-kuebrnetes-example -n example
 
 ### 回滚 Helm Release
 
-当 Helm Release 有多个版本时，你可以通过 helm rollback 命令回滚到指定的版本。
+当 Helm Release 有多个版本时，可以通过 helm rollback 命令回滚到指定的版本。
 
 ```bash
 helm rollback my-kubernetes-example 1 -n example
@@ -4352,7 +3777,7 @@ helm rollback my-kubernetes-example 1 -n example
 
 ### 卸载 Helm Release
 
-要卸载 Helm Release，你可以使用 helm uninstall
+要卸载 Helm Release，可以使用 helm uninstall
 
 ```bash
 helm uninstall my-kubernetes-example -n example
@@ -4366,9 +3791,7 @@ helm uninstall my-kubernetes-example -n example
 
 
 
-
-
-# 构建GitOps工作流
+# 构建 GitOps 工作流
 
 
 
@@ -4385,66 +3808,6 @@ kubectl create namespace argocd
 安装
 ```bash
 kubectl apply -n argocd -f https://ghproxy.com/https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-```
-
-```bash
-root@node1:~/kubernetes-example# kubectl apply -n argocd -f https://ghproxy.com/https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-customresourcedefinition.apiextensions.k8s.io/applications.argoproj.io created
-customresourcedefinition.apiextensions.k8s.io/applicationsets.argoproj.io created
-customresourcedefinition.apiextensions.k8s.io/appprojects.argoproj.io created
-serviceaccount/argocd-application-controller created
-serviceaccount/argocd-applicationset-controller created
-serviceaccount/argocd-dex-server created
-serviceaccount/argocd-notifications-controller created
-serviceaccount/argocd-redis created
-serviceaccount/argocd-repo-server created
-serviceaccount/argocd-server created
-role.rbac.authorization.k8s.io/argocd-application-controller created
-role.rbac.authorization.k8s.io/argocd-applicationset-controller created
-role.rbac.authorization.k8s.io/argocd-dex-server created
-role.rbac.authorization.k8s.io/argocd-notifications-controller created
-role.rbac.authorization.k8s.io/argocd-server created
-clusterrole.rbac.authorization.k8s.io/argocd-application-controller created
-clusterrole.rbac.authorization.k8s.io/argocd-server created
-rolebinding.rbac.authorization.k8s.io/argocd-application-controller created
-rolebinding.rbac.authorization.k8s.io/argocd-applicationset-controller created
-rolebinding.rbac.authorization.k8s.io/argocd-dex-server created
-rolebinding.rbac.authorization.k8s.io/argocd-notifications-controller created
-rolebinding.rbac.authorization.k8s.io/argocd-redis created
-rolebinding.rbac.authorization.k8s.io/argocd-server created
-clusterrolebinding.rbac.authorization.k8s.io/argocd-application-controller created
-clusterrolebinding.rbac.authorization.k8s.io/argocd-server created
-configmap/argocd-cm created
-configmap/argocd-cmd-params-cm created
-configmap/argocd-gpg-keys-cm created
-configmap/argocd-notifications-cm created
-configmap/argocd-rbac-cm created
-configmap/argocd-ssh-known-hosts-cm created
-configmap/argocd-tls-certs-cm created
-secret/argocd-notifications-secret created
-secret/argocd-secret created
-service/argocd-applicationset-controller created
-service/argocd-dex-server created
-service/argocd-metrics created
-service/argocd-notifications-controller-metrics created
-service/argocd-redis created
-service/argocd-repo-server created
-service/argocd-server created
-service/argocd-server-metrics created
-deployment.apps/argocd-applicationset-controller created
-deployment.apps/argocd-dex-server created
-deployment.apps/argocd-notifications-controller created
-deployment.apps/argocd-redis created
-deployment.apps/argocd-repo-server created
-deployment.apps/argocd-server created
-statefulset.apps/argocd-application-controller created
-networkpolicy.networking.k8s.io/argocd-application-controller-network-policy created
-networkpolicy.networking.k8s.io/argocd-applicationset-controller-network-policy created
-networkpolicy.networking.k8s.io/argocd-dex-server-network-policy created
-networkpolicy.networking.k8s.io/argocd-notifications-controller-network-policy created
-networkpolicy.networking.k8s.io/argocd-redis-network-policy created
-networkpolicy.networking.k8s.io/argocd-repo-server-network-policy created
-networkpolicy.networking.k8s.io/argocd-server-network-policy created
 ```
 
 检查安装情况
@@ -4471,7 +3834,6 @@ curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/lat
 ```bash
 sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd 
 rm argocd-linux-amd64
-
 ```
 
 forward到8080端口 （建议再开一个session）
@@ -4529,8 +3891,6 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 amsgK3UobDG6VsVd
 ```
 
-
-
 修改本地的host文件
 
 ```txt
@@ -4538,8 +3898,6 @@ amsgK3UobDG6VsVd
 ```
 
 访问 https://argocd.example.com/ 建议修改密码
-
-
 
 （可选）安装 cert-manager
 
@@ -4603,7 +3961,7 @@ kubectl apply -f cluster-issuer.yaml
 kubectl delete ns example
 ```
 
-登录到ArgoCD
+登录到Argo CD
 
 ```bash
 argocd login localhost:8080 --insecure
@@ -4634,10 +3992,10 @@ argocd app create example --sync-policy automated --repo https://github.com/clou
 2. `example`: 为创建的Argo CD应用分配一个名字。在这种情况下，应用的名称是`example`。
 3. `--sync-policy automated`: 设置同步策略为自动化，这意味着当Git仓库中的配置发生变化时，Argo CD会自动将这些更改应用到Kubernetes集群。
 4. `--repo https://github.com/cloudzun/kubernetes-example.git`: 指定应用的Git仓库URL。在这个例子中，Git仓库位于`https://github.com/cloudzun/kubernetes-example.git`。
-5. `--revision main`: 指定Git仓库的分支或修订版本。在这里，我们使用`main`分支。
+5. `--revision main`: 指定Git仓库的分支或修订版本。在这里，使用`main`分支。
 6. `--path helm`: 指定Git仓库中包含Kubernetes资源的路径。在这种情况下，路径是`helm`。
 7. `--dest-namespace gitops-example`: 指定Kubernetes命名空间，用于部署应用。在这种情况下，命名空间是`gitops-example`。
-8. `--dest-server https://kubernetes.default.svc`: 指定Kubernetes API服务器的URL，Argo CD将在该服务器上部署应用。在这里，我们使用Kubernetes集群的默认API服务器地址`https://kubernetes.default.svc`。
+8. `--dest-server https://kubernetes.default.svc`: 指定Kubernetes API服务器的URL，Argo CD将在该服务器上部署应用。在这里，使用Kubernetes集群的默认API服务器地址`https://kubernetes.default.svc`。
 9. `--sync-option CreateNamespace=true`: 设置同步选项，以在应用同步时自动创建目标命名空间（如果它不存在的话）。
 
 总之，这条命令使用Argo CD在指定的Kubernetes命名空间中创建一个名为`example`的应用，该应用从指定的Git仓库和分支中获取Kubernetes资源。同步策略设置为自动化，以便在Git仓库中的配置发生变化时自动应用这些更改。
@@ -4652,20 +4010,9 @@ argocd app create example --sync-policy automated --repo https://github.com/clou
 
 ### 安装和配置 ArgoCD Image Updater
 
-安装  ArgoCD Image Updater
+安装  Argo CD Image Updater
 ```bash
 kubectl apply -n argocd -f https://ghproxy.com/https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/stable/manifests/install.yaml
-```
-
-```bash
-root@node1:~# kubectl apply -n argocd -f https://ghproxy.com/https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/stable/manifests/install.yaml
-serviceaccount/argocd-image-updater created
-role.rbac.authorization.k8s.io/argocd-image-updater created
-rolebinding.rbac.authorization.k8s.io/argocd-image-updater created
-configmap/argocd-image-updater-config created
-configmap/argocd-image-updater-ssh-config created
-secret/argocd-image-updater-secret created
-deployment.apps/argocd-image-updater created
 ```
 
 设置docker 仓库 secret （注意 docker-password 的时效）
@@ -4686,13 +4033,13 @@ kubectl create -n argocd secret docker-registry dockerhub-secret \
  $ cp -r ./kubernetes-example/helm ./kubernetes-example-helm
 ```
 
-为 ArgoCD Image Updater 提供回写 kubernetes-example-helm 仓库的权限。要配置仓库访问权限，你可以使用 argocd repo add 命令
+为 ArgoCD Image Updater 提供回写 kubernetes-example-helm 仓库的权限。要配置仓库访问权限，可以使用 argocd repo add 命令
 
 ```bash
 argocd repo add https://github.com/cloudzun/kubernetes-example-helm.git --username $USERNAME --password $PASSWORD
 ```
 
-注意要将仓库地址修改为你新创建的用于存放 Helm Chart 的 GitHub 仓库地址，并将 `$USERNAME` 替换为 `GitHub 账户 ID`，将 `$PASSWORD` 替换为 `GitHub Personal Token`。你可以在这个页面：https://github.com/settings/tokens 创建 `GitHub Personal Token`，并赋予仓库相关权限。
+注意要将仓库地址修改为新创建的用于存放 Helm Chart 的 GitHub 仓库地址，并将 `$USERNAME` 替换为 `GitHub 账户 ID`，将 `$PASSWORD` 替换为 `GitHub Personal Token`。可以在这个页面：https://github.com/settings/tokens 创建 `GitHub Personal Token`，并赋予仓库相关权限。
 
 
 ```bash
@@ -4709,8 +4056,8 @@ argocd repo add https://github.com/cloudzun/kubernetes-example-helm.git --userna
 argocd app delete example --cascade
 ```
 
-接下来我们正式创建 ArgoCD 应用。在上一节课中，我们是使用 argocd app create 命令创建的 ArgoCD 应用 。实际上，它会创建一个特殊类型的资源，也就是 ArgoCD Application，它和 K8s 其他标准的资源对象一样，也是使用 YAML 来定义的。
-在这里，我们直接使用 YAML 来创建新的 Application，将下面的文件内容保存为 application.yaml。
+接下来正式创建 ArgoCD 应用。在上一节课中，是使用 `argocd app create` 命令创建的 ArgoCD 应用 。实际上，它会创建一个特殊类型的资源，也就是 ArgoCD Application，它和 K8s 其他标准的资源对象一样，也是使用 YAML 来定义的。
+在这里，直接使用 YAML 来创建新的 Application，将下面的文件内容保存为 application.yaml。
 
 ```bash
 nano application.yaml
@@ -4791,7 +4138,7 @@ kubectl apply -n argocd -f application.yaml
 
 ### 触发 GitOps 工作流
 
-接下来，你可以尝试修改 frontend/src/App.js 文件，例如修改文件第 49 行的“Hi! I am abraham”内容。修改完成后，将代码推送到 GitHub 的 main 分支。此时会触发两个 GitHub Action 工作流。其中，当 build-every-branch 工作流被触发时，它将构建 Tag 为 main 开头的镜像版本，并将其推送到镜像仓库中，
+接下来，可以尝试修改 frontend/src/App.js 文件，例如修改文件第 49 行的“Hi! I am abraham”内容。修改完成后，将代码推送到 GitHub 的 main 分支。此时会触发两个 GitHub Action 工作流。其中，当 build-every-branch 工作流被触发时，它将构建 Tag 为 main 开头的镜像版本，并将其推送到镜像仓库中，
 
 ```bash
 #22 pushing manifest for docker.io/chengzh/backend:main-2fff0b2@sha256:20ae4681cebb5c3096a43f067f53e5255777b4de52d1b636a2143e8ed130845e
@@ -4944,7 +4291,7 @@ spec:
   type: ClusterIP
 ```
 
-在上面这段 Manifest 中，我们使用了 `argoproj/rollouts-demo:blue` 镜像创建了蓝色环境的 Deployment 工作负载，并且创建了名为 `blue-service` 的 Service 对象，同时通过 Service 选择器将 Service 和 Pod 进行了关联。
+在上面这段 Manifest 中，使用了 `argoproj/rollouts-demo:blue` 镜像创建了蓝色环境的 Deployment 工作负载，并且创建了名为 `blue-service` 的 Service 对象，同时通过 Service 选择器将 Service 和 Pod 进行了关联。
 
 ```bash
 kubectl apply -f blue_deployment.yaml 
@@ -5097,7 +4444,8 @@ kubectl apply -f green_ingress.yaml
 ```
 
 6. 访问绿色环境
-http://bluegreen.demo
+
+  http://bluegreen.demo
 
 将会看到请求将逐渐从蓝色切换到绿色
 
@@ -5105,13 +4453,13 @@ http://bluegreen.demo
 
 ### 蓝绿发布自动化
 
-到这里，我们都是通过创建 Kubernetes 原生对象并修改 Ingress 策略的方式来完成蓝绿发布的。这存在一些缺点，首先，在更新过程中，我们一般只关注镜像版本的变化，而不会去操作 Ingress 策略；其次，这种方式不利于将蓝绿发布和 GitOps 流水线进行整合
+到这里，都是通过创建 Kubernetes 原生对象并修改 Ingress 策略的方式来完成蓝绿发布的。这存在一些缺点，首先，在更新过程中，一般只关注镜像版本的变化，而不会去操作 Ingress 策略；其次，这种方式不利于将蓝绿发布和 GitOps 流水线进行整合
 
 1. 安装 Argo Rollout
 
 Argo Rollout 是一款专门提供 Kubernetes 高级部署能力的自动化工具，它可以独立运行，同时也可以和 ArgoCD 协同在 GitOps 流水线中来使用。
 
-在使用之前，我们需要先安装它，你可以通过下面的命令进行安装。
+在使用之前，需要先安装它，可以通过下面的命令进行安装。
 
 ```bash
 kubectl create namespace argo-rollouts  
@@ -5191,21 +4539,54 @@ spec:
       activeService: bluegreen-demo
 ```
 
-如果你仔细观察，会发现在这个 Rollout 对象中，它大部分的字段定义和 Kubernetes 原生的 Deployment 工作负载并没有太大的区别，只是将 apiVersion 从 apps/v1 修改为了 argoproj.io/v1alpha1，同时将 kind 字段从 Deployment 修改为了 Rollout，并且增加了 strategy 字段。在容器配置方面，Rollout 对象同样也使用了 argoproj/rollouts-demo:blue 来创建蓝色环境。
+这是一个 Argo Rollout 资源的配置文件，用于在 Kubernetes 集群中执行蓝绿部署。这个 Argo Rollout 配置文件定义了一个蓝绿部署，使用 argoproj/rollouts-demo:blue 镜像，并且将新版本自动提升为活跃版本，下面是对整个配置文件的解释：
 
-需要留意的是，strategy 字段是用来定义部署策略的。其中，autoPromotionEnabled 字段表示自动实施蓝绿发布，activeService 用来关联蓝绿发布的 Service，也就是我们在后续要创建的 Service 名称。
+-   `apiVersion`: 指定使用的 API 版本，这里为 argoproj.io/v1alpha1。
+-   `kind`: 指定资源类型，这里为 Rollout，表示这是一个 Argo Rollout 资源。
+-   `metadata`:
+    -   `name`: 资源的名称，这里为 bluegreen-demo。
+    -   `labels`: 资源的标签，这里为 app: bluegreen-demo。
+-   `spec`: 定义 Rollout 的规格。
+    -   `replicas`: 指定应用副本数，这里为 3。
+    -   `revisionHistoryLimit`: 保留的旧版本副本数量，这里设置为 1，表示只保留一个旧版本副本。
+    -   `selector`: 选择器，用于选取与此 Rollout 匹配的 Pod。
+        -   `matchLabels`: 需要匹配的标签，这里为 app: bluegreen-demo。
+    -   `template`: 定义 Pod 模板。
+        -   `metadata`: 指定 Pod 的元数据。
+            -   `labels`: 给 Pod 添加标签，这里为 app: bluegreen-demo。
+        -   `spec`: 定义 Pod 规格。
+            -   `containers`: 定义容器列表。
+                -   `name`: 容器名称，这里为 bluegreen-demo。
+                -   `image`: 容器使用的镜像，这里为 argoproj/rollouts-demo:blue。
+                -   `imagePullPolicy`: 镜像拉取策略，这里为 IfNotPresent。
+                -   `ports`: 定义容器端口列表。
+                    -   `name`: 端口名称，这里为 http。
+                    -   `containerPort`: 容器端口号，这里为 8080。
+                    -   `protocol`: 传输协议，这里为 TCP。
+                -   `resources`: 定义容器资源请求。
+                    -   `requests`: 定义容器资源请求限制。
+                        -   `memory`: 请求内存资源，这里为 32Mi。
+                        -   `cpu`: 请求 CPU 资源，这里为 5m。
+    -   `strategy`: 定义部署策略。
+        -   `blueGreen`: 指定蓝绿部署策略。
+            -   `autoPromotionEnabled`: 是否自动将新版本应用提升为活跃版本。这里设置为 true，表示自动提升。
+            -   `activeService`: 用于指向活跃版本的 Kubernetes 服务名称，这里为 bluegreen-demo。
 
-总结来说，当我们将这段 Rollout 对象应用到集群内之后，Argo Rollout 首先会创建 Kubernetes 原生对象 ReplicaSet，然后，ReplicaSet 会创建对应的 Pod。
+如果仔细观察，会发现在这个 Rollout 对象中，它大部分的字段定义和 Kubernetes 原生的 Deployment 工作负载并没有太大的区别，只是将 apiVersion 从 apps/v1 修改为了 argoproj.io/v1alpha1，同时将 kind 字段从 Deployment 修改为了 Rollout，并且增加了 strategy 字段。在容器配置方面，Rollout 对象同样也使用了 argoproj/rollouts-demo:blue 来创建蓝色环境。
+
+需要留意的是，strategy 字段是用来定义部署策略的。其中，autoPromotionEnabled 字段表示自动实施蓝绿发布，activeService 用来关联蓝绿发布的 Service，也就是在后续要创建的 Service 名称。
+
+总结来说，当将这段 Rollout 对象应用到集群内之后，Argo Rollout 首先会创建 Kubernetes 原生对象 ReplicaSet，然后，ReplicaSet 会创建对应的 Pod。
 
 
-在理解了它们的关系之后，接下来我们创建 Rollout 对象。和普通资源一样，你可以通过 kubectl apply 来创建。
+在理解了它们的关系之后，接下来创建 Rollout 对象。和普通资源一样，可以通过 kubectl apply 来创建。
 ```bash
 kubectl apply -f blue-green-rollout.yaml
 ```
 
 3. 创建 Service 和 Ingress
 
-创建好 Rollout 对象之后，我们还需要创建 Service 和 Ingress 策略，这和之前手动实施蓝绿发布的过程是一致的。
+创建好 Rollout 对象之后，还需要创建 Service 和 Ingress 策略，这和之前手动实施蓝绿发布的过程是一致的。
 
 创建服务
 
@@ -5273,12 +4654,12 @@ kubectl apply -f blue-green-ingress.yaml
 
 4. 访问蓝色环境
 
-配置完 Hosts 之后，接下来我们就可以访问由 Argo Rollout 创建的蓝色环境了。使用浏览器访问 http://bluegreen.auto 你应该能看到和手动实施蓝绿发布一样的页面。
+配置完 Hosts 之后，接下来就可以访问由 Argo Rollout 创建的蓝色环境了。使用浏览器访问 http://bluegreen.auto 应该能看到和手动实施蓝绿发布一样的页面。
 
 
 5. 蓝绿发布自动化
 
-现在，假设我们需要更新到绿色环境，在 Argo Rollout 的帮助下，你只需要修改 Rollout 对象中的镜像版本就可以了，流量切换过程将由 Argo Rollout 自动控制。要更新到绿色环境，你需要编辑 blue-green-rollout.yaml 文件的 image 字段，将 blue 修改为 green 版本。
+现在，假设需要更新到绿色环境，在 Argo Rollout 的帮助下，只需要修改 Rollout 对象中的镜像版本就可以了，流量切换过程将由 Argo Rollout 自动控制。要更新到绿色环境，需要编辑 blue-green-rollout.yaml 文件的 image 字段，将 blue 修改为 green 版本。
 
 ```bash
 nano blue-green-rollout.yaml
@@ -5296,9 +4677,9 @@ containers:
 kubectl apply -f blue-green-rollout.yaml
 ```
 
-现在，返回到浏览器，等待十几秒后，你应该就能看到请求里开始出现绿色环境了。
+现在，返回到浏览器，等待十几秒后，应该就能看到请求里开始出现绿色环境了。
 
-几秒钟后，所有请求都变成了绿色方格，这表示蓝绿发布的自动化过程已经完成。相比较手动的方式，在使用 Argo Rollout 进行蓝绿发布的过程中，我们不再需要手动去切换流量，除了更新镜像版本以外，我们也无需关注其他的 Kubernetes 对象
+几秒钟后，所有请求都变成了绿色方格，这表示蓝绿发布的自动化过程已经完成。相比较手动的方式，在使用 Argo Rollout 进行蓝绿发布的过程中，不再需要手动去切换流量，除了更新镜像版本以外，也无需关注其他的 Kubernetes 对象
 
 6. 访问 Argo Rollout Dashboard
 
@@ -5334,7 +4715,7 @@ kubectl argo rollouts dashboard
 
 然后，使用浏览器访问 `http://localhost:3100/rollouts` 打开 Dashboard，实验场景中是：http://192.168.1.231:3100/rollouts
 
-点击进入 Rollout 的详情界面，在这里，你能够以图形化的方式来查看 Rollout 的信息或进行回滚操作。
+点击进入 Rollout 的详情界面，在这里，能够以图形化的方式来查看 Rollout 的信息或进行回滚操作。
 
 
 
@@ -5435,7 +4816,7 @@ demo环境为
 
 3. 访问生产环境
 
-配置完 Hosts 之后，接下来我们就可以访问生产环境了。使用浏览器访问 http://canary.demo 你应该能看到像下面截图的页面。
+配置完 Hosts 之后，接下来就可以访问生产环境了。使用浏览器访问 http://canary.demo 应该能看到像下面截图的页面。
 
 ![Pasted image 20230224073958](README.assets/Pasted image 20230224073958.png)
 
@@ -5556,19 +4937,19 @@ kubectl apply -f canary_ingress.yaml
 
 6. 访问生产环境
 
-重新返回浏览器，你将会看到生产环境（蓝色方块）和金丝雀环境（绿色方块）的流量比例将按照配置的 4:1 来分布，如下图右下角所示。
+重新返回浏览器，将会看到生产环境（蓝色方块）和金丝雀环境（绿色方块）的流量比例将按照配置的 4:1 来分布，如下图右下角所示。
 
 ![Pasted image 20230224100706](README.assets/Pasted image 20230224100706.png)
 
-现在，你只需要调整金丝雀环境的 Ingress 策略，分次提升 canary-weight 的值直到 100%，也就实现了一次完整的金丝雀发布过程。
+现在，只需要调整金丝雀环境的 Ingress 策略，分次提升 canary-weight 的值直到 100%，也就实现了一次完整的金丝雀发布过程。
 
 ### 自动金丝雀发布
 
-上面提到手动金丝雀发布过程比较麻烦，我们除了需要手动创建生产和金丝雀两个环境以外，还需要手动配置 Ingress 策略，如果想要调整金丝雀环境的流量比例，那么就需要多次修改 Ingress 策略。这种发布方式效率很低，并且最后将金丝雀环境提升为生产环境时也需要手动处理。
+上面提到手动金丝雀发布过程比较麻烦，除了需要手动创建生产和金丝雀两个环境以外，还需要手动配置 Ingress 策略，如果想要调整金丝雀环境的流量比例，那么就需要多次修改 Ingress 策略。这种发布方式效率很低，并且最后将金丝雀环境提升为生产环境时也需要手动处理。
 
 但是借助 Argo Rollout 的自动金丝雀发布功能，就能很好地解决这些问题。
 
-在使用 Argo Rollout 之前，你需要先在集群里安装它，并在本地安装好 Argo Rollout kubectl 插件。
+在使用 Argo Rollout 之前，需要先在集群里安装它，并在本地安装好 Argo Rollout kubectl 插件。
 
 1.  创建 Rollout 对象
 
@@ -5636,18 +5017,18 @@ spec:
 kubectl apply -f canary-rollout.yaml                        
 ```
 
-`strategy` 部分定义了 Rollout 资源的升级策略。在这个例子中，我们使用了金丝雀（canary）策略。以下是 `strategy` 部分的详细解释：
+`strategy` 部分定义了 Rollout 资源的升级策略。在这个例子中，使用了金丝雀（canary）策略。以下是 `strategy` 部分的详细解释：
 
 1. `canary`: 表示使用金丝雀策略进行部署。
 2. `canaryService`: 用于定义金丝雀服务的名称。金丝雀服务将处理金丝雀版本的流量。在这个例子中，金丝雀服务的名称是 `canary-demo-canary`。
 3. `stableService`: 用于定义稳定版本的服务名称。稳定服务将处理稳定版本的流量。在这个例子中，稳定服务的名称是 `canary-demo`。
-4. `canaryMetadata`: 包含要应用于金丝雀副本的元数据。在这个例子中，我们添加了一个名为 `deployment` 的标签，值为 `canary`。
-5. `stableMetadata`: 包含要应用于稳定副本的元数据。在这个例子中，我们添加了一个名为 `deployment` 的标签，值为 `stable`。
+4. `canaryMetadata`: 包含要应用于金丝雀副本的元数据。在这个例子中，添加了一个名为 `deployment` 的标签，值为 `canary`。
+5. `stableMetadata`: 包含要应用于稳定副本的元数据。在这个例子中，添加了一个名为 `deployment` 的标签，值为 `stable`。
 6. `trafficRouting`: 定义了如何将流量路由到金丝雀和稳定版本之间的配置。
    - `nginx`: 使用 Nginx Ingress 控制器作为流量路由器。
      - `stableIngress`: 定义了指向稳定版本的 Nginx Ingress 资源的名称。在这个例子中，稳定 Ingress 的名称是 `canary-demo`。
-     - `additionalIngressAnnotations`: 定义了额外的 Ingress 注解。在这个例子中，我们指定了金丝雀流量应通过带有 `X-Canary` HTTP 头的请求触发。
-7. `steps`: 定义了金丝雀部署的步骤。在这个例子中，我们有以下步骤：
+     - `additionalIngressAnnotations`: 定义了额外的 Ingress 注解。在这个例子中，指定了金丝雀流量应通过带有 `X-Canary` HTTP 头的请求触发。
+7. `steps`: 定义了金丝雀部署的步骤。在这个例子中，有以下步骤：
    - `setWeight: 20`: 将金丝雀版本的流量权重设置为 20%。
    - `pause: {}`: 暂停金丝雀部署进程，直到用户手动恢复或满足某些条件。
    - `setWeight: 50`: 将金丝雀版本的流量权重设置为 50%。
@@ -5745,9 +5126,7 @@ demo 环境为
 
 3.  访问生产环境
 
-配置好 Hosts 之后，就可以访问生产环境了。使用浏览器访问 http://canary.auto 你应该能看到和手动部署生产环境一样的界面，全部是蓝色方块
-
-
+配置好 Hosts 之后，就可以访问生产环境了。使用浏览器访问 http://canary.auto 应该能看到和手动部署生产环境一样的界面，全部是蓝色方块
 
 4.  金丝雀发布自动化
 
@@ -5766,11 +5145,11 @@ containers:
 kubectl apply -f canary-rollout.yaml
 ```
 
-现在，返回浏览器，等待十几秒后，你应该能看到代表金丝雀环境的绿色方块开始出现，并大致占到总请求数的 20%，如下图右下角所示。
+现在，返回浏览器，等待十几秒后，应该能看到代表金丝雀环境的绿色方块开始出现，并大致占到总请求数的 20%，如下图右下角所示。
 
 ![Pasted image 20230224100706](README.assets/Pasted image 20230224100706-1678947896355-5.png)
 
-同时，我们在 Rollout 对象中还配置了 canary-by-header 参数，所以当我们使用特定的 Header 请求时，流量将被转发到金丝雀环境中，你可以使用 curl 来验证。
+同时，在 Rollout 对象中还配置了 canary-by-header 参数，所以当使用特定的 Header 请求时，流量将被转发到金丝雀环境中，可以使用 curl 来验证。
 
 ```bash
 for i in `seq 1 10`; do curl -H "X-Canary: always" http://canary.auto/color; done
@@ -5783,7 +5162,7 @@ $ for i in `seq 1 10`; do curl -H "X-Canary: always" http://canary.auto/color; d
 
 5. 访问 Argo Rollout Dashboard
 
-要访问 Argo Rollout Dashboard，你需要先安装 Argo Rollout kubectl 插件，接下来启用 Dashboard
+要访问 Argo Rollout Dashboard，需要先安装 Argo Rollout kubectl 插件，接下来启用 Dashboard
 
 ```bash
 kubectl argo rollouts dashboard
@@ -5791,13 +5170,13 @@ kubectl argo rollouts dashboard
 
 然后，使用浏览器访问 http://localhost:3100/rollouts 打开 Dashboard。
 
-接下来，点击卡片进入 canary-demo 详情，在这里我们将看到金丝雀发布的完整步骤以及当前所处的阶段。
+接下来，点击卡片进入 canary-demo 详情，在这里将看到金丝雀发布的完整步骤以及当前所处的阶段。
 
 ![Pasted image 20230224103323](README.assets/Pasted image 20230224103323.png)
 
-从上面的截图我们可以看出，金丝雀发布一共有 6 个阶段，当前处于第二个暂停阶段，这和我们在 Rollout 里的定义是一致的。
+从上面的截图可以看出，金丝雀发布一共有 6 个阶段，当前处于第二个暂停阶段，这和在 Rollout 里的定义是一致的。
 
-接下来，我们通过手动批准的方式让金丝雀发布进入下一个步骤。你可以使用 kubectl argo rollouts promote 命令来让金丝雀发布继续运行。
+接下来，通过手动批准的方式让金丝雀发布进入下一个步骤。可以使用 kubectl argo rollouts promote 命令来让金丝雀发布继续运行。
 
 ```bash
 kubectl argo rollouts promote canary-demo
@@ -5808,7 +5187,7 @@ root@node1:~# kubectl argo rollouts promote canary-demo
 rollout 'canary-demo' promoted
 ```
 
-之后，金丝雀发布将会按照我们预定的步骤运行。首先将金丝雀环境的流量比例设置为 50%，停留 30 秒，然后将金丝雀环境的流量比例设置为 70%，再停留 30 秒，最后将金丝雀环境提升为生产环境。当金丝雀发布完成之后，Argo Rollout 将同时自动对老的环境进行缩容操作，如下图所示。到这里，一次完整的自动化金丝雀发布就已经完成了。
+之后，金丝雀发布将会按照预定的步骤运行。首先将金丝雀环境的流量比例设置为 50%，停留 30 秒，然后将金丝雀环境的流量比例设置为 70%，再停留 30 秒，最后将金丝雀环境提升为生产环境。当金丝雀发布完成之后，Argo Rollout 将同时自动对老的环境进行缩容操作，如下图所示。到这里，一次完整的自动化金丝雀发布就已经完成了。
 
 ![Pasted image 20230224103308](README.assets/Pasted image 20230224103308.png)
 
@@ -5882,7 +5261,7 @@ spec:
             memory: 32Mi
 ```
 
-这个配置文件定义了一个使用金丝雀部署策略的`Rollout`资源。在`strategy`部分，我们可以看到以下设置：
+这个配置文件定义了一个使用金丝雀部署策略的`Rollout`资源。在`strategy`部分，可以看到以下设置：
 
 1. `canary`：表示要使用金丝雀部署策略。
 2. `analysis`：此部分定义了在金丝雀部署过程中要执行的分析模板和参数。这个例子中使用了名为`success-rate`的模板，并在第2步开始应用分析。`args`部分传递了参数`ingress`，其值为`canary-demo`。
@@ -6034,7 +5413,7 @@ Demo 环境的配置
 
 `192.168.1.231 progressive.auto`
 
-接下来，使用浏览器访问 http://progressive.auto 你应该能看全蓝色块界面。
+接下来，使用浏览器访问 http://progressive.auto 应该能看全蓝色块界面。
 
 
 
@@ -6058,9 +5437,9 @@ kubectl wait --for=condition=Ready pods --all -n prometheus
 
 配置 ingress-nginx
 
-为了让 Prometheus 能够顺利地获取到 HTTP 请求指标，我们需要打开 Ingress-Nginx Metric 指标端口。
+为了让 Prometheus 能够顺利地获取到 HTTP 请求指标，需要打开 Ingress-Nginx Metric 指标端口。
 
-首先需要为 Ingress-Nginx Deployment 添加容器的指标端口，你可以执行下面的命令来完成。
+首先需要为 Ingress-Nginx Deployment 添加容器的指标端口，可以执行下面的命令来完成。
 
 ```bash
 kubectl patch deployment ingress-nginx-controller -n ingress-nginx --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/ports/-", "value": {"name": "prometheus","containerPort":10254}}]'
@@ -6077,11 +5456,9 @@ root@node1:~# kubectl patch service ingress-nginx-controller -n ingress-nginx --
 service/ingress-nginx-controller patched
 ```
 
-
-
 配置 ServiceMonitor 对象
 
-为了让 Prometheus 能够抓取到 Ingress-Nginx 指标，我们还需要创建 ServiceMonitor 对象，它可以为 Prometheus 配置指标获取的策略。将下面的内容保存为 servicemonitor.yaml 文件。
+为了让 Prometheus 能够抓取到 Ingress-Nginx 指标，还需要创建 ServiceMonitor 对象，它可以为 Prometheus 配置指标获取的策略。将下面的内容保存为 servicemonitor.yaml 文件。
 
 ```bash
 nano servicemonitor.yaml
@@ -6109,15 +5486,34 @@ spec:
     - ingress-nginx
 ```
 
+这是一个 Prometheus 的 ServiceMonitor 资源配置文件，用于在 Kubernetes 集群中监控 Nginx Ingress Controller 的指标。下面是对整个配置文件的解释：
+
+-   `apiVersion`: 指定使用的 API 版本，这里为 monitoring.coreos.com/v1。
+-   `kind`: 指定资源类型，这里为 ServiceMonitor，表示这是一个 Prometheus ServiceMonitor 资源。
+-   `metadata`:
+    -   `name`: 资源的名称，这里为 nginx-ingress-controller-metrics。
+    -   `namespace`: 资源所在的命名空间，这里为 prometheus。
+    -   `labels`: 资源的标签，这里有两个标签，app: nginx-ingress 和 release: prometheus-operator。
+-   `spec`: 定义 ServiceMonitor 的规格。
+    -   `endpoints`: 定义要监控的端点列表。
+        -   `interval`: 抓取指标的时间间隔，这里为 10s。
+        -   `port`: 端口名称，这里为 prometheus。
+    -   `selector`: 选择器，用于选取与此 ServiceMonitor 匹配的 Kubernetes 服务。
+        -   `matchLabels`: 需要匹配的标签，这里有两个标签，app.kubernetes.io/instance: ingress-nginx 和 app.kubernetes.io/name: ingress-nginx。
+    -   `namespaceSelector`: 用于选择要监控的命名空间。
+        -   `matchNames`: 匹配的命名空间列表，这里只有一个 ingress-nginx。
+
+这个 ServiceMonitor 配置文件定义了如何监控 Nginx Ingress Controller 的指标。它将从 prometheus 命名空间下的 ingress-nginx 命名空间中具有特定标签的服务抓取指标。指标抓取间隔为 10 秒。
+
 ```bash
 kubectl apply -f servicemonitor.yaml
 ```
 
 验证 ingress-nginx 指标
 
-接下来，我们验证 Prometheus 是否已经成功获取到了 Ingress-Nginx 指标，这将决定自动金丝雀分析是否能成功获取到数据。
+接下来，验证 Prometheus 是否已经成功获取到了 Ingress-Nginx 指标，这将决定自动金丝雀分析是否能成功获取到数据。
 
-我们可以进入 Prometheus 控制台验证是否成功获取了 Ingress-Nginx 指标。
+可以进入 Prometheus 控制台验证是否成功获取了 Ingress-Nginx 指标。
 
 ```bash
 nano prometheus-ui.yaml
@@ -6159,7 +5555,7 @@ kubectl apply -f prometheus-ui.yaml
 
 ### 自动渐进式交付成功
 
-我们使用另一种更新镜像的方法，通过 Argo Rollout kubectl 插件来更新镜像
+使用另一种更新镜像的方法，通过 Argo Rollout kubectl 插件来更新镜像
 
 ```bash
 kubectl argo rollouts set image canary-demo canary-demo=argoproj/rollouts-demo:green
@@ -6183,32 +5579,32 @@ kubectl argo rollouts set image canary-demo canary-demo=argoproj/rollouts-demo:g
 
 在上面的实验中，由于应用返回的 HTTP 状态码都是 200 ，所以金丝雀分析自然是会成功的。
 
-接下来，我们来尝试进行自动渐进式交付失败的实验。
+接下来，来尝试进行自动渐进式交付失败的实验。
 
-经过了自动渐进式交付成功的实验之后，当前生产环境中的镜像为 argoproj/rollouts-demo:green，我们继续使用 Argo Rollout kubectl 插件来更新镜像，并将镜像版本修改为 yellow 版本。
+经过了自动渐进式交付成功的实验之后，当前生产环境中的镜像为 argoproj/rollouts-demo:green，继续使用 Argo Rollout kubectl 插件来更新镜像，并将镜像版本修改为 yellow 版本。
 
 ```bash
 kubectl argo rollouts set image canary-demo canary-demo=argoproj/rollouts-demo:yellow
 ```
 
 
-接下来，重新返回 http://progressive.auto 打开应用，等待一段时间后，你会看到请求开始出现黄色方块，如下图所示。
+接下来，重新返回 http://progressive.auto 打开应用，等待一段时间后，会看到请求开始出现黄色方块，如下图所示。
 
 ![Pasted image 20230224174638](README.assets/Pasted image 20230224174638.png)
 
-接下来，我们让应用返回错误的 HTTP 状态码。你可以滑动界面上的 ERROR 滑动块，将错误率设置为 50%，如下图所示。
+接下来，让应用返回错误的 HTTP 状态码。可以滑动界面上的 ERROR 滑动块，将错误率设置为 50%，如下图所示。
 
 ![Pasted image 20230224174655](README.assets/Pasted image 20230224174655.png)
 
-现在，你会在黄色方块中看到带有红色描边的方块，这代表本次请求返回的 HTTP 状态码不等于 200，说明我们成功控制了一部分请求返回错误。
+现在，会在黄色方块中看到带有红色描边的方块，这代表本次请求返回的 HTTP 状态码不等于 200，说明成功控制了一部分请求返回错误。
 
-2 分钟后，金丝雀发布会进入到 40% 流量的阶段，此时自动分析将开始进行。现在，我们进入 Argo Rollout 控制台。
+2 分钟后，金丝雀发布会进入到 40% 流量的阶段，此时自动分析将开始进行。现在，进入 Argo Rollout 控制台。
 
 使用浏览器打开 http://localhost:3100/rollouts 进入发布详情，等待一段时间后，金丝雀分析将失败，如下图所示。
 
 ![Pasted image 20230224174801](README.assets/Pasted image 20230224174801.png)
 
-此时，Argo Rollout 将执行自动回滚操作，这时候重新返回 http://progressive.auto 打开应用，你会看到黄色方块的流量消失，所有请求被绿色方块取代，说明已经完成回滚了，如下图所示。
+此时，Argo Rollout 将执行自动回滚操作，这时候重新返回 http://progressive.auto 打开应用，会看到黄色方块的流量消失，所有请求被绿色方块取代，说明已经完成回滚了，如下图所示。
 
 ![Pasted image 20230224174818](README.assets/Pasted image 20230224174818.png)
 
@@ -6232,7 +5628,7 @@ kubectl argo rollouts set image canary-demo canary-demo=argoproj/rollouts-demo:y
 
 该项目的目录结构包括 `Chart.yaml`、`applicationset.yaml`、`env` 目录和 `templates` 目录。熟悉 Helm 的用户很容易就能看出，实际上它是一个 Helm Chart。不同之处在于，Helm 的配置文件 `values.yaml` 并未放置在 Chart 的根目录，而是存放在 `env` 目录下。
 
-`templates` 目录存储了示例应用程序的 Kubernetes 对象。为了简化演示过程，我们只部署前端相关的对象，即 `frontend.yaml`。
+`templates` 目录存储了示例应用程序的 Kubernetes 对象。为了简化演示过程，只部署前端相关的对象，即 `frontend.yaml`。
 
 ```bash
 ├── Chart.yaml
@@ -6292,8 +5688,6 @@ spec:
 
 这个 Ingress 配置文件定义了一个 HTTP 路由规则，将所有以 `/` 开头的请求路由到名为 `frontend-service` 的后端服务的 3000 端口。主机名根据当前资源所属的命名空间动态设置。
 
-
-
 需要注意的是，在 `Ingress` 对象中使用了 Helm 的内置变量 `Release.Namespace`，它实际上指的是 Helm Chart 部署的命名空间。在示例中，将 `Release.Namespace` 与域名拼接以生成访问地址。不同环境将被部署到独立的命名空间下，从而具有独立的访问域名。
 
 
@@ -6349,7 +5743,7 @@ spec:
 1.  `apiVersion` 和 `kind`：定义了这是一个 ArgoCD 的 ApplicationSet 资源对象。
 2.  `metadata`：设置 ApplicationSet 的名称和命名空间。
 3.  `spec`：定义 ApplicationSet 的配置：
-    -   `generators`：生成器用于为 ApplicationSet 创建应用实例。在这里，我们使用 Git 生成器从 Git 仓库中获取配置文件。
+    -   `generators`：生成器用于为 ApplicationSet 创建应用实例。在这里，使用 Git 生成器从 Git 仓库中获取配置文件。
         -   `repoURL`：源代码仓库的地址。
         -   `revision`：要使用的 Git 仓库的分支或标签。
         -   `files`：一个文件列表，用于查找 Helm values 文件，这里会匹配 `helm-env/env/*/values.yaml` 路径下的所有 values 文件。
@@ -6553,7 +5947,7 @@ spec:
 
 这是一个用于 Argo CD 的 Kubernetes Application 自定义资源（CR）配置文件。Argo CD 是一个持续部署（Continuous Deployment，CD）工具，用于管理 Kubernetes 应用程序。它可以自动将 Git 仓库中的配置文件同步到 Kubernetes 集群中。这个配置文件定义了一个名为 "spring-demo" 的 Argo CD 应用，并说明了如何将 Git 仓库中的 Kubernetes 配置部署到目标集群。
 
-让我们详细解释一下各个部分：
+让详细解释一下各个部分：
 
 1. apiVersion 和 kind：这两个字段用于定义这是一个 Argo CD Application 资源，使用 "argoproj.io/v1alpha1" 版本。
 2. metadata：该部分包含关于 Application 的元数据，如名称（name）和命名空间（namespace）。在这个例子中，名为 "spring-demo" 的应用将在 "argocd" 命名空间中创建。
@@ -6604,7 +5998,7 @@ Error from server (BadRequest): container "sample-spring" in pod "sample-spring-
 3. is waiting to start：表示此容器尚未启动，正在等待启动。
 4. trying and failing to pull image：表明在尝试从镜像仓库拉取镜像时失败了。这可能是由于多种原因导致的，例如错误的镜像名称、错误的镜像版本、镜像仓库无法访问、网络问题、认证问题等。
 
-要解决这个问题，首先需要检查容器配置中的镜像名称和版本是否正确。然后，确保你的集群可以访问镜像仓库。如果镜像仓库需要认证，请确保提供了正确的凭据。最后，检查集群的网络连接，确保节点可以正常访问外部资源。根据具体的错误原因，可能需要调整配置或解决基础设施问题。
+要解决这个问题，首先需要检查容器配置中的镜像名称和版本是否正确。然后，确保的集群可以访问镜像仓库。如果镜像仓库需要认证，请确保提供了正确的凭据。最后，检查集群的网络连接，确保节点可以正常访问外部资源。根据具体的错误原因，可能需要调整配置或解决基础设施问题。
 
 
 
@@ -6659,7 +6053,7 @@ data:      .dockerconfigjson:ewogICAgICAgICJhdXRocyI6IHsKICAgICAgICAgICAgICAgICJ
 kubeseal -f image-pull-secret.yaml -w manifest/image-pull-sealed-secret.yaml --scope cluster-wide
 ```
 
-简单解释一下这个命令。首先，-f 参数指定了原始 Sceret 对象文件，也就是 image-pull-secret.yaml。-w 参数表示将加密后的 Secret 对象写入 manifest 目录的 image-pull-sealed-secret.yaml 文件内，这样 ArgoCD 就可以将它一并部署到集群内。–scope 参数表示加密后的 Secret 对象可以在集群的任何命名空间下使用。然后，你可以查看 manifest/image-pull-sealed-secret.yaml 文件，加密后的 Secret 对象如下。
+简单解释一下这个命令。首先，-f 参数指定了原始 Sceret 对象文件，也就是 image-pull-secret.yaml。-w 参数表示将加密后的 Secret 对象写入 manifest 目录的 image-pull-sealed-secret.yaml 文件内，这样 ArgoCD 就可以将它一并部署到集群内。–scope 参数表示加密后的 Secret 对象可以在集群的任何命名空间下使用。然后，可以查看 manifest/image-pull-sealed-secret.yaml 文件，加密后的 Secret 对象如下。
 
 ```bash
 root@node1:~/kubernetes-example/sealed-secret/manifest# nano image-pull-sealed-secret.yaml
@@ -6734,8 +6128,6 @@ git push origin main
 
 除了镜像凭据，此前还创建了一个提供工作负载密码的 `Secret` 对象。该密码通过环境变量注入到 `Pod` 中。接下来，将验证应用是否能够获取来自 `Secret` 对象提供的密码
 
-
-
 ```bash
 kubectl port-forward svc/sample-spring 8081:8080 -n secret-demo
 ```
@@ -6750,4 +6142,10 @@ root@node1:~/kubernetes-example/sealed-secret/manifest# curl http://localhost:80
 ```
 
 从返回结果可以发现，应用已经成功获取到了 PASSWORD 环境变量，这说明 Sealed-Secret  控制器也已经生成了原始的 Secret 对象。
+
+
+
+
+
+
 
