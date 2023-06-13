@@ -1,5 +1,7 @@
 # K8S 群集的安装
 
+## 手动安装 1.23
+
 环境说明:
 
 - 虚拟机硬件规格: 4CPU 8G 内存 127G 硬盘空间
@@ -9,9 +11,7 @@
 - 三台虚拟机的命名为node 1 node 2 node3 其中 node1 为 master 承载控制平面,其余两台机器 node2 node3 作为 work node 运行主句平面
 - 三台虚拟机的 ip 地址分别为 192.168.1.231 192.168.1.232  192.168.1.233
 
-
-
-## 手动安装 
+## 
 
 ### 系统基本配置
 
@@ -795,6 +795,639 @@ kubeadm token create  --print-join-command
 清理此前的安装痕迹
 
 ```bash
+kubeadm reset
+```
+
+
+
+
+
+## 手动安装 1.27
+
+
+
+### 环境说明
+
+**硬件环境**
+
+- 虚拟机硬件规格: 4CPU 8G 内存 127G 硬盘空间
+- 虚拟机数量: 3台
+- 虚拟机操作系统: Ubuntu 20.04
+- 虚拟化平台: hyper-v
+- 三台虚拟机的命名为node 1 node 2 node3 其中 node1 为 master 承载控制平面,其余两台机器 node2 node3 作为 work node 
+- 三台虚拟机的 ip 地址分别为 192.168.1.231 192.168.1.232 192.168.1.233
+
+**组件版本**
+
+- kubernetes：1.27.2
+- containerd：1.7
+- runc：1.1.3
+- libeseccomp：2.5.4
+- etcd：3.5.7
+
+**安装包资源**
+
+链接：https://pan.baidu.com/s/1ohbRCxv3sAtog25wr4nBhQ 
+提取码：5e6n
+
+请从上述连接下载所需资源，首先安装MobaXterm作为ssh terminal
+将这一节涉及的安装包和yaml文件上传到到每个节点
+
+
+
+### **节点基本配置**
+
+配置主机名, 以 master 为例
+
+```shell
+hostnamectl set-hostname node1
+```
+
+设置静态 IP 地址
+
+安装nmcli
+
+```shell
+apt install network-manager -y 
+```
+
+
+
+修改配置文件
+
+```shell
+nano /etc/netplan/01-netcfg.yaml
+```
+
+```yaml
+network:
+    version: 2
+    renderer: NetworkManager
+    ethernets:
+        eth0:
+            dhcp4: no #设置成no
+        eth1:
+            dhcp4: true
+        eth2:
+            dhcp4: true
+        eth3:
+            dhcp4: true
+        eth4:
+            dhcp4: true
+```
+
+
+
+```
+nano /etc/netplan/00-installer-config.yaml
+```
+
+```yaml
+network:
+  version: 2
+  ethernets:
+    eth0:   # 配置的网卡的名称
+      addresses: [192.168.1.231/24]   # 配置的静态ip地址和掩码
+      dhcp4: no    # 关闭dhcp4
+      optional: true
+      gateway4: 192.168.1.1 # 网关地址
+      nameservers:
+        addresses: [192.168.1.1]  # DNS服务器地址，多个DNS服务器地址需要用英文逗号分隔开，可不配置
+```
+
+
+
+使静态 IP 配置生效
+
+```shell
+netplan apply
+```
+
+
+
+设置静态名称解析,考虑到后续会使用 node2 作为 `nfs` 服务器,此处预先做好名称解析
+
+```shell
+cat >> /etc/hosts << EOF
+192.168.1.231 node1
+192.168.1.232 node2 nfs
+192.168.1.233 node3
+EOF
+```
+
+
+
+### 安装容器运行时 
+
+安装容器运行时containerd
+
+```bash
+tar Cxzvf /usr/local containerd-1.7.0-linux-amd64.tar.gz
+```
+
+
+
+(可选)
+
+```bash
+wget https://github.com/containerd/containerd/releases/download/v1.7.0/containerd-1.7.0-linux-amd64.tar.gz
+tar Cxzvf /usr/local containerd-1.7.0-linux-amd64.tar.gz
+```
+
+
+
+创建启动containerd的systemd服务
+```bash
+cat << EOF >> /lib/systemd/system/containerd.service
+[Unit]
+Description=containerd container runtime
+Documentation=https://containerd.io
+After=network.target local-fs.target
+
+[Service]
+ExecStartPre=-/sbin/modprobe overlay
+ExecStart=/usr/local/bin/containerd
+
+Type=notify
+Delegate=yes
+KillMode=process
+Restart=always
+RestartSec=5
+# Having non-zero Limit*s causes performance problems due to accounting overhead
+# in the kernel. We recommend using cgroups to do container-local accounting.
+LimitNPROC=infinity
+LimitCORE=infinity
+LimitNOFILE=infinity
+# Comment TasksMax if your systemd version does not supports it.
+# Only systemd 226 and above support this version.
+TasksMax=infinity
+OOMScoreAdjust=-999
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+
+
+containerd服务开机自启
+
+```bash
+systemctl daemon-reload
+systemctl enable --now containerd
+```
+
+
+
+配置containerd的配置文件，并启动containerd服务
+
+```bash
+mkdir -p /etc/containerd
+containerd config default | tee /etc/containerd/config.toml
+str1="registry.k8s.io/pause:3.8"
+str2="registry.aliyuncs.com/google_containers/pause:3.9"
+sed -i "/sandbox_image/ s%${str1}%${str2}%g" /etc/containerd/config.toml
+sed -i '/SystemdCgroup/ s/false/true/g' /etc/containerd/config.toml
+systemctl restart containerd && systemctl status containerd
+```
+
+
+
+### 安装runc和cni
+
+快捷步骤
+```bash
+install -m 755 runc.amd64 /usr/local/sbin/runc
+```
+
+```bash
+mkdir -p /opt/cni/bin
+tar xf  cni-plugins-linux-amd64-v1.1.1.tgz -C /opt/cni/bin/
+```
+
+
+
+可选步骤
+
+```bash
+wget https://github.com/opencontainers/runc/releases/download/v1.1.3/runc.amd64
+install -m 755 runc.amd64 /usr/local/sbin/runc
+```
+
+```bash
+wget https://github.com/containernetworking/plugins/releases/download/v1.1.1/cni-plugins-linux-amd64-v1.1.1.tgz
+mkdir -p /opt/cni/bin
+tar xf  cni-plugins-linux-amd64-v1.1.1.tgz -C /opt/cni/bin/
+```
+
+
+
+
+### 节点系统设置
+
+关闭临时分区
+```bash
+swapoff -a
+sed -i '/swap/ s%/swap%#/swap%g' /etc/fstab
+```
+
+这两个命令分别用于关闭 Linux 系统的 swap 分区和修改 /etc/fstab 文件来防止系统重启后自动开启 swap 分区。
+
+第一个命令 `swapoff -a` 的作用是关闭所有的 swap 分区。这个命令通常在部署 Kubernetes 等要求不使用 swap 分区的应用时使用，因为 Kubernetes 默认不支持 swap 分区。`-a` 参数表示关闭所有的 swap 分区。此操作会将 swap 分区中的数据移到内存中。
+
+第二个命令 `sed -i '/swap/ s%/swap%#/swap%g' /etc/fstab` 用于修改 /etc/fstab 文件。/etc/fstab 是一个配置文件，用于描述系统中的分区和文件系统，以及它们的挂载选项和自动挂载设置。
+
+- `sed` 是一个流编辑器（stream editor），可以用来对文本文件进行修改操作。
+- `-i`：表示对原始文件进行直接修改，而不是输出到标准输出。
+- `'/swap/ s%/swap%#/swap%g'`：这是 `sed` 命令的主要操作部分。
+  * `'/swap/'`：表示查找包含字符串 "swap" 的行。
+  * `s%[pattern]%[replacement]%g`：是一个替换操作。`s` 表示替换，`g` 表示全局替换。`%` 作为分隔符，也可以使用其他字符如 `/`、`:` 等。
+    + `[pattern]`：表示需要查找的字符串，这里是 "/swap"。
+    + `[replacement]`：表示替换后的字符串，这里是 "#/swap"。
+  * 这个操作的意思是将 `/swap` 替换为 `#/swap`，用 "#" 注释掉 swap 相关的行，防止系统在启动时自动挂载 swap 分区。
+
+这两个命令的目的是为了满足 Kubernetes 对 swap 分区的特殊要求，在部署 Kubernetes 前执行这两个命令可以确保 swap 分区被禁用。在 Kubernetes 集群中禁用 swap 分区有助于提高性能和保证资源分配的准确性。
+
+
+
+修改内核参数
+
+```bash
+modprobe overlay
+modprobe br_netfilter
+cat <<EOF >> /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+cat <<EOF >> /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+EOF
+sysctl --system
+```
+
+这些命令用于加载一些模块和设置某些内核参数，以便满足 Kubernetes 网络设置的要求。下面是每个命令的详细解释：
+
+1. `modprobe overlay`：加载 overlay 文件系统模块。overlay 文件系统允许将多个目录融合在一起，提供统一的视图。这对于 Docker 和 Kubernetes 运行容器时的文件系统是必需的。
+
+2. `modprobe br_netfilter`：加载 br_netfilter 模块。这个模块是用于在桥接网络设备上进行 iptables 删选的，对于 Kubernetes 网络实现（如Flannel、Calico等）是必需的。
+
+3. 将 "overlay" 和 "br_netfilter" 模块添加到 `/etc/modules-load.d/k8s.conf` 文件中。`/etc/modules-load.d/` 目录下的配置文件用于指定系统启动时需要自动加载的内核模块。这样，在系统启动时这些模块会被自动加载。
+
+4. 将一些针对 Kubernetes 网络设置的内核参数添加到 `/etc/sysctl.d/k8s.conf` 文件中：
+   - `net.bridge.bridge-nf-call-ip6tables = 1`：允许在桥接网络中应用 ip6tables 规则。
+   - `net.bridge.bridge-nf-call-iptables = 1`：允许在桥接网络中应用 iptables 规则。
+   - `net.ipv4.ip_forward = 1`：启用 IPv4 包转发。这对于实现 Kubernetes 集群内不同节点间的网络通信是必需的。
+
+   `/etc/sysctl.d/` 目录下的配置文件用于设置和覆盖系统默认的内核参数。
+
+5. `sysctl --system`：应用所有配置文件中的内核参数设置。这个命令会读取 `/etc/sysctl.d/` 和其他相关目录下的所有配置文件，并为内核参数应用这些设置。这样我们刚才添加的针对 Kubernetes 的内核参数设置就会生效。
+
+总之，这些命令的目的是加载必要的内核模块和设置内核参数，以满足 Kubernetes 网络要求。这些设置对于运行 Kubernetes 集群中的容器和实现集群内的网络通信非常重要。
+
+
+
+### 安装 kubeadm、kubectl、kubelet
+
+更新apt源，添加国内aliyun源
+
+```bash
+apt-get update && apt-get install -y apt-transport-https ca-certificates
+curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add - 
+cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
+deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main
+EOF
+apt-get update
+```
+
+这组命令执行的是在一个基于 Debian（例如 Ubuntu）的 Linux 系统上安装 Kubernetes 相关软件的操作。下面是对这些命令的解释：
+
+1. `apt-get update`：更新系统的软件包列表，确保可以获取到最新的可用软件包版本。
+2. `apt-get install -y apt-transport-https ca-certificates`：安装 `apt-transport-https` 和 `ca-certificates` 软件包。`apt-transport-https` 允许从支持 HTTPS 的存储库下载软件包，`ca-certificates` 提供了一组受信任的根证书，用于在系统上验证 SSL/TLS 证书。
+3. `curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add -`：从阿里云镜像站点下载 Kubernetes 的 GPG 公钥，并将其添加到系统的受信任密钥列表中。这是为了验证后续安装的 Kubernetes 软件包的完整性和来源。
+4. `cat <<EOF >/etc/apt/sources.list.d/kubernetes.list`：这一行命令创建了一个名为 `/etc/apt/sources.list.d/kubernetes.list` 的新文件并写入接下来的几行内容。
+5. `deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main`：这行定义了一个新的 APT（Advanced Package Tool）软件仓库，用于从阿里云镜像站点获取名为 `kubernetes-xenial` 的软件包。这是 Kubernetes 软件包在 Ubuntu 16.04（代号为 Xenial Xerus）上的发行版本。
+6. `EOF`：表示写入到 `/etc/apt/sources.list.d/kubernetes.list` 文件的内容结束。
+7. `apt-get update`：再次执行 `apt-get update` 命令以更新软件包列表，这时已经包含了新添加的 Kubernetes 软件仓库。
+
+执行完这组命令后，您就可以使用 `apt-get install` 命令来安装 Kubernetes 的组件，例如 `kubectl`、`kubelet` 和 `kubeadm` 等。这些组件将用于部署和管理 Kubernetes 集群。
+
+
+
+安装最新版本的kube三兄弟（本例中是1.27.2）
+
+```bash
+apt-get install -y kubelet kubeadm kubectl
+```
+
+
+
+查看当前可用版本、软件仓库地址和版本说明
+
+```bash
+apt-cache madison kubelet
+```
+
+
+
+以安装 `1.26.5`为例
+
+```shell
+apt install -y kubelet=1.26.5-00 kubeadm=1.26.5-00  kubectl=1.26.5-00
+```
+
+
+
+设置 kubelet 自动启动
+
+```bash
+systemctl enable kubelet
+```
+
+
+
+禁止更新（可选）
+
+```bash
+apt-mark hold kubelet kubeadm kubectl
+systemctl enable --now kubelet
+```
+
+
+
+### 在master节点上初始化群集
+
+使用kubeadm init创建群集
+```bash
+kubeadm init --image-repository registry.aliyuncs.com/google_containers --apiserver-advertise-address=192.168.1.231 --pod-network-cidr=10.244.0.0/16 --control-plane-endpoint=node1
+```
+
+这是一个使用 kubeadm 在 Kubernetes 集群中初始化控制平面节点的命令。下面是对命令中各部分的解释：
+
+1. `kubeadm init`：这是用于初始化 Kubernetes 控制平面节点的命令。
+
+2. `--image-repository registry.aliyuncs.com/google_containers`：这是指定 Kubernetes 组件镜像仓库的参数，将镜像仓库设置为阿里云提供的 Google 容器镜像仓库。这通常有助于在中国区加速镜像拉取速度。
+
+3. `--apiserver-advertise-address=192.168.1.231`：这是指定 Kubernetes API 服务器应该发布（广播）的 IP 地址，即其他 Kubernetes 组件和客户端如 kubectl 将在该 IP 地址下访问 API 服务器。在这里，它设置为 `192.168.1.231`。
+
+4. `--pod-network-cidr=10.244.0.0/16`：这是指定 Pod 网络的 CIDR，通常与您所选用的容器网络插件相关。在这里，它设置为 `10.244.0.0/16`。您可能会根据实际需求调整这个值。
+
+5. `--control-plane-endpoint=node1`：这是指定控制平面节点的访问端点。在这里，它设置为 `node1`，其中 `node1` 通常可解析为控制平面节点的 IP 地址或 FQDN。这可以通过修改 `/etc/hosts` 文件或使用 DNS 服务器来实现。
+
+此命令在执行之后，会开始部署 Kubernetes 控制平面（API 服务器、etcd、控制器管理器、调度器等组件）。在初始化成功后，它会返回一条提示，告诉您如何让后续 worker 节点加入当前创建的 Kubernetes 集群。
+
+以下是 `kubeadm init` 输出示例
+```bash
+root@node1:~# kubeadm init --image-repository registry.aliyuncs.com/google_containers --apiserver-advertise-address=192.168.1.231 --pod-network-cidr=10.244.0.0/16 --control-plane-endpoint=node1
+[init] Using Kubernetes version: v1.27.2
+[preflight] Running pre-flight checks
+[preflight] Pulling images required for setting up a Kubernetes cluster
+[preflight] This might take a minute or two, depending on the speed of your internet connection
+[preflight] You can also perform this action in beforehand using 'kubeadm config images pull'
+W0613 12:34:04.059814   19392 images.go:80] could not find officially supported version of etcd for Kubernetes v1.27.2, falling back to the nearest etcd version (3.5.7-0)
+[certs] Using certificateDir folder "/etc/kubernetes/pki"
+[certs] Generating "ca" certificate and key
+[certs] Generating "apiserver" certificate and key
+[certs] apiserver serving cert is signed for DNS names [kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local node1] and IPs [10.96.0.1 192.168.1.231]
+[certs] Generating "apiserver-kubelet-client" certificate and key
+[certs] Generating "front-proxy-ca" certificate and key
+[certs] Generating "front-proxy-client" certificate and key
+[certs] Generating "etcd/ca" certificate and key
+[certs] Generating "etcd/server" certificate and key
+[certs] etcd/server serving cert is signed for DNS names [localhost node1] and IPs [192.168.1.231 127.0.0.1 ::1]
+[certs] Generating "etcd/peer" certificate and key
+[certs] etcd/peer serving cert is signed for DNS names [localhost node1] and IPs [192.168.1.231 127.0.0.1 ::1]
+[certs] Generating "etcd/healthcheck-client" certificate and key
+[certs] Generating "apiserver-etcd-client" certificate and key
+[certs] Generating "sa" key and public key
+[kubeconfig] Using kubeconfig folder "/etc/kubernetes"
+[kubeconfig] Writing "admin.conf" kubeconfig file
+[kubeconfig] Writing "kubelet.conf" kubeconfig file
+[kubeconfig] Writing "controller-manager.conf" kubeconfig file
+[kubeconfig] Writing "scheduler.conf" kubeconfig file
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Starting the kubelet
+[control-plane] Using manifest folder "/etc/kubernetes/manifests"
+[control-plane] Creating static Pod manifest for "kube-apiserver"
+[control-plane] Creating static Pod manifest for "kube-controller-manager"
+[control-plane] Creating static Pod manifest for "kube-scheduler"
+[etcd] Creating static Pod manifest for local etcd in "/etc/kubernetes/manifests"
+W0613 12:34:34.072785   19392 images.go:80] could not find officially supported version of etcd for Kubernetes v1.27.2, falling back to the nearest etcd version (3.5.7-0)
+[wait-control-plane] Waiting for the kubelet to boot up the control plane as static Pods from directory "/etc/kubernetes/manifests". This can take up to 4m0s
+[apiclient] All control plane components are healthy after 5.501728 seconds
+[upload-config] Storing the configuration used in ConfigMap "kubeadm-config" in the "kube-system" Namespace
+[kubelet] Creating a ConfigMap "kubelet-config" in namespace kube-system with the configuration for the kubelets in the cluster
+[upload-certs] Skipping phase. Please see --upload-certs
+[mark-control-plane] Marking the node node1 as control-plane by adding the labels: [node-role.kubernetes.io/control-plane node.kubernetes.io/exclude-from-external-load-balancers]
+[mark-control-plane] Marking the node node1 as control-plane by adding the taints [node-role.kubernetes.io/control-plane:NoSchedule]
+[bootstrap-token] Using token: k9xdbb.93w7qgngp6f80lpc
+[bootstrap-token] Configuring bootstrap tokens, cluster-info ConfigMap, RBAC Roles
+[bootstrap-token] Configured RBAC rules to allow Node Bootstrap tokens to get nodes
+[bootstrap-token] Configured RBAC rules to allow Node Bootstrap tokens to post CSRs in order for nodes to get long term certificate credentials
+[bootstrap-token] Configured RBAC rules to allow the csrapprover controller automatically approve CSRs from a Node Bootstrap Token
+[bootstrap-token] Configured RBAC rules to allow certificate rotation for all node client certificates in the cluster
+[bootstrap-token] Creating the "cluster-info" ConfigMap in the "kube-public" namespace
+[kubelet-finalize] Updating "/etc/kubernetes/kubelet.conf" to point to a rotatable kubelet client certificate and key
+[addons] Applied essential addon: CoreDNS
+[addons] Applied essential addon: kube-proxy
+
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+You can now join any number of control-plane nodes by copying certificate authorities
+and service account keys on each node and then running the following as root:
+
+  kubeadm join node1:6443 --token k9xdbb.93w7qgngp6f80lpc \
+        --discovery-token-ca-cert-hash sha256:b879926b019e3f39daa52e93d48f397fdbf44c068b6fcf7299010068fbc3a5ee \
+        --control-plane
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join node1:6443 --token k9xdbb.93w7qgngp6f80lpc \
+        --discovery-token-ca-cert-hash sha256:b879926b019e3f39daa52e93d48f397fdbf44c068b6fcf7299010068fbc3a5ee
+
+```
+
+
+
+在master节点上面执行以下命令，用于配置kubectl命令连接到集群。
+
+```bash
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+
+
+
+### 安装网络插件
+
+
+快捷步骤
+```bash
+kubectl apply -f calico.yaml
+```
+
+
+
+```bash
+kubectl apply -f  https://raw.githubusercontent.com/projectcalico/calico/v3.25.1/manifests/calico.yaml -O
+```
+
+
+
+
+
+检查calico安装进度
+
+```bash
+kubectl get pods -n kube-system -l k8s-app=calico-node
+```
+
+
+
+### 将节点加入群集
+
+新worknode 
+```bash
+kubeadm join node1:6443 --token k9xdbb.93w7qgngp6f80lpc \
+        --discovery-token-ca-cert-hash sha256:b879926b019e3f39daa52e93d48f397fdbf44c068b6fcf7299010068fbc3a5ee
+```
+
+
+
+新控制平面
+
+```bash
+  kubeadm join node1:6443 --token k9xdbb.93w7qgngp6f80lpc \
+        --discovery-token-ca-cert-hash sha256:b879926b019e3f39daa52e93d48f397fdbf44c068b6fcf7299010068fbc3a5ee \
+        --control-plane
+```
+
+
+
+如果忘记 join key
+
+```shell
+kubeadm token create  --print-join-command
+```
+
+
+
+### 安装后操作
+
+检查节点状态
+```bash
+kubectl get node -o wide
+```
+
+
+
+检查kube-system pod运行状态
+
+```bash
+kubectl get pod -n kube-system -o wide
+```
+
+
+
+去除master污点，启用单节点群集
+
+```bash
+kubectl taint node node1 node-role.kubernetes.io/control-plane:NoSchedule-
+```
+
+
+
+创建测试用负载
+
+```bash
+kubectl create deployment katacoda --image=katacoda/docker-http-server --replicas=3
+```
+
+
+
+查看pod创建过程
+
+```shell
+kubectl get pod -o wide
+```
+
+```shell
+root@node1:~# kubectl get pod -o wide
+NAME                        READY   STATUS    RESTARTS   AGE     IP             NODE    NOMINATED NODE   READINESS GATES
+katacoda-56dbd65b59-b98h7   1/1     Running   0          2m40s   10.244.135.1   node3   <none>           <none>
+katacoda-56dbd65b59-cvvr8   1/1     Running   0          2m40s   10.244.104.1   node2   <none>           <none>
+katacoda-56dbd65b59-d274w   1/1     Running   0          2m40s   10.244.135.2   node3   <none>           <none>
+```
+
+​	关注pod的ip地址以及所处节点
+
+
+
+尝试访问不同节点上的pod
+
+```
+curl 10.244.104.1
+
+curl 10.244.135.2
+```
+
+
+
+如果有类似以下显示则没问题
+
+```shell
+root@node1:~# curl 10.244.104.1
+<h1>This request was processed by host: katacoda-56dbd65b59-cvvr8</h1>
+root@node1:~# curl 10.244.135.2
+<h1>This request was processed by host: katacoda-56dbd65b59-d274w</h1>
+```
+
+
+
+打印config文件用于连接lens
+
+```bash
+cat  $HOME/.kube/config
+```
+
+
+
+节点加入群集之后始终无法ready，使用以下步骤逐出群集
+```shell
+kubectl drain k8s-0005 --delete-local-data --force --ignore-daemonsets
+kubectl delete node  k8s-0005
+```
+
+
+
+重新加入群集
+
+```shell
+kubeadm join …………
+```
+
+
+
+清理此前的安装痕迹
+
+```shell
 kubeadm reset
 ```
 

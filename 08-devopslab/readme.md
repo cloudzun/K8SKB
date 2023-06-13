@@ -93,23 +93,23 @@ nano docker-compose.yaml
 
 ```yaml
 version: '2'
- 
+
 services:
- jenkins:
- image: docker.io/bitnami/jenkins:2.319.1-debian-10-r11
- restart: always
- ports:
- - '8080:8080'
- - '50000:50000'
- environment:
- - JENKINS_PASSWORD=password
- - JENKINS_USERNAME=admin
- volumes:
- - 'jenkins_data:/bitnami/jenkins'
- 
+  jenkins:
+    image: docker.io/bitnami/jenkins:2.319.1-debian-10-r11
+    restart: always
+    ports:
+      - '8080:8080'
+      - '50000:50000'
+    environment:
+      - JENKINS_PASSWORD=password
+      - JENKINS_USERNAME=admin
+    volumes:
+      - 'jenkins_data:/bitnami/jenkins'
+
 volumes:
- jenkins_data:
- driver: local
+  jenkins_data:
+    driver: local
 ```
 
 备注： 如果已经已经下载了项目文件可以直接使用
