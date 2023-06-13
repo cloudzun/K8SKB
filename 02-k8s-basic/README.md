@@ -11,8 +11,6 @@
 - 三台虚拟机的命名为node 1 node 2 node3 其中 node1 为 master 承载控制平面,其余两台机器 node2 node3 作为 work node 运行主句平面
 - 三台虚拟机的 ip 地址分别为 192.168.1.231 192.168.1.232  192.168.1.233
 
-## 
-
 ### 系统基本配置
 
 关闭 swap
@@ -917,7 +915,7 @@ EOF
 
 
 
-### 安装容器运行时 
+### 安装containerd
 
 安装容器运行时containerd
 
@@ -1285,8 +1283,10 @@ kubectl apply -f calico.yaml
 
 
 
+使用在线版本yaml
+
 ```bash
-kubectl apply -f  https://raw.githubusercontent.com/projectcalico/calico/v3.25.1/manifests/calico.yaml -O
+kubectl apply -f  https://raw.githubusercontent.com/cloudzun/K8SKB/main/02-k8s-basic/calico.yaml
 ```
 
 
