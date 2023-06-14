@@ -7615,6 +7615,47 @@ spec:
 kubectl apply -f katacoda.ingress.yaml 
 ```
 
+for 1.27
+
+您在创建 Kubernetes Ingress 资源时收到了一个警告。警告表明 "kubernetes.io/ingress.class" 注释已被弃用，建议使用 'spec.ingressClassName' 代替。这意味着，您应该使用新的字段，在 Ingress 的 spec 部分设置 Ingress 类。
+
+您可以按照以下步骤更新 Ingress 资源以消除警告：
+
+1. 首先，删除当前的 Ingress 资源：
+```bash
+kubectl delete ingress katacoda-ingress
+```
+
+2. 然后，使用一个新的 YAML 文件创建更新后的 Ingress 资源。可以采用以下示例：
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: katacoda-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: hello.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: katacoda
+            port:
+              number: 80
+```
+在这个示例中，已经移除了 "kubernetes.io/ingress.class" 注释，并使用 `spec.ingressClassName` 字段指定 `nginx` 作为 Ingress 类。请根据需要自行调整 YAML 配置。
+
+3. 使用 `kubectl` 创建新的 Ingress 资源：
+
+```bash
+kubectl apply -f updated-ingress.yaml
+```
+
+使用这种方法，您可以消除创建 Ingress 时的警告，并确保您的配置符合最新的 Kubernetes API 要求。
 
 
 查看ingress，观察ADDRESS选项
@@ -7622,7 +7663,6 @@ kubectl apply -f katacoda.ingress.yaml
 ```bash
 kubectl get ingress
 ```
-
 
 
 ```bash
