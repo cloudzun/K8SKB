@@ -6896,7 +6896,48 @@ spec:
 kubectl create -f cronjob.yaml
 ```
 
+如果遇到报错，使用以下命令查看当前k8s支持的版本号
+```bash
+ kubectl explain cronjob
+```
 
+如下图所示，当前cronjob的资源版本是batch/v1
+```bash
+root@node1:~/k8slab/deployment#  kubectl explain cronjob
+GROUP:      batch
+KIND:       CronJob
+VERSION:    v1
+
+DESCRIPTION:
+    CronJob represents the configuration of a single cron job.
+
+FIELDS:
+  apiVersion    <string>
+    APIVersion defines the versioned schema of this representation of an object.
+    Servers should convert recognized schemas to the latest internal value, and
+    may reject unrecognized values. More info:
+    https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+
+  kind  <string>
+    Kind is a string value representing the REST resource this object
+    represents. Servers may infer this from the endpoint the client submits
+    requests to. Cannot be updated. In CamelCase. More info:
+    https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+
+  metadata      <ObjectMeta>
+    Standard object's metadata. More info:
+    https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+
+  spec  <CronJobSpec>
+    Specification of the desired behavior of a cron job, including the schedule.
+    More info:
+    https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+
+  status        <CronJobStatus>
+    Current status of a cron job. More info:
+    https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+
+```
 
 查看pods
 
@@ -7004,7 +7045,7 @@ kubectl apply -f katacoda-daemonsets.yaml
 
 观察 pod
 
-```
+```bash
 kubectl get pods -o wide
 ```
 
