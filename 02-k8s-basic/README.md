@@ -12109,7 +12109,34 @@ spec:
           averageValue: 200M
 ```
 
+这是一个`HorizontalPodAutoscaler`（HPA，水平Pod自动伸缩器）的Kubernetes资源定义。它用于根据工作负载的需要自动调整Pod的副本数量。以下是对该配置文件各部分的解释：
 
+- `apiVersion: autoscaling/v2beta2`: 此配置文件使用的API版本是`autoscaling/v2beta2`。
+- `kind: HorizontalPodAutoscaler`: 配置文件的类型是`HorizontalPodAutoscaler`。
+- `metadata`：资源的元数据。
+  - `name: podinfo`: 这个HPA的名字是`podinfo`。
+- `spec`：HPA的规范。
+  - `scaleTargetRef`：指示要自动缩放的关联资源。在此示例中，我们正在关联一个名为`podinfo`的`Deployment`。
+    - `apiVersion: apps/v1`
+    - `kind: Deployment`
+    - `name: podinfo`
+  - `minReplicas`: 控制器始终保证的最小副本数量。此示例中设置的值为2。
+  - `maxReplicas`: 控制器可扩展的最大副本数量。此示例中设置的值为10。
+  - `metrics`：HPA使用的指标列表，以便根据实际负载调整副本数。
+    - `type: Resource`: 这个指标是关于资源的，即我们将基于资源使用情况来缩放。
+      - `resource`: 资源的详细信息。
+        - `name: cpu`: 被监控的资源是CPU。
+        - `target`: 设置关于CPU的目标值。 
+          - `type: Utilization`: 我们希望根据CPU的使用率来缩放。
+          - `averageUtilization: 80`: 当副本的平均CPU利用率超过80%时，HPA将增加副本数。
+    - `type: Resource`: 另一指标也关于资源的。
+      - `resource`:
+        - `name: memory`: 被监控的资源是内存。
+        - `target`:
+          - `type: AverageValue`: 我们希望根据内存的平均值来缩放。
+          - `averageValue: 200M`: 当副本的平均内存使用量超过200MB时，HPA将增加副本数。
+
+综上所述，此示例配置了一个HPA，跟踪名为`podinfo`的Deployment，根据CPU使用率（超过80%）和内存使用量（超过200MB）来自动缩放Pod副本数。最小副本数为2，最大副本数为10。
 
 启用 HPA
 
