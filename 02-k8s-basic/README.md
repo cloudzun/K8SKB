@@ -3708,14 +3708,23 @@ nginx-hostnetwork   1/1     Running   0          21s   192.168.1.232   node2   <
 ```text
 nano kubeadm-config.yaml 
 ```
-
 *查看podSubnet字段
 
+或者
+```bash
+grep -A1 CALICO_IPV4POOL_CIDR calico.yaml 
+```
 
+```bash
+root@node1:~# grep -A1 CALICO_IPV4POOL_CIDR calico.yaml
+            - name: CALICO_IPV4POOL_CIDR
+              value: "10.244.0.0/16"
+
+```
 
 清理pod
 
-```text
+```bash
 kubectl delete -f nginx-hostnetwork.yaml
 ```
 
@@ -4345,6 +4354,46 @@ spec:
       protocol: TCP
 ```
 
+这个 YAML 文件定义了一个包含 init container（初始化容器）和主容器的 Kubernetes Pod。以下是这个 YAML 文件的详细解释：
+
+1. 对象类型：`Pod`
+
+2. 元数据：
+   - Pod 名称：`nginx-initcontainer`
+   - 命名空间：`default`
+   - 标签：`app: nginx-initcontainer`
+   - 注释：`app: nginx-initcontainer`
+
+3. Pod 规格 (spec)：
+   - DNS 策略：使用默认 DNS 策略
+   - 主机网络：禁用（使用 Pod 网络）
+   - 重启策略：始终重启
+   - 卷定义：
+     - web-root：使用主机路径（节点上的 `/data` 目录）
+     - web-path：使用 `emptyDir` 类型，这是一个临时空目录，只存在于 Pod 生命周期内
+
+4. 初始化容器（initContainers）：
+   - 名称：`pullcode`
+   - 镜像：`busybox`
+   - 卷挂载：
+     - web-path 卷挂载到 `/data` 路径
+   - 命令：执行 shell（`/bin/sh`）命令：创建一个包含字符串 "hello" 的 `/data/index.html` 文件
+
+5. 主容器：
+   - 名称：`nginx`
+   - 镜像：`nginx`
+   - 镜像拉取策略：始终拉取镜像
+   - 卷挂载：
+     - web-root 卷挂载到 `/data` 路径
+     - web-path（来自 init container）卷挂载到 `/usr/share/nginx/html` 路径
+   - 环境变量：
+     - mysqlhost：指定 MySQL 主机 IP 地址
+     - mysqlport：指定 MySQL 端口
+     - mysqldb：指定 MySQL 数据库名称，即 "wordpress"
+   - 容器端口定义：
+     - web-port(TCP)：监听 80 端口
+
+通过这个 Pod 定义，初始化容器首先在 `/data/index.html` 创建一个包含 "hello" 的文件。然后，主容器使用 nginx 镜像挂载文件路径并运行，以便在 80 端口上提供来自 init container 创建的文件。同时，设置了一些环境变量（如 MySQL 主机、端口和数据库名称），以便容器访问 MySQL 数据。
 
 
 创建pod
@@ -5408,7 +5457,26 @@ spec:
       protocol: TCP
 ```
 
+这一部分的配置定义了三个探针检查，它们分别用于检测容器的启动状况、存活状况和就绪状况。
 
+1. startupProbe（启动检查）：
+
+启动检查用于检测容器是否已经启动。在这个示例中，启动探针通过执行 `/bin/sh -c "cat /usr/share/nginx/html/healthy"` 命令来检查容器是否正确启动。相关设置有：
+- initialDelaySeconds: 探测器等待多少秒后才开始探测，默认值是 0 秒。
+- periodSeconds: 探测器进行探测的间隔时间，默认值是 10 秒。
+- timeoutSeconds: 探测器执行检测操作的超时时间，默认值是 1 秒。
+- failureThreshold: 允许连续失败多少次，默认值是 3 次。
+- successThreshold: 要视为成功的最小连续成功次数，默认值是 1 次。
+
+2. livenessProbe（存活检查）：
+
+存活检查用于检测容器是否仍在运行。在这个示例中，存活探针通过 TCP 检查连接到端口 8080 来判断容器是否存活。相关设置与上述类似。
+
+3. readinessProbe（就绪检查）：
+
+准备检查用于确认容器是否已准备好处理请求。在这个示例中，就绪探针通过发送 HTTP GET 请求到端口 8080 和路径 `/` 来检查容器是否已准备好处理流量。相关设置与之前两个探针类似。
+
+这三个探针用于确保容器在其整个生命周期内不仅能成功地启动，也能及时发现潜在故障并随时准备好处理请求。
 
 创建pod
 
