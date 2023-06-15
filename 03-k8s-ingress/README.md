@@ -1176,115 +1176,6 @@ EOF
 
 
 
-# 定制错误代码页面
-
-
-
-修改value文件
-
-```bash
-nano values.yaml
-```
-
-```yaml
-## Default 404 backend
-##
-defaultBackend:
-  ##
-  enabled: true #改为true
-
-  name: defaultbackend
-  image:
-    registry: registry.k8s.io # 自定义页面所对应的映像库
-    image: defaultbackend-amd64
-```
-
-```yaml
-  # -- Will add custom configuration options to Nginx https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/config>
-  config: # 增加以下三行内容
-    apiVersion: v1
-    client_max_body_size: 20m
-    custom-http-errors: "404,415,503"
-```
-
-​		建议使用 config: {} 进行查找
-
-```bash
-helm upgrade ingress-nginx -n ingress-nginx .
-```
-
-
-
-查看pod
-
-```
-kubectl get pod -n ingress-nginx
-```
-
-```bash
-root@node1:~/ingress-nginx# kubectl get pod -n ingress-nginx
-NAME                                            READY   STATUS    RESTARTS   AGE
-ingress-nginx-controller-gqxk9                  1/1     Running   0          19m
-ingress-nginx-controller-m94q7                  1/1     Running   0          20m
-ingress-nginx-defaultbackend-5fb7c69544-p2mm8   1/1     Running   0          20m
-```
-
-​		注意: 此处多了一个自定义报错页面对应的pod
-
-查看配置文件
-
-```bash
-kubectl get cm -n ingress-nginx
-```
-
-```bash
-root@node1:~/ingress-nginx# kubectl get cm -n ingress-nginx
-NAME                       DATA   AGE
-ingress-nginx-controller   4      3h45m
-kube-root-ca.crt           1      3h45m
-```
-
-```bash
-kubectl get cm -n ingress-nginx ingress-nginx-controller -o yaml
-```
-
-```bash
-root@node1:~/ingress-nginx# kubectl get cm -n ingress-nginx ingress-nginx-controller -o yaml
-apiVersion: v1
-data:
-  allow-snippet-annotations: "true"
-  apiVersion: v1
-  client_max_body_size: 20m
-  custom-http-errors: 404,415,503
-kind: ConfigMap
-metadata:
-  annotations:
-    meta.helm.sh/release-name: ingress-nginx
-    meta.helm.sh/release-namespace: ingress-nginx
-  creationTimestamp: "2022-11-22T03:38:18Z"
-  labels:
-    app.kubernetes.io/component: controller
-    app.kubernetes.io/instance: ingress-nginx
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: ingress-nginx
-    app.kubernetes.io/part-of: ingress-nginx
-    app.kubernetes.io/version: 1.5.1
-    helm.sh/chart: ingress-nginx-4.4.0
-  name: ingress-nginx-controller
-  namespace: ingress-nginx
-  resourceVersion: "534515"
-  uid: 374d38a5-0e9e-4e9c-8bdf-1dcae88f0c1e
-```
-
-
-
-尝试访问某个不存在的页面
-
-```bash
-root@node1:~/ingress-nginx# curl http://nginx.cloudzun.com/api-b
-default backend - 404root@node1:~/ingress-nginx#
-```
-
 
 
 # 启用SSL
@@ -2004,7 +1895,31 @@ Status:
 ```bash
 kubectl create deploy phone --image=registry.cn-beijing.aliyuncs.com/dotbalo/nginx:phone -n  study-ingress
 kubectl expose deploy phone --port 80 -n study-ingress
-kubectl create ingress phone --rule=m.cloudzun.com/*=phone:80 -n study-ingress
+```
+
+
+
+创建ingress
+
+```bash
+echo "apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: phone
+  namespace: study-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: m.cloudzun.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: phone
+            port:
+              number: 80" | kubectl apply -f -
 ```
 
 
@@ -2085,6 +2000,57 @@ spec:
         path: /
         pathType: ImplementationSpecific
 ```
+
+这是一个 Kubernetes Ingress 资源的配置文件。下面是逐段解释：
+
+1. 资源的 API 版本和类型：
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+```
+
+2. 元数据部分包含资源的名称、命名空间以及特定于 nginx 的注解。这里的注解包含一个 nginx 服务器片段，检测用户代理并将请求重定向至一个移动设备访问的页面（在本例中为 `http://m.cloudzun.com`）。
+
+```yaml
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/server-snippet: |
+      set $agentflag 0;
+      if ($http_user_agent ~* "(Android|iPhone|Windows Phone|UC|Kindle)" ){
+        set $agentflag 1;
+      }
+      if ( $agentflag = 1 ) {
+        return 301 http://m.cloudzun.com;
+      }
+  name: laptop
+  namespace: study-ingress
+```
+
+3. Ingress 配置的规范。在这里，您将要使用的 Ingress 类是 "nginx"。定义了一个规则，当访问 `mall.cloudzun.com` 时，该规则将生效。
+
+```yaml
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: mall.cloudzun.com
+```
+
+4. 对于 `mall.cloudzun.com` 域名，添加了一个 HTTP 路径规则。对于根路径 `/` 的请求，将它们路由到名为 "laptop" 的服务上的 80 端口。使用 `ImplementationSpecific`，这意味着路由规则是实现相关的。在本例中，实现是 nginx，它将由 Ingress 控制器进行处理。
+
+```yaml
+    http:
+      paths:
+      - backend:
+          service:
+            name: laptop
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
+```
+
+整体来看，此 Ingress 的主要功能是：当用户访问 `mall.cloudzun.com` 时，它会检查用户代理。如果用户代理是移动设备，则重定向至 `http://m.cloudzun.com`，否则将流量路由到名为 "laptop" 的服务的 80 端口。
 
 ```
 kubectl apply -f mall-ingress.yaml
@@ -2233,6 +2199,8 @@ spec:
         pathType: ImplementationSpecific 
 ```
 
+
+
 ```bash
 kubectl apply -f auth-ingress.yaml
 ```
@@ -2353,6 +2321,117 @@ Complete requests:      100
 Failed requests:        70
 Time per request:       1.399 [ms] (mean, across all concurrent requests)
 Percentage of the requests served within a certain time (ms)
+```
+
+
+
+# 定制错误代码页面
+
+
+
+修改value文件
+
+```bash
+nano values.yaml
+```
+
+```yaml
+## Default 404 backend
+##
+defaultBackend:
+  ##
+  enabled: true #改为true
+
+  name: defaultbackend
+  image:
+    registry: registry.k8s.io # 自定义页面所对应的映像库
+    image: defaultbackend-amd64
+```
+
+```yaml
+  # -- Will add custom configuration options to Nginx https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/config>
+  config: # 增加以下三行内容
+    apiVersion: v1
+    client_max_body_size: 20m
+    custom-http-errors: "404,415,503"
+```
+
+​		建议使用 config: {} 进行查找
+
+```bash
+helm upgrade ingress-nginx -n ingress-nginx .
+```
+
+
+
+查看pod
+
+```
+kubectl get pod -n ingress-nginx
+```
+
+```bash
+root@node1:~/ingress-nginx# kubectl get pod -n ingress-nginx
+NAME                                            READY   STATUS    RESTARTS   AGE
+ingress-nginx-controller-gqxk9                  1/1     Running   0          19m
+ingress-nginx-controller-m94q7                  1/1     Running   0          20m
+ingress-nginx-defaultbackend-5fb7c69544-p2mm8   1/1     Running   0          20m
+```
+
+​		注意: 此处多了一个自定义报错页面对应的pod
+
+查看配置文件
+
+```bash
+kubectl get cm -n ingress-nginx
+```
+
+```bash
+root@node1:~/ingress-nginx# kubectl get cm -n ingress-nginx
+NAME                       DATA   AGE
+ingress-nginx-controller   4      3h45m
+kube-root-ca.crt           1      3h45m
+```
+
+```bash
+kubectl get cm -n ingress-nginx ingress-nginx-controller -o yaml
+```
+
+```bash
+root@node1:~/ingress-nginx# kubectl get cm -n ingress-nginx ingress-nginx-controller -o yaml
+apiVersion: v1
+data:
+  allow-snippet-annotations: "true"
+  apiVersion: v1
+  client_max_body_size: 20m
+  custom-http-errors: 404,415,503
+kind: ConfigMap
+metadata:
+  annotations:
+    meta.helm.sh/release-name: ingress-nginx
+    meta.helm.sh/release-namespace: ingress-nginx
+  creationTimestamp: "2022-11-22T03:38:18Z"
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.5.1
+    helm.sh/chart: ingress-nginx-4.4.0
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+  resourceVersion: "534515"
+  uid: 374d38a5-0e9e-4e9c-8bdf-1dcae88f0c1e
+```
+
+
+
+尝试访问某个不存在的页面
+
+```bash
+root@node1:~/ingress-nginx# curl http://nginx.cloudzun.com/api-b
+default backend - 404root@node1:~/ingress-nginx#
 ```
 
 
