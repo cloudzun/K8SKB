@@ -1,3 +1,30 @@
+安装longhorn存储解决方案（总耗时可能需要十分钟）
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.4.2/deploy/longhorn.yaml
+```
+
+
+
+将longhorn UI发布到nodeport 30210
+
+```bash
+kubectl patch svc -n longhorn-system longhorn-frontend  -p '{"spec":{"type": "NodePort"}}'
+kubectl patch service longhorn-frontend --namespace=longhorn-system --type='json' --patch='[{"op": "replace", "path": "/spec/ports/0/nodePort", "value":30210}]'
+```
+
+
+
+确认存储类型
+
+```bash
+kubectl get sc
+```
+
+
+
+
+
 # 手动部署rabbitmq集群
 
 ## 创建configmap
@@ -63,6 +90,54 @@ data:
       # disk
       disk_free_limit.absolute = 2GB
 ```
+
+
+
+这是一个Kubernetes ConfigMap YAML配置文件。ConfigMap主要用于存储和管理非敏感的配置信息，这些信息可以在Pods和其他Kubernetes对象中使用。在本例中，这个ConfigMap主要用于配置RabbitMQ集群。以下是文件中主要部分的详细说明：
+
+1. `kind`指定这是一个ConfigMap资源。
+
+2. `metadata`部分描述了ConfigMap的元数据，如名称、命名空间以及一些标签。
+
+   `name`: ConfigMap的名称为`rabbitmq-cluster-config`。
+
+   `namespace`: ConfigMap所属的命名空间为`rabbitmq-lab`。
+
+   `labels`: 这里有一个标签，`addonmanager.kubernetes.io/mode: Reconcile`。这个标签通常用于控制ConfigMap的更新等行为。
+
+3. `data`字段是ConfigMap的主体，包含一些键值对。在这里有两个键：`enabled_plugins`和`rabbitmq.conf`。
+
+    `enabled_plugins`: 列出了启用的RabbitMQ插件。在这里，启用了`rabbitmq_management`和`rabbitmq_peer_discovery_k8s`插件。
+   
+    `rabbitmq.conf`: 包含RabbitMQ的配置。这里，而不是整个内容简述，我将描述配置中涉及的关键设置：
+
+   - `default_user`和`default_pass`：设置RabbitMQ的默认用户名和密码。
+
+   - `cluster_formation.peer_discovery_backend`：设置为`rabbit_peer_discovery_k8s`以启用Kubernetes作为RabbitMQ节点发现的后端。
+
+   - `cluster_formation.k8s.host`：设置Kubernetes API服务器地址。
+
+   - `cluster_formation.k8s.address_type`：设置为`hostname`，使RabbitMQ节点名称基于其Pod的主机名。
+
+   - `cluster_formation.node_cleanup.interval`：设置节点清理检查的时间间隔。
+
+   - `cluster_formation.node_cleanup.only_log_warning`：如果为true，仅在日志中记录未知/缺失节点的警告。
+
+   - `cluster_partition_handling`：设置为`autoheal`，自动修复网络分区。
+
+   - `queue_master_locator`：设置为`min-masters`，用于优化队列主节点的分布。
+
+   - `loopback_users.guest`：设置为false，禁止访客用户通过非本地地址连接。
+
+   - `cluster_formation.randomized_startup_delay_range.min/max`：设置节点启动起始延迟范围。
+
+   - `cluster_formation.k8s.hostname_suffix`：设置Kubernetes主机名后缀。
+
+   - `vm_memory_high_watermark.absolute`：设置内存的高水位标记。
+
+   - `disk_free_limit.absolute`：设置磁盘空闲空间限制。
+
+在RabbitMQ群集中使用这个ConfigMap时，这些设置将影响RabbitMQ节点的行为，例如使用Kubernetes发现、节点清理设置以及内存和磁盘空间的限制。
 
 
 
@@ -206,6 +281,36 @@ spec:
 
 
 
+这个配置文件定义了两个Kubernetes服务，用于支持RabbitMQ集群。服务是Kubernetes中的一种资源，其作用是将网络流量路由到一组匹配指定标签的容器。这两个服务都有相同的标签选择器（`app: rabbitmq-cluster`），将这两个服务指向相同的容器组（Pods）。
+
+第一个服务`rabbitmq-cluster`：
+
+- `kind`：指定资源的类型为 “Service”。
+- `apiVersion`：指定Kubernetes API的版本为 "v1"。
+- `metadata`：
+  - `labels`：将“app：rabbitmq-cluster”标签分配给服务。
+  - `name`：将服务命名为 "rabbitmq-cluster"。
+  - `namespace`：指定服务位于 "rabbitmq-lab" 命名空间。
+- `spec`：
+  - `clusterIP`：通过将"None"分配给“clusterIP”，指定这是一个无头服务（headless service）。这意味着此服务不会是负载平衡器的一部分，且Pod的DNS记录将直接提供相应。
+  - `ports`：指定一个用于RabbitMQ客户端的端口（名称为“rmqport”，端口号为5672）。
+  - `selector`：确定要将流量输送到哪些Pod，匹配标签“app：rabbitmq-cluster”。
+
+第二个服务`rabbitmq-cluster-manage`：
+
+- `kind`：资源类型为 "Service"。
+- `apiVersion`：版本为 "v1"。
+- `metadata`：
+  - `labels`：为服务分配“app：rabbitmq-cluster”标签。
+  - `name`：将服务命名为 "rabbitmq-cluster-manage"。
+  - `namespace`：指定服务位于 "rabbitmq-lab" 命名空间。
+- `spec`：
+  - `ports`：指定一个用于RabbitMQ管理界面（HTTP）的端口（名称为“http”，端口号为15672）。
+  - `selector`：将流量指向标签“app：rabbitmq-cluster”的Pod。
+  - `type`：将服务类型设置为 `NodePort`，使其在集群的每个节点上公开一个端口。这将允许您通过集群节点的IP地址和节点端口访问RabbitMQ管理界面。
+
+
+
 ```
 kubectl apply -f rabbitmq-service.yaml
 ```
@@ -272,6 +377,54 @@ subjects:
   name: rabbitmq-cluster
   namespace: rabbitmq-lab
 ```
+
+
+
+该配置文件定义了一个Kubernetes ServiceAccount、Role和RoleBinding，用于支持集群成员间的服务发现。
+
+1. ServiceAccount：
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rabbitmq-cluster
+  namespace: rabbitmq-lab
+```
+这个部分创建一个名为`rabbitmq-cluster`的ServiceAccount。这个ServiceAccount位于`rabbitmq-lab`命名空间中。
+
+2. Role：
+```yaml
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: rabbitmq-cluster
+  namespace: rabbitmq-lab
+rules:
+- apiGroups: [""]
+  resources: ["endpoints"]
+  verbs: ["get"]
+```
+这个部分创建了一个名为`rabbitmq-cluster`的Role，它允许获取"endpoints"资源。这意味着，此角色允许用户或服务帐户在`rabbitmq-lab`命名空间中查询Endpoints资源。Endpoints资源通常用于表示服务下运行的各个Pod的IP地址，对于服务发现很有用。
+
+3. RoleBinding：
+```yaml
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: rabbitmq-cluster
+  namespace: rabbitmq-lab
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: rabbitmq-cluster
+subjects:
+- kind: ServiceAccount
+  name: rabbitmq-cluster
+  namespace: rabbitmq-lab
+```
+这个部分创建了一个名为`rabbitmq-cluster`的RoleBinding，它把前面创建的Role和ServiceAccount关联起来。这意味着，rabbitmq-cluster ServiceAccount现在有了查询rabbitmq-lab命名空间内Endpoints资源的权限。
+
+总结：这个配置文件为rabbitmq-lab命名空间中的rabbitmq-cluster ServiceAccount创建了一个权限设置，让其可以访问同一命名空间内的Endpoints资源，从而支持集群成员间的服务发现。
 
 
 
@@ -399,11 +552,35 @@ spec:
     spec:
       accessModes:
       - ReadWriteMany
-      storageClassName: "nfs-csi " #需要一个nfs类型的存储
+      storageClassName: "longhorn" 
       resources:
         requests:
           storage: 2Gi
 ```
+
+
+
+这是一个 Kubernetes StatefulSet 资源定义，它用于创建一个具有 3 个副本的 RabbitMQ 集群。StatefulSet 保证了 Pod 的顺序性，有状态的应用程序可以利用这一特性实现稳健的集群。让我们逐步分析这个定义：
+
+1. 元数据部分定义了 StatefulSet 属于 `rabbitmq-lab` 命名空间，并设置了名称为 `rabbitmq-cluster`。
+2. spec.replicas 定义了 StatefulSet 的副本数量为 3，这意味着将创建 3 个 RabbitMQ 实例。
+3. spec.selector 确定了如何选择 StatefulSet 创建的 Pod，这里使用了选择标签 `app=rabbitmq-cluster`。
+4. spec.serviceName 指定了 StatefulSet 用于为其 Pod 命名的 Headless 服务（这里使用的是 `rabbitmq-cluster`）。
+5. 在 spec.template.spec.containers 的部分提供了容器（RabbitMQ）的详细配置：
+    - 设置了容器的启动参数、运行环境和环境变量。
+    - 环境变量中设置用于节点间通信的 Erlang Cookie。
+    - RabbitMQ 节点名称通过环境变量动态生成，以确保使用正确的命名格式。
+    - 定义了两个端口开放：15672（RabbitMQ 管理界面）和 5672（AMQP 协议）。
+    - 配置了就绪探针和存活探针以确保 Pod 在正确运行并准备好处理请求时才加入服务。
+6. 容器卷挂载了几个存储卷：
+    - 一个用于存储 RabbitMQ 配置文件和插件信息的 ConfigMap 卷。
+    - 一个用于 RabbitMQ 数据存储的持久卷。
+    - 一个用于设置容器时区的卷。
+7. 指定了用于这个 StatefulSet 的 ServiceAccount（`rabbitmq-cluster`）。
+8. 资源部分 ConfigMap、ServiceAccount 角色绑定等都在此前的对话中创建。
+9. volumeClaimTemplates 根据模板创建一个名为 `rabbitmq-storage` 的持久卷声明，该声明请求一个可读写的、2Gi 大小的存储，并使用名为 `longhorn` 的持久卷存储类。
+
+创建此 StatefulSet 将自动为 RabbitMQ 集群实例生成 3 个状态副本。这些副本将根据提供的配置进行设置，并通过 ServiceAccount 进行服务发现。RabbitMQ 集群作为有状态应用的长期存储，将确保数据在集群中正确副本化和同步。使用持久卷存储将保护应用程序免受数据丢失。
 
 
 
@@ -542,6 +719,40 @@ rabbitmq-cluster-manage   NodePort    10.106.199.214   <none>        15672:31846
 
 
 
+查看工作负载
+
+```bash
+kubectl get all -n rabbitmq-lab
+
+kubectl get pvc -n rabbitmq-lab
+```
+
+
+
+```bash
+root@node1:~/k8skb/05-k8s-appdeloy# kubectl get all -n rabbitmq-lab
+NAME                     READY   STATUS    RESTARTS   AGE
+pod/rabbitmq-cluster-0   1/1     Running   0          23m
+pod/rabbitmq-cluster-1   1/1     Running   0          22m
+pod/rabbitmq-cluster-2   1/1     Running   0          21m
+
+NAME                              TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)           AGE
+service/rabbitmq-cluster          ClusterIP   None            <none>        5672/TCP          33m
+service/rabbitmq-cluster-manage   NodePort    10.100.42.167   <none>        15672:30077/TCP   33m
+
+NAME                                READY   AGE
+statefulset.apps/rabbitmq-cluster   3/3     23m
+root@node1:~/k8skb/05-k8s-appdeloy# kubectl get pvc -n rabbitmq-lab
+NAME                                  STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+rabbitmq-storage-rabbitmq-cluster-0   Bound    pvc-1583817f-9434-44e8-a8ea-0516d5618619   2Gi        RWX            longhorn       24m
+rabbitmq-storage-rabbitmq-cluster-1   Bound    pvc-ccde7b5b-7775-4517-a30e-afaa1617ce12   2Gi        RWX            longhorn       23m
+rabbitmq-storage-rabbitmq-cluster-2   Bound    pvc-30750905-101b-4d4a-b1b7-19e345166588   2Gi        RWX            longhorn       22m
+```
+
+
+
+
+
 # 使用Operator部署Elastic技术堆栈
 
 ## 在群集上部署ECK(Elastic Cloud on Kubernetes)
@@ -643,6 +854,30 @@ spec:
     config:
       node.store.allow_mmap: false
 ```
+
+
+
+这是一个 Kubernetes 的 Elasticsearch 资源定义，目标是在 Kubernetes 集群上部署一个简单的、单节点的 Elasticsearch 集群。
+
+1. `apiVersion`: "elasticsearch.k8s.elastic.co/v1" 说明这是一个基于 Elastic Cloud on Kubernetes (ECK) Operator 的自定义资源（CR）定义。ECK Operator 是一个在 Kubernetes 上管理 Elasticsearch 和 Kibana 的官方扩展。
+
+2. `kind`: "Elasticsearch" 表示创建的资源类型是 Elasticsearch 集群。
+
+3. `metadata`: 包含集群的名称和命名空间:
+   - `name`: "quickstart" 用于标识该 Elasticsearch 资源的名称。
+   - `namespace`: "elastic-system" 指明了这个资源位于 `elastic-system` 命名空间下。
+
+4. `spec`: 包含此 Elasticsearch 集群的配置和规格:
+   - `version`: "8.5.3" 设定集群使用的 Elasticsearch 版本为 8.5.3。
+   - `nodeSets`: 定义集群里各个 Elasticsearch 节点的配置和拓扑。
+
+5. `nodeSets` 中的子项包含：
+   - `name`: "default" 为这个节点设置命名，以便在你扩展集群时进行识别。
+   - `count`: 1 表示只会创建一个 Elasticsearch 数据节点。
+   - `config`: 包括节点配置项。
+      - `node.store.allow_mmap`: false 禁用混合内存映射 (mmap) 功能。这是一个高级配置，通常在生产环境中会启用以提高性能。但在某些资源有限或测试环境中可能会禁用。
+
+总结：这个 Elasticsearch 资源定义配置了一个简单的单节点 Elasticsearch 集群，通过 ECK Operator 在 Kubernetes 集群上部署。集群位于 `elastic-system` 命名空间下，并使用 默认的节点配置。
 
 
 
@@ -781,6 +1016,30 @@ spec:
   elasticsearchRef:
     name: quickstart
 ```
+
+
+
+这是一个 Kubernetes Kibana 资源定义，用于部署一个与 Elasticsearch 集群关联的 Kibana 实例。同样使用 Elastic Cloud on Kubernetes (ECK) Operator，它在 "elastic-system" 命名空间中创建一个名为 "quickstart" 的 Kibana 实例。以下是各部分的详细解释：
+
+- `apiVersion: kibana.k8s.elastic.co/v1`: 定义了这个资源使用的 API 版本，显示这是一个 ECK Operator 中的 Kibana 资源。
+
+- `kind: Kibana`: 声明了这个资源的类型是 Kibana。
+
+- `metadata`: 包含了关于这个 Kibana 资源的元数据，如名称和命名空间。
+
+  - `name: quickstart`: 这个 Kibana 资源的名称是 "quickstart"。
+
+  - `namespace: elastic-system`: 这个 Kibana 资源将部署在 "elastic-system" 命名空间。
+
+- `spec`：定义了 Kibana 实例的详细配置：
+
+  - `version: 8.5.3`: Kibana 的版本是 8.5.3。
+
+  - `count: 1`: 将部署 1 个 Kibana 实例（即副本数为 1）。
+
+  - `elasticsearchRef`: 引用了将与 Kibana 关联的 Elasticsearch 集群。
+
+    - `name: quickstart`: 这个关联的 Elasticsearch 集群的名称是 "quickstart"。这里的名称与前面的 Elasticsearch 集群定义中的名称相同，表示将这个 Kibana 实例关联至那个 Elasticsearch 集群。
 
 
 
@@ -948,6 +1207,66 @@ spec:
           hostPath:
             path: /var/lib/docker/containers
 ```
+
+
+
+这是一个 Kubernetes Beat 资源定义，用于部署 Filebeat，它是一个轻量级日志文件收集器。在这个配置中，Filebeat 将收集容器日志并将其发送到指定的 Elasticsearch 集群。同样使用 Elastic Cloud on Kubernetes (ECK) Operator，在 "elastic-system" 命名空间中创建一个名为 "quickstart" 的 Beat 实例。以下是各部分的详细解释：
+
+- `apiVersion: beat.k8s.elastic.co/v1beta1`: 定义了资源使用的 Beat API 版本。
+
+- `kind: Beat`: 声明了资源类型为 Beat。
+
+- `metadata`: 包含了关于这个 Beat 资源的元数据，如名称和命名空间。
+
+  - `name: quickstart`: 这个 Beat 实例的名称是 "quickstart"。
+  
+  - `namespace: elastic-system`: 这个 Beat 实例将部署在 "elastic-system" 命名空间。
+
+- `spec`: 定义了 Beat 实例的详细配置：
+
+  - `type: filebeat`: 指定了这是一个 Filebeat 类型的 Beat。
+
+  - `version: 8.5.3`: Filebeat 的版本是 8.5.3。
+
+  - `elasticsearchRef`: 引用了将 Filebeat 的日志输出发送到的 Elasticsearch 集群。
+
+    - `name: quickstart`: 这个关联的 Elasticsearch 集群的名称是 "quickstart"。
+
+  - `config`: 包含 Filebeat 的配置信息。
+
+    - `filebeat.inputs`: 定义输入源的配置。
+
+      - `type: container`: 定义输入源类型为容器。
+
+      - `paths`: 列出 Filebeat 应收集的容器日志文件的路径：`/var/log/containers/*.log`。
+
+  - `daemonSet`: 配置使用守护集 (DaemonSet) 部署模式，确保在每个集群节点上都有一个 Filebeat 副本运行。
+
+    - `podTemplate`: 描述了由守护集创建的 Pod 的模板。
+
+      - `spec`: 定义了 Pod 的规格。
+
+        - `dnsPolicy: ClusterFirstWithHostNet`: 设置了 DNS 策略为 "ClusterFirstWithHostNet"。
+
+        - `hostNetwork: true`: 使用主机网络，使容器使用整个主机网络命名空间。
+
+        - `securityContext`: 定义了 Pod 的安全上下文。
+
+          - `runAsUser: 0`: 让容器以 root 用户身份启动（用户 ID 为 0）。
+
+        - `containers`: 描述了 Pod 中的容器。
+
+          - `name: filebeat`: 容器名称为 "filebeat"。
+
+          - `volumeMounts`: 描述挂载到容器中的卷。
+
+            - `varlogcontainers`, `varlogpods`, `varlibdockercontainers` 分别用于存储容器日志、Pods 日志以及 Docker 容器相关信息。
+
+        - `volumes`: 定义了 Pod 使用的卷。
+
+          - `varlogcontainers`, `varlogpods`, `varlibdockercontainers` 分别用于存储容器日志、Pods 日志以及 Docker 容器相关信息。
+
+            - `hostPath`: 通过主机路径挂载卷，将节点文件系统中的目录直接挂载到 Pod 中。
 
 
 
@@ -1408,7 +1727,7 @@ kubectl create ns kafka-lab
 下载zookeeper chart
 
 ```bash
-helmlab# helm pull bitnami/zookeeper
+helm pull bitnami/zookeeper
 ```
 
 
@@ -1441,7 +1760,8 @@ Chart.lock  charts  Chart.yaml  README.md  templates  values.yaml
 
 编辑values
 
-```
+```bash
+nano values.yaml
 ```
 
 
@@ -1636,7 +1956,7 @@ WatchedEvent state:SyncConnected type:None path:null
 使用命令行安装kafka群集
 
 ```bash
-helm install kafka bitnami/kafka   --set zookeeper.enabled=false   --set replicaCount=3   --set externalZookeeper.servers=zookeeper -n kafka-lab
+helm install kafka bitnami/kafka --version 20.0.1  --set zookeeper.enabled=false   --set replicaCount=3   --set externalZookeeper.servers=zookeeper -n kafka-lab
 ```
 
 `--set zookeeper.enabled=false` 使用此前安装的zookpeeper群集
