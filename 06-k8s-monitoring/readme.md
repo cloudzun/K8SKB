@@ -1,20 +1,12 @@
-[TOC]
-
-
-
-# 
-
-
-
 # 安装prometheus-stack
+
+## 下载项目库
 
 首先到 https://github.com/prometheus-operator/kube-prometheus 确定兼容当前kubenetes版本的分支
 
-本例中，适配1.23的分支是0.10
 
 
-
-克隆匹配的分支
+比如适配1.23的分支是0.10，则克隆匹配的分支
 
 ```bash
 git clone -b release-0.10 https://github.com/prometheus-operator/kube-prometheus.git
@@ -23,6 +15,173 @@ cd kube-prometheus
 ```
 
 
+
+对于最新的版本（比如当前的1.27.2），一般使用main分支
+
+```bash
+git clone  https://github.com/prometheus-operator/kube-prometheus.git
+
+cd kube-prometheus
+```
+
+
+
+
+
+## 调整规格
+
+修改alertmanager副本数（如果不需要高可用性，可以将replicas修改为1）
+
+```bash
+nano manifests/alertmanager-alertmanager.yaml
+```
+
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: Alertmanager
+metadata:
+  labels:
+    app.kubernetes.io/component: alert-router
+    app.kubernetes.io/instance: main
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/part-of: kube-prometheus
+    app.kubernetes.io/version: 0.23.0
+  name: main
+  namespace: monitoring
+spec:
+  image: quay.io/prometheus/alertmanager:v0.23.0
+  nodeSelector:
+    kubernetes.io/os: linux
+  podMetadata:
+    labels:
+      app.kubernetes.io/component: alert-router
+      app.kubernetes.io/instance: main
+      app.kubernetes.io/name: alertmanager
+      app.kubernetes.io/part-of: kube-prometheus
+      app.kubernetes.io/version: 0.23.0
+  replicas: 3 #如果不需要高可用性此处修改为1
+  resources:
+    limits:
+      cpu: 100m
+      memory: 100Mi
+    requests:
+      cpu: 4m
+      memory: 100Mi
+  securityContext:
+    fsGroup: 2000
+    runAsNonRoot: true
+    runAsUser: 1000
+  serviceAccountName: alertmanager-main
+  version: 0.23.0
+```
+
+
+
+修改prometheus副本数（如果不需要高可用性，可以将replicas修改为1）
+
+```bash
+nano manifests/prometheus-prometheus.yaml
+```
+
+```bash
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  labels:
+    app.kubernetes.io/component: prometheus
+    app.kubernetes.io/instance: k8s
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: kube-prometheus
+    app.kubernetes.io/version: 2.32.1
+  name: k8s
+  namespace: monitoring
+spec:
+  alerting:
+    alertmanagers:
+    - apiVersion: v2
+      name: alertmanager-main
+      namespace: monitoring
+      port: web
+  enableFeatures: []
+  externalLabels: {}
+  image: quay.io/prometheus/prometheus:v2.32.1
+  nodeSelector:
+    kubernetes.io/os: linux
+  podMetadata:
+    labels:
+      app.kubernetes.io/component: prometheus
+      app.kubernetes.io/instance: k8s
+      app.kubernetes.io/name: prometheus
+      app.kubernetes.io/part-of: kube-prometheus
+      app.kubernetes.io/version: 2.32.1
+  podMonitorNamespaceSelector: {}
+  podMonitorSelector: {}
+  probeNamespaceSelector: {}
+  probeSelector: {}
+  replicas: 2 #如果不需要高可用性此处可以修改为1
+  resources:
+    requests:
+      memory: 400Mi
+  ruleNamespaceSelector: {}
+  ruleSelector: {}
+  securityContext:
+    fsGroup: 2000
+    runAsNonRoot: true
+    runAsUser: 1000
+  serviceAccountName: prometheus-k8s
+  serviceMonitorNamespaceSelector: {}
+  serviceMonitorSelector: {}
+  version: 2.32.1
+```
+
+
+
+## 修改映像地址（国内需要）
+
+```bash
+nano manifests/kubeStateMetrics-deployment.yaml  
+```
+
+
+
+```yaml
+      - args:
+        - --host=127.0.0.1
+        - --port=8081
+        - --telemetry-host=127.0.0.1
+        - --telemetry-port=8082
+        image: registry.cn-hangzhou.aliyuncs.com/chengzh/kube-state-metrics:2.9.2
+
+```
+
+​		将`k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.9.2.0`  替换为：`registry.cn-hangzhou.aliyuncs.com/chengzh/kube-state-metrics:2.9.2`
+
+
+
+```bash
+ nano manifests/prometheusAdapter-deployment.yaml
+```
+
+
+
+```yaml
+      containers:
+      - args:
+        - --cert-dir=/var/run/serving-cert
+        - --config=/etc/adapter/config.yaml
+        - --logtostderr=true
+        - --metrics-relist-interval=1m
+        - --prometheus-url=http://prometheus-k8s.monitoring.svc:9090/
+        - --secure-port=6443
+        - --tls-cipher-suites=TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256>
+        image: registry.cn-hangzhou.aliyuncs.com/chengzh/prometheus-adapter:v0.10.0
+```
+
+将  `registry.k8s.io/prometheus-adapter/prometheus-adapter:v0.10.0` 替换为：`registry.cn-hangzhou.aliyuncs.com/chengzh/prometheus-adapter:v0.10.0`
+
+
+
+## 使用Operator安装
 
 安装Prometheus Operator
 
@@ -151,141 +310,13 @@ kubectl patch service alertmanager-main --namespace=monitoring --type='json' --p
 
 
 
-**备注**
-修改alertmanager副本数（如果不需要高可用性，可以将replicas修改为1）
+清理堆栈
 
 ```bash
-nano manifests/alertmanager-alertmanager.yaml
-```
-
-```yaml
-apiVersion: monitoring.coreos.com/v1
-kind: Alertmanager
-metadata:
-  labels:
-    app.kubernetes.io/component: alert-router
-    app.kubernetes.io/instance: main
-    app.kubernetes.io/name: alertmanager
-    app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 0.23.0
-  name: main
-  namespace: monitoring
-spec:
-  image: quay.io/prometheus/alertmanager:v0.23.0
-  nodeSelector:
-    kubernetes.io/os: linux
-  podMetadata:
-    labels:
-      app.kubernetes.io/component: alert-router
-      app.kubernetes.io/instance: main
-      app.kubernetes.io/name: alertmanager
-      app.kubernetes.io/part-of: kube-prometheus
-      app.kubernetes.io/version: 0.23.0
-  replicas: 3 #如果不需要高可用性此处修改为1
-  resources:
-    limits:
-      cpu: 100m
-      memory: 100Mi
-    requests:
-      cpu: 4m
-      memory: 100Mi
-  securityContext:
-    fsGroup: 2000
-    runAsNonRoot: true
-    runAsUser: 1000
-  serviceAccountName: alertmanager-main
-  version: 0.23.0
-```
-
-```bash
-kubectl apply -f manifests/alertmanager-alertmanager.yaml
+kubectl delete --ignore-not-found=true -f manifests/ -f manifests/setup
 ```
 
 
-
-修改prometheus副本数（如果不需要高可用性，可以将replicas修改为1）
-
-```bash
-nano manifests/prometheus-prometheus.yaml
-```
-
-```bash
-apiVersion: monitoring.coreos.com/v1
-kind: Prometheus
-metadata:
-  labels:
-    app.kubernetes.io/component: prometheus
-    app.kubernetes.io/instance: k8s
-    app.kubernetes.io/name: prometheus
-    app.kubernetes.io/part-of: kube-prometheus
-    app.kubernetes.io/version: 2.32.1
-  name: k8s
-  namespace: monitoring
-spec:
-  alerting:
-    alertmanagers:
-    - apiVersion: v2
-      name: alertmanager-main
-      namespace: monitoring
-      port: web
-  enableFeatures: []
-  externalLabels: {}
-  image: quay.io/prometheus/prometheus:v2.32.1
-  nodeSelector:
-    kubernetes.io/os: linux
-  podMetadata:
-    labels:
-      app.kubernetes.io/component: prometheus
-      app.kubernetes.io/instance: k8s
-      app.kubernetes.io/name: prometheus
-      app.kubernetes.io/part-of: kube-prometheus
-      app.kubernetes.io/version: 2.32.1
-  podMonitorNamespaceSelector: {}
-  podMonitorSelector: {}
-  probeNamespaceSelector: {}
-  probeSelector: {}
-  replicas: 2 #如果不需要高可用性此处可以修改为1
-  resources:
-    requests:
-      memory: 400Mi
-  ruleNamespaceSelector: {}
-  ruleSelector: {}
-  securityContext:
-    fsGroup: 2000
-    runAsNonRoot: true
-    runAsUser: 1000
-  serviceAccountName: prometheus-k8s
-  serviceMonitorNamespaceSelector: {}
-  serviceMonitorSelector: {}
-  version: 2.32.1
-```
-
-```bash
-kubectl apply -f manifests/prometheus-prometheus.yaml
-```
-
-
-
-修改kubeStateMetrics-deployment.yaml中的映像地址（国内版需要）
-
-```bash
-nano kubeStateMetrics-deployment.yaml  
-```
-
-```
-kubectl apply -f prometheus-prometheus.yaml
-```
-
-```yaml
-      - args:
-        - --host=127.0.0.1
-        - --port=8081
-        - --telemetry-host=127.0.0.1
-        - --telemetry-port=8082
-        image: bitnami/kube-state-metrics:2.3.0
-```
-
-​		将k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.3.0替换为bitnami/kube-state-metrics:2.3.0	
 
 ​	
 
@@ -312,6 +343,10 @@ kubectl apply -f prometheus-prometheus.yaml
 - ： Node Exporter for Prometheus Dashboard EN 20201010
 
 - 12633：
+
+
+
+
 
 
 
