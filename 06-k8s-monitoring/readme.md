@@ -490,6 +490,32 @@ spec:
 
 
 
+这是一个 Kubernetes ServiceMonitor 配置文件，用于监控 node-exporter。让我们逐个部分解释：
+
+- `apiVersion`：指定 API 版本，monitoring.coreos.com/v1 是 Prometheus Operator 使用的 API 版本。
+- `kind`：指定资源类型，这里是 ServiceMonitor。
+- `metadata`：资源的元数据信息，包括：
+  - 创建时间戳
+  - 标签（labels），用于描述和识别资源
+  - 名称（name）
+  - 命名空间（namespace）
+  - 资源版本（resourceVersion）
+  - UID（唯一 ID）
+- `spec`：ServiceMonitor 的配置：
+  - `endpoints`：一个或多个用于监控的端点，这个配置只有一个端点：
+    - `bearerTokenFile`：指定用于 API 身份验证的令牌文件位置
+    - `interval`：指定监控数据拉取的间隔时间，这里设置为 15 秒
+    - `port`：指定端口名，这里是 `https`
+    - `relabelings`：定义了标签重写规则，这里将 `__meta_kubernetes_pod_node_name` 重写为 `instance`。
+    - `scheme`：连接到端点时使用的协议，这里是 `https`
+    - `tlsConfig`：配置 TLS 连接选项，这里设置为跳过证书验证
+  - `jobLabel`：指定作业标签，这里是 `app.kubernetes.io/name`
+  - `selector`：定义 Prometheus 如何选择要监控的服务，这里通过匹配标签（matchLabels）来选择具有特定标签的服务。
+
+总的来说，这个 ServiceMonitor 配置用于监控名为 node-exporter 的服务。它使用 HTTPS 协议（跳过证书验证）连接到端点，每 15 秒拉取一次监控数据，并将 `__meta_kubernetes_pod_node_name` 标签重写为 `instance`。Prometheus 会通过匹配指定的标签来选择要监控的服务。
+
+
+
 查看node-exporter servicemonitor对应的服务
 
 ```bash
@@ -672,6 +698,16 @@ spec:
 
 
 
+这个配置文件定义了两个Kubernetes资源：一个`Endpoints`资源和一个`Service`资源。对于Prometheus监控，这些资源的目的是让Prometheus能够发现和连接到etcd集群。
+
+1. `Endpoints`资源：
+   这个资源在`kube-system`命名空间下创建了一个名为`etcd-prom`的Endpoints。它提供了etcd服务的网络连接信息。具体来说，它指定了etcd服务器的IP地址为`192.168.1.231`，端口为`2379`，协议为`TCP`。Endpoints中也定义了标签`app: etcd-prom`，后面可以用于资源关联和选择。
+
+2. `Service`资源：
+   这个资源在`kube-system`命名空间下创建了一个名为`etcd-prom`的Service。Service的作用是提供一个抽象的访问地址，以稳定地访问后端的Endpoints。在这个例子中，Service只是对上面定义的`etcd-prom` Endpoints进行了一层封装。Service将接收到的基于TCP协议的请求，重定向到名称为`https-metrics`、端口为`2379`的etcd服务器上。
+
+这些配置的目的是提供一个途径，让Prometheus找到etcd服务器作为监控目标。要完成这个任务，你还需要创建一个`ServiceMonitor`资源或配置Prometheus实例以指定监控目标。
+
 创建服务
 
 ```bash
@@ -691,7 +727,7 @@ root@node1:~# kubectl get svc -A | grep etcd
 kube-system   etcd-prom               ClusterIP   10.99.101.218    <none>        2379/TCP                        8s
 ```
 
- 		观察服务的ip地址
+观察服务的ip地址
 
 
 
@@ -806,6 +842,33 @@ spec:
     matchNames:
     - kube-system
 ```
+
+这是一个Kubernetes资源配置文件，定义了一个`ServiceMonitor`对象。ServiceMonitor是用于监控Kubernetes中的服务和端点的。在这里，ServiceMonitor配置用于监控etcd集群，将其暴露给Prometheus作为监控目标。
+
+以下是配置文件的详细解释：
+
+1. `metadata`：为ServiceMonitor定义了基本信息。
+   - `name`: etcd - 指定了ServiceMonitor的名称。
+   - `namespace`: monitoring - 指定了ServiceMonitor所在的命名空间。
+   - `labels`: 添加了一个标签`app: etcd`，用于标识和选择此资源。
+
+2. `spec`：包含有关ServiceMonitor配置的详细信息。
+   - `jobLabel`: k8s-app - 定义了一个作业标签，用于识别Prometheus中用于评估此ServiceMonitor的作业名称。
+   - `endpoints`: 包含一个对象，定义了用于指向监控目标的端点信息。
+       - `interval`: 30s - Prometheus从端点收集指标的间隔，此处设置为每30秒一次。
+       - `port`: https-metrics - 端口名，对应于Service资源的`spec.ports.name`。
+       - `scheme`: https - 使用https协议进行通信。
+       - `tlsConfig`: 定义了用于HTTPS通信的TLS证书配置。
+           - `caFile`: CA证书路径。
+           - `certFile`: 客户端证书路径。
+           - `keyFile`: 客户端私钥路径。
+           - `insecureSkipVerify`: true - 由于设置为true，证书校验将被跳过，不建议在生产环境中使用此设置。
+   - `selector`: 定义了用于选择要监控的目标服务的标签选择器。
+       - `matchLabels`: 匹配指定标签的服务。
+           - `app: etcd-prom` - 匹配标签为`app: etcd-prom`的服务。
+   - `namespaceSelector`: 定义了用于搜索匹配的服务的目标命名空间。
+       - `matchNames`: 列表，包含一个或多个命名空间名称。
+           - `kube-system` - 选择kube-system命名空间中具有匹配标签的服务。
 
 ```bash
 kubectl apply -f servicemonitor.yaml
@@ -1056,6 +1119,30 @@ spec:
     protocol: TCP
 ```
 
+这个配置文件定义了一个MySQL导出器（mysql-exporter）的Kubernetes部署和服务。其目的是将MySQL数据库的性能指标暴露给Prometheus监控系统。
+
+部署（Deployment）部分：
+
+1. `apiVersion` 和 `kind` 定义了这是一个Kubernetes部署（Deployment）资源。
+2. 在 `metadata` 下，部署名称为 "mysql-exporter"，位于 "monitoring" 命名空间。
+3. `spec.replicas` 定义了仅需要1个副本。
+4. 在 `selector.matchLabels` 下，定义了用于匹配此部署的标签为 "k8s-app: mysql-exporter"。
+5. 在 `template.metadata.labels` 下，定义了部署模板的标签为 "k8s-app: mysql-exporter"。
+6. `spec.containers` 定义了一个容器，其名称为 "mysql-exporter"，并使用 "registry.cn-beijing.aliyuncs.com/dotbalo/mysqld-exporter" 镜像。
+7. 为容器设置一个环境变量 `DATA_SOURCE_NAME`，值为 "exporter:exporter@(mysql.default:3306)/"。这是mysql-exporter用于连接MySQL数据库的数据源名字（DSN）。
+8. `imagePullPolicy` 设置为 "IfNotPresent"，意味着如果镜像已在节点上存在，则不会重新下载。
+9. `ports` 部分定义了容器端口为9104。
+
+服务（Service）部分：
+
+1. `apiVersion` 和 `kind` 定义了这是一个Kubernetes服务（Service）资源。
+2. 在 `metadata` 下，服务名称为 "mysql-exporter"，位于 "monitoring" 命名空间。同时，添加了标签 "k8s-app: mysql-exporter"。
+3. `spec.type` 设置为 "ClusterIP"，意味着此服务只在Kubernetes集群内可访问。
+4. 在 `selector` 部分，使用标签 "k8s-app: mysql-exporter" 选择部署。
+5. 在 `ports` 部分定义了端口名称为 "api"，端口号为 9104，协议为 TCP。
+
+总结：这个配置文件创建了一个名为 "mysql-exporter" 的部署，并暴露了端口9104。同时，它还创建了一个名为 "mysql-exporter" 的服务，以便Prometheus可以收集MySQL的指标数据。
+
 ```bash
 kubectl apply -f mysql-exporter.yaml
 ```
@@ -1130,6 +1217,30 @@ spec:
     matchNames:
     - monitoring
 ```
+
+这是一个用于监控MySQL数据库的Kubernetes配置文件，定义了一个ServiceMonitor资源。ServiceMonitor是Prometheus Operator的组件，用于简化Prometheus服务实例的发现和创建。让我们来详细解释一下这个配置的各部分：
+
+* `apiVersion`: 表示资源类型所属的API组和版本。在这里，该ServiceMonitor资源属于`monitoring.coreos.com/v1`API组。
+
+* `kind`: 表示资源类型。在这里，它是一个 `ServiceMonitor`，用于向Prometheus添加要监控的服务。
+
+* `metadata`: 包含资源的元数据信息。
+  * `name`: 资源的名称，在这里是 `mysql-exporter`。
+  * `namespace`: 资源所在的命名空间，在这里是 `monitoring`。
+  * `labels`: 资源的标签，它们有助于分类和筛选资源。在这里，我们设置了`k8s-app: mysql-exporter`和`namespace: monitoring`标签。
+
+* `spec`: 定义了ServiceMonitor的具体配置。
+  * `jobLabel`: 用于表示Prometheus job的标签，默认情况下需要为`k8s-app`。
+  * `endpoints`: 列表，定义了要监控的端点配置。
+    * `port`: 要监控的服务端口，这里是`api`，对应mysql-exporter服务需要暴露的端口。
+    * `interval`: 数据采集间隔，这里是`30s`，表示每隔30秒会收集数据。
+    * `scheme`: 端点的协议，这里是`http`。
+  * `selector`: 配置标签选择器，用于选择需要监控的服务。
+    * `matchLabels`: 一个键值对，指定要匹配的标签。这里使用`k8s-app: mysql-exporter`选择对应的服务。
+  * `namespaceSelector`: 用于指定部署所在命名空间。
+    * `matchNames`: 目标命名空间列表，这里匹配的是`monitoring`。
+
+总之，该配置文件定义了一个ServiceMonitor，用于监控名为mysql-exporter的服务，每隔30秒收集一次数据，通过HTTP协议进行数据传输。该ServiceMonitor通过标签选择器`k8s-app: mysql-exporter`来选择需要监控的服务，并在`monitoring`命名空间中查找匹配的服务。
 
 ```bash
 kubectl apply -f mysql-sm.yaml
