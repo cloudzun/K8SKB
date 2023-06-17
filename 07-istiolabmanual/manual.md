@@ -3334,6 +3334,38 @@ spec:
 
 
 
+这是一个 Istio VirtualService 配置文件，用于定义“ratings”服务的流量路由规则。让我们一一解析配置文件的内容：
+
+1. `apiVersion`: 定义了配置使用的 Istio API 版本，这里为 networking.istio.io/v1alpha3。
+
+2. `kind`: 定义了资源类型，这里是 VirtualService。
+
+3. `metadata` - 包含该资源的元数据：
+
+   - `name`: 资源名称，这里为 ratings。
+
+4. `spec` - 描述了 VirtualService 的详细配置：
+
+   - `hosts`: 定义一个或多个主机名，这里是一个单一的主机名“ratings”，表示仅对“ratings”服务应用。
+   
+   - `http`: 定义一系列的 HTTP 配置：
+   
+     - 第一个 `match` 对象用于以下规则：
+     
+       - 如果 HTTP 请求头包含 `end-user` 键，并且其值为`jason`，则应用此规则。
+       
+       - 配置故障注入：`fault` 中，为此类请求添加延迟。`fixedDelay` 设置为7秒，`percentage` 设置为 100.0%，表示匹配的请求将会有 100% 的概率经历 7 秒延迟。
+       
+       - `route`: 描述匹配的请求将被发送到的目标服务。这里，目标是“ratings”服务的“v1”子集（即 v1 版本）。
+       
+     - 第二个规则没有指定条件，是默认行为：
+     
+       - `route`: 默认请求将被发送到目标服务。这里，目标是“ratings”服务的“v1”子集（即 v1 版本）。
+
+综上所述，此配置文件执行以下操作：当 HTTP 请求头中的 `end-user` 为 `jason` 时，为请求注入 7 秒延迟，然后将其路由到“ratings”服务的 v1 子集；对于所有其他请求，则直接路由到 v1 子集，而不注入延迟。
+
+
+
 分别使用匿名用户和jason查看bookinfo界面
  Jason 踩坑了 
 
@@ -3388,6 +3420,34 @@ spec:
 ```
 
 
+
+这是一个 Istio VirtualService 配置文件，用于配置 `ratings` 服务的流量路由规则。接下来，我将分析每个部分的作用和含义：
+
+1. `apiVersion`: 指定 Istio 资源配置的版本，这里使用的是 `networking.istio.io/v1alpha3`。
+2. `kind`: 指定 Istio 资源类型，这里使用的是 `VirtualService`。
+3. `metadata`: 配置元数据，包含一个 `name` 属性，用于指定该 VirtualService 的名称，这里的名称设置为 `ratings`。
+4. `spec`: 定义 VirtualService 的具体配置。
+
+`spec` 部分的详细解析：
+
+- `hosts`: 指定与 VirtualService 相关的主机名，这里仅有一个，即 `ratings`。
+- `http`: 定义一组 HTTP 路由规则，包含两个路由规则。
+
+第一个路由规则：
+  - `match`: 在当前路由规则生效前，需要满足的条件。这里的条件是，请求头（`headers`）中的 `end-user` 值必须等于 `jason`。
+  - `fault`: 定义故障注入规则，用于在请求流转过程中注入故障以测试系统的弹性。
+    - `abort`: 一种故障注入类型，用于终止请求。
+      - `percentage`: 指定出现故障的概率。这里设置为 100.0%。
+      - `httpStatus`: 指定返回给客户端的 HTTP 状态码。这里设置为 500。
+  - `route`: 定义将流量路由到哪个目标。这里配置了一个目标：
+    - `destination`: 指定目标。
+      - `host`: 目标主机名。这里设置为 `ratings`。
+      - `subset`: 目标子集，分发流量的版本。这里设置为 `v1`。
+
+第二个路由规则：
+  - `route`: 与上一个路由规则相似，定义将流量路由到哪个目标。但是，注意这条规则没有 `match` 配置，也没有故障注入。这意味着如果第一个规则不匹配，流量将按照这条规则路由。这里也只定义了一个目标，其 `destination` 设置与上面相同，将流量路由到 `ratings` 服务的 `v1` 子集。
+
+综上所述，这个 VirtualService 配置文件定义了以下流量路由规则：如果请求头中的 `end-user` 为 `jason`，则注入故障（HTTP 500 错误，100.0% 概率）并将流量路由到 `ratings` 服务的 `v1` 子集；对于其他请求，直接路由到 `ratings` 服务的 `v1` 子集，而不注入故障。
 
 
 
@@ -3457,6 +3517,38 @@ spec:
 
 
 
+这是一个 Kubernetes 部署（Deployment）的配置文件，用于部署一个名为 httpbin-v1 的应用。下面是配置文件的详细解析：
+
+- `apiVersion: apps/v1`：指定了这个配置文件使用的 Kubernetes API 版本，当前版本是 apps/v1。
+- `kind: Deployment`：声明这是一个 Deployment 资源类型的配置文件。
+- `metadata`：为 Deployment 添加了一些元数据。
+  - `name: httpbin-v1`：设置了 Deployment 的名字为 httpbin-v1。
+- `spec`：描述了 Deployment 的具体规格。
+  - `replicas: 1`：设置期望的 Pod 副本数为 1。
+  - `selector`：定义了如何匹配和选择 Pod，以使 Deployment 管理这些 Pod。
+    - `matchLabels`：定义了匹配的标签。
+      - `app: httpbin`：匹配 app 标签的值为 httpbin。
+      - `version: v1`：匹配 version 标签的值为 v1。
+  - `template`：描述了要创建的 Pod 的模板。
+    - `metadata`：为 Pod 添加了一些元数据。
+      - `labels`：定义了要附加到 Pod 的标签。
+        - `app: httpbin`：设置了 app 标签的值为 httpbin。
+        - `version: v1`：设置了 version 标签的值为 v1。
+    - `spec`：描述了 Pod 中容器的具体规格。
+      - `containers`：列出了 Pod 中的容器。
+        - 第一个（也是唯一的）容器：
+          - `image: docker.io/kennethreitz/httpbin`：设置了容器的镜像为 docker.io/kennethreitz/httpbin。
+          - `imagePullPolicy: IfNotPresent`：设置了镜像拉取策略。如果镜像已存在于本地，则无需拉取镜像。
+          - `name: httpbin`：设置了容器的名字为 httpbin。
+          - `command`：定义了容器启动时要执行的命令和参数。
+            - 启动 gunicorn，将访问日志输出到 stdout，监听 0.0.0.0:80，并运行 httpbin:app。
+          - `ports`：设置了容器暴露的端口。
+            - `containerPort: 80`：设置暴露的端口为 80。
+
+总结来说，这个配置文件定义了一个名为 httpbin-v1 的 Deployment 资源，部署一个包含单个容器的 Pod，容器运行 kennethreitz/httpbin 镜像，使用 gunicorn 监听在 80 端口。标签选择器确保 Deployment 仅管理应用名为 httpbin，版本为 v1 的 Pod。
+
+
+
 发布服务
 
 ```bash
@@ -3488,6 +3580,31 @@ spec:
   selector:
     app: httpbin
 ```
+
+
+
+这是一个 Kubernetes 配置文件，定义了一个 Service 资源。以下是配置文件的各个部分的解析：
+
+1. `apiVersion: v1`：这是使用的Kubernetes API版本，这里用的是v1。
+2. `kind: Service`：该配置文件定义的资源类型是Service。Service是Kubernetes中的一种对象，它可抽象地将一组Pod（如此前配置中的httpbin-v1 Deployment管理的Pod）暴露为一个网络服务。
+
+接下来看 `metadata` 部分：
+
+3. `name: httpbin`：这个Service的名字是httpbin。
+4. `labels:`：定义了Service资源的标签，这里只有一个标签：
+   - `app: httpbin`：app标签值为httpbin。
+
+进入 `spec` 部分，描述了Service的具体规格和配置：
+
+5. `ports:`：定义了暴露的端口数组，这里只有一个端口：
+   - `name: http`：给这个端口取个名字，叫http。
+   - `port: 8000`：Service暴露的端口是8000。
+   - `targetPort: 80`：映射到Pod内部容器的目标端口为80。也就是说，当网络请求到达8000端口时，Service将请求转发到后端Pod的80端口。
+
+6. `selector:`：定义了Service的标签选择器，该选择器会匹配标签满足特定条件的Pod。这里我们有一个匹配条件：
+   - `app: httpbin`：选择app标签值为httpbin的Pod。这匹配了之前提到的httpbin-v1 Deployment创建的带有相同app标签的Pod。
+
+总的来说，这个配置文件定义了一个名为httpbin的Service，它监听8000端口并将请求转发到后端标签为'app: httpbin'的Pod的80端口。
 
 
 
@@ -3576,6 +3693,65 @@ spec:
 
 
 
+这个配置文件定义了两个Istio资源：一个VirtualService和一个DestinationRule。它们都是Istio的流量管理组件，用于控制在服务网格内的流量行为。
+
+第一个资源是VirtualService：
+
+```yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: httpbin
+spec:
+  hosts:
+    - httpbin
+  http:
+  - route:
+    - destination:
+        host: httpbin
+        subset: v1
+      weight: 100
+```
+
+- `apiVersion`为`networking.istio.io/v1alpha3`，表示这是一个Istio资源。
+- `kind`为`VirtualService`，表示这是一个虚拟服务定义。
+- `metadata.name`为`httpbin`，表示虚拟服务的名称或标识。
+- `spec.hosts`定义了虚拟服务应用的目标主机，这里的目标主机是`httpbin`。
+- `spec.http`定义了HTTP流量的路由规则。
+  - `route`定义了一个路由规则，将流量路由到不同的目标服务。
+    - `destination`定义了目标主机和子集。
+      - `host`指定虚拟服务发送流量的主机，这里是`httpbin`。
+      - `subset`指定了目标服务的子集，这里是`v1`。
+    - `weight`为100，表示将100%的流量路由到`subset: v1`。
+
+第二个资源是DestinationRule：
+
+```yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: httpbin
+spec:
+  host: httpbin
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+```
+
+- `apiVersion`为`networking.istio.io/v1alpha3`，表示这是一个Istio资源。
+- `kind`为`DestinationRule`，表示这是一个目标规则定义。
+- `metadata.name`为`httpbin`，表示目标规则的名称或标识。
+- `spec.host`指定规则应用的目标主机，这里是`httpbin`。
+- `spec.subsets`定义了目标主机的多个子集，以便在流量路由时使用。
+  - 第一个子集`v1`表示带有标签`version: v1`的目标服务实例。
+  - 第二个子集`v2`表示带有标签`version: v2`的目标服务实例。
+
+总结：这个配置文件定义了一个Istio的VirtualService和DestinationRule。VirtualService负责将100%的流量路由到httpbin服务的v1子集。DestinationRule为httpbin服务定义了两个子集，分别是带有不同版本标签的服务实例（v1和v2）。这为你提供了对服务的不同版本进行流量管理的能力。
+
 
 
 使用sleep访问服务
@@ -3607,6 +3783,26 @@ root@node1:~/istio-1.16.0# kubectl exec -it $SLEEP_POD -c sleep -- sh -c 'curl  
 
 
 
+命令行分解：
+
+1. `export SLEEP_POD=$(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.name})`：此命令获取`app=sleep`标签的pod的名称，并将其存储在名为SLEEP_POD的环境变量中。`-o jsonpath={.items..metadata.name}`以JSONPath格式输出pod的名称。
+
+2. `kubectl exec -it $SLEEP_POD -c sleep -- sh -c 'curl http://httpbin:8000/headers' | python3 -m json.tool`：此命令在之前定义的SLEEP_POD环境变量中指定的pod上执行一个命令。这里我们使用curl从'httpbin'服务的8000端口获取'/headers'路径的内容，并将结果传递给python的json.tool模块，以便对输出进行格式化。
+
+输出解释：
+输出展示了'httpbin'服务对'/headers'请求的响应结果。主要包括以下HTTP头：
+
+- Accept：接受的内容类型，这里是`*/*`，表示任何类型。
+- Host：目标主机和端口，这里是`httpbin:8000`。
+- User-Agent：发出请求的用户代理，这里是`curl/7.81.0-DEV`。
+- X-B3-*：Zipkin分布式追踪系统用于追踪请求的标头。（如 X-B3-Parentspanid，X-B3-Sampled，X-B3-Spanid，X-B3-Traceid）
+- X-Envoy-Attempt-Count：请求已经尝试了几次，默认为1。
+- X-Forwarded-Client-Cert：包含有关用于双向TLS的客户端证书身份信息的标头。
+
+从输出中可以看到，请求成功到达'httpbin'服务，并通过Istio组件进行了透明处理，因为X-B3-* 和 X-Envoy-Attempt-Count等Envoy特定的标头已经添加到了响应中。
+
+
+
 查看v1和v2的日志
 
 ```bash
@@ -3625,6 +3821,37 @@ root@node1:~/istio-1.16.0# kubectl logs -f $V1_POD -c httpbin
 [2022-12-01 09:16:59 +0000] [9] [INFO] Booting worker with pid: 9
 127.0.0.6 - - [01/Dec/2022:09:29:11 +0000] "GET /headers HTTP/1.1" 200 527 "-" "curl/7.81.0-DEV"
 ```
+
+
+
+首先，让我们分析这两个命令：
+
+1. `export V1_POD=$(kubectl get pod -l app=httpbin,version=v1 -o jsonpath={.items..metadata.name})`
+
+   这行命令使用`kubectl get pod`命令通过标签（`app=httpbin, version=v1`）获取与httpbin v1相关的pod，然后通过jsonpath表达式（`{.items..metadata.name}`）获取pod的名称（metadata.name）。得到的结果被存储在环境变量`V1_POD`中。
+
+2. `kubectl logs -f $V1_POD -c httpbin`
+
+   这行命令使用`kubectl logs`来获取名为`V1_POD`的pod的日志。`-f`（或`--follow`）参数表示持续监听日志输出，当有新的日志产生时实时输出，类似于`tail -f`命令。`-c httpbin`表示要获取的container是名为`httpbin`的container。
+
+接下来，让我们分析日志输出：
+
+日志显示了httpbin服务v1 在 pod 中启动并成功接收到请求。以下是关于输出的解释：
+
+1. Gunicorn服务器启动信息: 
+```bash
+[2022-12-01 09:16:59 +0000] [1] [INFO] Starting gunicorn 19.9.0
+[2022-12-01 09:16:59 +0000] [1] [INFO] Listening at: http://0.0.0.0:80 (1)
+[2022-12-01 09:16:59 +0000] [1] [INFO] Using worker: sync
+[2022-12-01 09:16:59 +0000] [9] [INFO] Booting worker with pid: 9
+```
+   这些信息显示了Gunicorn服务器（一个Python WSGI HTTP服务器）的启动过程，使用sync worker模型在端口80监听请求。
+
+2. 接收到的请求和响应信息:
+```bash
+127.0.0.6 - - [01/Dec/2022:09:29:11 +0000] "GET /headers HTTP/1.1" 200 527 "-" "curl/7.81.0-DEV"
+```
+   这行日志显示了httpbin服务接收到一个请求，请求的来源IP为127.0.0.6。请求方法是GET，路径是`/headers`，使用的HTTP协议版本是1.1。响应状态码是200（成功），响应内容大小为527字节。请求头中的User-Agent是`curl/7.81.0-DEV`。从这里我们可以看出，之前执行的curl命令已经成功地访问了httpbin服务的v1子集。
 
 
 
@@ -3681,6 +3908,26 @@ spec:
       subset: v2
     mirrorPercent: 100
 ```
+
+
+
+这个配置文件是一个Istio VirtualService资源，用于定义HTTP流量的路由规则。让我们按部分解析它：
+
+- `apiVersion`: 声明了资源的API版本。在这种情况下，版本为`networking.istio.io/v1alpha3`。
+- `kind`: 指定了资源类型。这里是一个Istio的`VirtualService`资源。
+- `metadata`: 包含元数据信息，例如资源的名称。在这个例子里，资源名为`httpbin`。
+
+下面是VirtualService的特定规范（`spec`）:
+
+- `hosts`: 这个部分定义了规则适用的服务。在这个例子里，规则应用于名为`httpbin`的服务。
+- `http`: 包含HTTP流量的Route规则。在这个例子里，我们为httpbin服务定义了一个路由规则，具体包括：
+  - `route`: 定义了流量应该转发到哪里。
+    - `destination`: 指定了流量的目标。这里，将流量路由到名为`httpbin`的服务的`v1`子集。 
+    - `weight`: 指定了流量百分比。在这个例子里，`weight: 100`表示全部100%的流量都会被路由到`httpbin`的`v1`子集。
+  - `mirror`: 配置镜像目标，将流量的副本发送到另一个服务或子集。在这个例子里，流量的副本将被发送到`httpbin`服务的`v2`子集。
+  - `mirrorPercent`: 指定要镜像的流量百分比。这里，`mirrorPercent: 100`表示100%的流量将会被复制并发送到镜像目标。
+
+综合上面的解释，这个配置文件表示所有流量将被发送到`httpbin`服务的`v1`子集。与此同时，所有流量的副本也会被镜像到`httpbin`服务的`v2`子集。这种设置在实际应用中可以用于服务版本的A/B测试或新版本的验证。
 
 
 
