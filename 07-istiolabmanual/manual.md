@@ -3909,8 +3909,6 @@ spec:
     mirrorPercent: 100
 ```
 
-
-
 这个配置文件是一个Istio VirtualService资源，用于定义HTTP流量的路由规则。让我们按部分解析它：
 
 - `apiVersion`: 声明了资源的API版本。在这种情况下，版本为`networking.istio.io/v1alpha3`。
@@ -4024,6 +4022,20 @@ kubectl delete svc httpbin 
 openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=example Inc./CN=example.com' -keyout example.com.key -out example.com.crt
 ```
 
+这是一个使用`openssl`命令生成自签名SSL证书的示例。下面简要解释这个命令的各个部分：
+
+1. `openssl req`：`openssl`是一个强大的安全工具，`req`是用于创建和处理证书签名请求（CSR）的命令。
+2. `-x509`：用于生成自签名的X.509证书，而不是生成证书签名请求（CSR）。
+3. `-sha256`：指定使用SHA-256哈希算法。
+4. `-nodes`：这意味着私钥不用密码进行加密。如果省略此选项，会提示您输入密码来保护私钥。
+5. `-days 365`：证书的有效期是365天。
+6. `-newkey rsa:2048`：要为证书和私钥创建一个新的RSA密钥对，密钥长度为2048位。
+7. `-subj '/O=example Inc./CN=example.com'`：设置证书的主题字段。其中，`O`代表组织名称，`CN`代表通用名称（即域名）。
+8. `-keyout example.com.key`：将生成的私钥存储到名为`example.com.key`的文件中。
+9. `-out example.com.crt`：将生成的自签名证书存储到名为`example.com.crt`的文件中。
+
+通过运行这个命令，您将在当前目录下创建两个文件：`example.com.key`（私钥）和`example.com.crt`（自签名证书）。这些文件可以用于部署到Web服务器，以便支持HTTPS连接。但是，自签名证书在浏览器中通常会引发安全警告，因为它们没有受到可信认证机构（CA）的签署。在生产环境中，建议使用由可信任的认证机构签署的证书。
+
 
 
 为httpbin.example.com创建证书和私钥：
@@ -4032,6 +4044,37 @@ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=example In
 openssl req -out httpbin.example.com.csr -newkey rsa:2048 -nodes -keyout httpbin.example.com.key -subj "/CN=httpbin.example.com/O=httpbin organization"
 openssl x509 -req -sha256 -days 365 -CA example.com.crt -CAkey example.com.key -set_serial 0 -in httpbin.example.com.csr -out httpbin.example.com.crt
 ```
+
+这些命令用于为`httpbin.example.com`域名创建一个SSL证书，并用先前生成的自签名根证书（`example.com.key`和`example.com.crt`）对其进行签名。以下是对这两个命令的逐项解释：
+
+第一个命令：
+
+1. `openssl req`：`openssl`是一个强大的安全工具，`req`是用于创建和处理证书签名请求（CSR）的命令。
+2. `-out httpbin.example.com.csr`：将生成的证书签名请求存储到名为`httpbin.example.com.csr`的文件中。
+3. `-newkey rsa:2048`：要为证书和私钥创建一个新的RSA密钥对，密钥长度为2048位。
+4. `-nodes`：这表示私钥不进行密码保护。如果省略此选项，会提示您输入密码以保护私钥。
+5. `-keyout httpbin.example.com.key`：将生成的私钥存储在名为`httpbin.example.com.key`的文件中。
+6. `-subj "/CN=httpbin.example.com/O=httpbin organization"`：设置证书的主题字段。其中，`CN`代表通用名称（即域名），`O`代表组织名称。
+
+第二个命令：
+
+1. `openssl x509`：命令用于处理x509证书。
+2. `-req`：表示下一个输入文件是一个证书签名请求（CSR）。
+3. `-sha256`：指定使用SHA-256哈希算法。
+4. `-days 365`：证书的有效期为365天。
+5. `-CA example.com.crt`：使用名为`example.com.crt`的自签名根证书对CSR进行签名。
+6. `-CAkey example.com.key`：指定与根证书关联的私钥文件`example.com.key`。
+7. `-set_serial 0`：为新签名的证书设置序列号。在这种情况下是0，但建议使用唯一的序列号。
+8. `-in httpbin.example.com.csr`：从名为`httpbin.example.com.csr`的CSR文件读取。
+9. `-out httpbin.example.com.crt`：将生成的已签名证书存储在名为`httpbin.example.com.crt`的文件中。
+
+运行这两个命令后，您将创建以下文件：
+
+- `httpbin.example.com.key`：私钥
+- `httpbin.example.com.csr`：证书签名请求
+- `httpbin.example.com.crt`：已签名证书
+
+这些文件可部署到Web服务器以支持HTTPS连接（使用自签名根证书对证书进行签名）。然而，在生产环境中，建议使用经可信认证机构（CA）签署的证书，以避免浏览器安全警告。
 
 
 
@@ -4048,6 +4091,19 @@ kubectl apply -f istiolabmanual/sdshttpbin.yaml
 ```bash
 kubectl create -n istio-system secret tls httpbin-credential --key=httpbin.example.com.key --cert=httpbin.example.com.crt
 ```
+
+这个命令行使用 `kubectl`（Kubernetes命令行工具）在特定的命名空间（`istio-system`）下创建一个新的TLS secret。它用于将您已经创建的SSL证书（httpbin.example.com.crt）和私钥（httpbin.example.com.key）导入Kubernetes集群。下面我们来详细解释这个命令的各个部分。
+
+- `kubectl`: Kubernetes命令行工具，用于与集群进行交互。
+- `create`: 创建一个新的Kubernetes资源。
+- `-n istio-system`: 指定要在其中创建TLS secret的命名空间。在这里，命名空间是`istio-system`。
+- `secret`：指定要创建的Kubernetes资源类型，即 secret（密钥）。
+- `tls`：指定创建的是一个TLS类型的secret，用于包含SSL证书和私钥。
+- `httpbin-credential`：这是您将创建的TLS secret的名称。可以根据需要为它们指定名称，但是这里我们已经给出了一个示例名称。
+- `--key=httpbin.example.com.key`：指定私钥文件。这里是先前生成的httpbin.example.com.key文件。
+- `--cert=httpbin.example.com.crt`：指定证书文件。这里是先前生成的httpbin.example.com.crt文件。
+
+当您运行这个命令时，Kubernetes集群将在`istio-system`命名空间下创建一个名为`httpbin-credential`的secret，然后您可以将其用于在Kubernetes上部署带有SSL的服务。需要注意的是，在使用任何与TLS相关的Kubernetes资源之前，请确保您已通过OpenSSL或其他受信任的认证机构生成了相应的证书和私钥。
 
 
 
@@ -4086,6 +4142,28 @@ spec:
     hosts:
     - httpbin.example.com
 ```
+
+这是一个Istio Gateway资源的YAML配置文件。Gateway用于配置入口流量网关，以便处理进入Istio服务网格的流量。下面我们分别解释此配置文件的各个部分：
+
+- `apiVersion: networking.istio.io/v1alpha3`: 定义了我们正在使用的Istio API版本，这里使用的是v1alpha3版本。
+- `kind: Gateway`: 表示我们要创建的Kubernetes资源类型是一个Istio Gateway。
+- `metadata:`：包含有关Kubernetes资源的元数据。
+  - `name: mygateway`: 指定Gateway资源的名称，这里使用了名称`mygateway`。
+- `spec:`：包含Gateway资源的规范定义。
+  - `selector:`：用于指定此Gateway应用于哪些工作负载。在这里，我们选择Istio的默认Ingress网关。
+    - `istio: ingressgateway`: 使用Istio默认的ingressgateway。
+  - `servers:`: 在Gateway中定义了一个或多个服务器。
+    - `- port:`: 配置服务器监听的端口。
+      - `number: 443`: 监听的端口号，这里实例使用了HTTPS的默认端口443。
+      - `name: https`: 给端口一个名称。在这里，我们使用`https`作为名称。
+      - `protocol: HTTPS`: 指定服务器使用的协议。这里设置为HTTPS。
+    - `tls:`: 配置TLS，定义HTTPS的TLS设置。
+      - `mode: SIMPLE`: 设置TLS模式为SIMPLE，即一个普通的单向TLS，客户端与服务器之间建立加密通信。
+      - `credentialName: httpbin-credential`: 指定要使用的Kubernetes secret的名称，其中包含证书和私钥。这里的名称`httpbin-credential`必须与先前创建的secret名称相同。
+    - `hosts:`：指定监听哪些主机名。可以使用特定的域名或通配符匹配多个域名。
+      - `- httpbin.example.com`: 在这个示例中，Gateway配置为使用`httpbin.example.com`这个域名。
+
+此配置文件创建了一个名为`mygateway`的Istio Gateway，该Gateway将处理到`httpbin.example.com`的HTTPS流量。流量通过Istio默认的ingressgateway，在端口443上监听，启用具有普通模式的TLS，并使用`httpbin-credential`secret下载证书和私钥。
 
 
 
@@ -4128,6 +4206,8 @@ spec:
         host: httpbin
 ```
 
+此配置定义了一个VirtualService，用于将httpbin.example.com的流量路由至特定路径（/status和/delay）的httpbin服务实例上。这个资源必须与一个Gateway资源（在本例中是 "mygateway"）协同工作，才能正确地处理入口流量。
+
 
 
 设置ingress主机和端口变量
@@ -4138,6 +4218,26 @@ export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -
 export SECURE_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}')
 export TCP_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="tcp")].nodePort}')
 ```
+
+这些命令行是用于从Kubernetes集群中获取与Istio Ingress Gateway相关的信息。下面是每个命令的解析：
+
+1. `export INGRESS_HOST=$(kubectl get po -l istio=ingressgateway -n istio-system -o jsonpath='{.items[0].status.hostIP}')`
+
+这个命令获取Istio Ingress Gateway对应的Pod（使用标签istio=ingressgateway和命名空间istio-system进行过滤），然后通过JSONPath表达式提取Pod的Host IP地址。这个值被存储在环境变量INGRESS_HOST中。
+
+2. `export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}')`
+
+这个命令从命名空间istio-system中获取名为istio-ingressgateway的Kubernetes服务，并查找名称为"http2"的端口。然后使用JSONPath提取NodePort值，并将其存储在环境变量INGRESS_PORT中。
+
+3. `export SECURE_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}')`
+
+这个命令类似于上一个命令，但是它查找名称为"https"的端口，并将NodePort值存储在环境变量SECURE_INGRESS_PORT中。
+
+4. `export TCP_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="tcp")].nodePort}')`
+
+这个命令类似于上两个命令，但是它查找名称为"tcp"的端口，并将NodePort值存储在环境变量TCP_INGRESS_PORT中。
+
+总之，这些命令提取了与Istio Ingress Gateway相关的信息，包括Host IP地址，HTTP2端口，HTTPS端口和TCP端口。这些值将存储在相应的环境变量中，以便在后续的操作中使用。
 
 
 
@@ -4215,7 +4315,61 @@ root@node1:~/istio-1.16.0# curl -v -HHost:httpbin.example.com --resolve "httpbin
 * Connection #0 to host httpbin.example.com left intact
 ```
 
-回滚日志查看 TSL 握手过程
+这个命令行是用`curl`工具向Istio Ingress Gateway发起一个使用自定义主机头（Host: httpbin.example.com）的HTTP请求。请求的目标是https协议下的/status/418端点。由于Istio使用TLS，所以需要提供一个根证书文件（example.com.crt）来验证服务器证书。
+
+在命令行中：
+1. `-v`参数表示输出详细的调试信息。
+2. `-HHost:httpbin.example.com`设置了一个自定义的主机头（Host header）。
+3. `--resolve "httpbin.example.com:$SECURE_INGRESS_PORT:$INGRESS_HOST"`参数是告诉curl使用指定的IP地址和端口号，而不是通过DNS解析httpbin.example.com。
+4. `--cacert`参数提供了根证书文件（example.com.crt），以正确验证服务器证书。
+
+输出中，首先显示了请求相关的信息，例如DNS解析、连接建立、TLS握手、协议协商等。然后在输出中看到发送了一个GET请求到/status/418端点，使用HTTP/2协议并设置了Host头为`httpbin.example.com`。
+
+服务器响应的状态码为418，表示"I'm a teapot"。这个状态码是在RFC 2324（超文本咖啡壶控制协议，HTCPCP）中定义的，用于在服务器不是一个咖啡壶的情况下返回。响应中还包含了一个ASCII艺术作品，表现了一个茶壶的形象。
+
+最后，`* Connection #0 to host httpbin.example.com left intact`表明与服务器的连接完好无损。
+
+回滚日志查看 TSL 握手过程，在这个TLS握手的例子里，客户端（curl命令）访问了一个通过Istio Envoy服务的HTTP服务器。这是一个典型的TLS 1.3握手过程。根据提供的curl输出，我们可以用Mermaid表示这个完整的过程。以下是用Mermaid编写的时序图代码及对应步骤的解释：
+
+时序图代码：
+```mermaid
+sequenceDiagram
+    Participant Client
+    Participant Server
+    Client->>Server: Client Hello (Offering TLSv1.3, ALPN: h2, http/1.1)
+    Server->>Client: Server Hello (TLSv1.3, ALPN: h2)
+    Server->>Client: Encrypted Extensions
+    Server->>Client: Server Certificate
+    Server->>Client: CERT Verify (with server's public key)
+    Server->>Client: Finished
+    Client->>Server: Change Cipher Spec
+    Client->>Server: Finished
+    Client->>Server: GET /status/418 HTTP/2 (encrypted with negotiated cipher)
+    Server->>Client: HTTP/2 418 Response (encrypted with negotiated cipher)
+```
+
+步骤解释：
+1. 客户端（Client）发送 "Client Hello" 消息，提供支持的TLS版本（在这里是TLSv1.3），同时携带一个ALPN（Application-Layer Protocol Negotiation）协议列表（h2和http/1.1）。
+
+2. 服务器（Server）回应 "Server Hello" 消息，确认采用的TLS版本（TLSv1.3）和选择的ALPN协议（在这里是h2）。
+
+3. 服务器发送 "Encrypted Extensions" 消息。这是TLS 1.3的新特性，将所有握手扩展都置于加密的握手消息中，以提高安全性。
+
+4. 服务器提供其数字证书，其中包含服务器的公钥信息。
+
+5. 服务器发送 "CERT Verify" 消息（带有服务器的公钥），客户端需要使用这个消息验证服务器的身份。
+
+6. 服务器发送 "Finished" 消息，表明其握手部分已完成。
+
+7. 客户端发送 "Change Cipher Spec" 消息，告知服务器将切换到协商好的加密套件进行通信。
+
+8. 客户端发送 "Finished" 消息，表明其握手部分已完成。
+
+9. 客户端使用协商好的加密套件发送加密的请求(GET /status/418 HTTP/2)。
+
+10. 服务器使用同样的加密套件发送加密的HTTP响应（HTTP/2 418）。
+
+这个示例展示了典型的TLSv1.3握手过程，包括版本协商、证书验证、加密套件选择以及加密通信。在这个过程中，客户端和服务器建立了安全的通信环境。
 
 
 
@@ -4309,7 +4463,32 @@ root@node1:~/istio-1.16.0# curl -v -HHost:httpbin.example.com --resolve "httpbin
 curl: (35) error:0407008A:rsa routines:RSA_padding_check_PKCS1_type_1:invalid padding
 ```
 
+在这个输出中，我们的curl命令试图向Istio Ingress Gateway（httpbin.example.com）发送一个HTTPS请求，访问/status/418端点，同时提供Host头和自定义证书。这是逐步解析各个部分：
 
+1. `* Added httpbin.example.com:32696:192.168.1.233 to DNS cache` - Curl将httpbin.example.com及其对应的端口和IP地址添加到DNS缓存中。
+
+2. `* Hostname httpbin.example.com was found in DNS cache` - Curl在DNS缓存中找到了httpbin.example.com域名。
+
+3. `*   Trying 192.168.1.233:32696...` - Curl尝试连接到给定的IP地址和端口。
+
+4. `* TCP_NODELAY set` - Curl设置TCP_NODELAY，禁用Nagle算法以提高传输速度。
+
+5. `* Connected to httpbin.example.com (192.168.1.233) port 32696 (#0)` - Curl成功地连接到了目标地址。
+
+6. 下面一系列端展示了curl与服务器进行TLS握手的过程。
+   * `* ALPN, offering h2`
+   * `* ALPN, offering http/1.1`
+   * `* successfully set certificate verify locations:` 等。
+
+7. `* TLSv1.3 (OUT), TLS alert, decrypt error (563):` - 在与服务器完成握手过程的某个时候，TLS连接遇到了解密错误。
+
+8. `* error:0407008A:rsa routines:RSA_padding_check_PKCS1_type_1:invalid padding` - 连接中出现了一个错误，使用RSA填充检查方法时返回了无效的填充错误。这可能是由于证书的错误导致的。
+
+9. `* Closing connection 0` - 由于错误，Curl关闭了连接ID为0的连接。
+
+10. `curl: (35) error:0407008A:rsa routines:RSA_padding_check_PKCS1_type_1:invalid padding` - 最后，curl命令由于错误而退出，并将RSA例程错误的详细信息显示给用户。
+
+总之，在这里的输出中，Curl试图连接到Istio Ingress Gateway并访问指定的端点。但是，在TLS握手过程中，遇到了一个无效填充的错误，导致连接无法成功建立。这可能是由于证书错误。要解决此问题，请检查提供的证书是否正确。
 
 
 
@@ -4396,6 +4575,46 @@ spec:
     - helloworld-v1.example.com
 ```
 
+这是一个Istio的`Gateway`资源配置文件。它指定了如何将外部流量路由到在Istio服务网格里的服务。让我解释一下具体的配置内容：
+
+- `apiVersion`: 这是API版本，这里使用的是`networking.istio.io/v1alpha3`。
+- `kind`: Kubernetes资源类型，这里的类型是`Gateway`。
+- `metadata`：资源的配置元数据。
+  - `name`：指定Gateway的名称，此处为`mygateway`。
+
+`spec`字段描述了`Gateway`的配置内容：
+
+- `selector`：选择器，定义要使用的Istio网关。
+  - `istio: ingressgateway`：这里选择了Istio默认的ingress gateway。
+
+`servers`字段定义了不同的服务器配置。这个示例包括两个服务器配置：
+
+1. 第一个服务器（httpbin）:
+
+   - `port`：端口配置。
+     - `number`: 443 - 使用HTTPS协议的默认端口。
+     - `name`: https-httpbin - 为端口命名。
+     - `protocol`: HTTPS - 使用HTTPS协议。
+   - `tls`: TLS配置。
+     - `mode`: SIMPLE - 简单的TLS模式，即客户端和Gateway之间的单向加密。
+     - `credentialName`: httpbin-credential - TLS证书的密钥名称。
+   - `hosts`: 路由规则支持的主机名列表。
+     - httpbin.example.com - 当请求的Host header匹配此域名时，流量将路由到这个服务器配置。
+
+2. 第二个服务器（helloworld）:
+
+   - `port`：端口配置。
+     - `number`: 443 - 使用HTTPS协议的默认端口。
+     - `name`: https-helloworld - 为端口命名。
+     - `protocol`: HTTPS - 使用HTTPS协议。
+   - `tls`: TLS配置。
+     - `mode`: SIMPLE - 简单的TLS模式，即客户端和Gateway之间的单向加密。
+     - `credentialName`: helloworld-credential - TLS证书的密钥名称。
+   - `hosts`: 路由规则支持的主机名列表。
+     - helloworld-v1.example.com - 当请求的Host header匹配此域名时，流量将路由到这个服务器配置。
+
+总之，这个Gateway配置定义了两个使用HTTPS协议的服务器。其中，一个处理域名为`httpbin.example.com`的流量，并使用`httpbin-credential`证书；另一个处理域名为`helloworld-v1.example.com`的流量，并使用`helloworld-credential`证书。这些服务器都使用简单的TLS模式，即客户端和Gateway之间的单向加密。
+
 
 
 创建helloworld-v1的vs
@@ -4434,6 +4653,8 @@ spec:
         port:
           number: 5000
 ```
+
+该配置针对向`helloworld-v1.example.com`发送的请求，将匹配URI为`/hello`的流量，并将这些流量路由到`helloworld-v1`服务的5000端口。
 
 
 
@@ -4551,6 +4772,29 @@ spec:
    - httpbin.example.com
 ```
 
+这个配置文件定义了一个Istio Gateway资源，它用来配置Istio代理（Envoy）以执行基于L7协议层（如HTTP/HTTPS）的流量入口。以下是关于这个具体配置文件的解释：
+
+- `apiVersion: networking.istio.io/v1alpha3`：定义了资源的API版本，使用Istio网络API库中的`v1alpha3`版本。
+- `kind: Gateway`：指定这是一个Gateway资源。
+- `metadata`字段包含以下信息：
+  - `name: mygateway`：为这个Gateway定义一个名为`mygateway`的具体名称。
+
+- `spec`字段描述了Gateway的配置内容，包括：
+  - `selector`字段定义了应用于此Gateway的代理（Envoy）工作负载标签。当前的选择器是：
+    - `istio: ingressgateway`：使用默认的Istio ingress gateway。
+  - `servers`字段定义了一组服务器配置，每个服务器为一个或多个主机名启用不同协议。当前的Gateway有一个服务器配置：
+    - `port`字段定义了服务器运行的端口和协议类型：
+      - `number: 443`：监听端口号为443，通常用于HTTPS。
+      - `name: https`：给监听端口命名为“https”。
+      - `protocol: HTTPS`：指定这个服务器用于HTTPS流量。
+    - `tls`字段包含TLS相关设置，如模式和证书：
+      - `mode: MUTUAL`：指定服务器为双向TLS（mTLS）模式。要求客户端和服务器端都提供证书以进行相互认证。
+      - `credentialName: httpbin-credential`：指定使用名为`httpbin-credential`的证书与密钥。该名称应与相应的Kubernetes Secret名称相同。
+    - `hosts`字段包含此服务器应接受的主机名列表：
+      - `httpbin.example.com`：此服务器应处理发往`httpbin.example.com`的流量。
+
+总之，这个Gateway定义了一个监听443端口的HTTPS服务器，处理发往`httpbin.example.com`的流量。它使用双向TLS（需要客户端和服务器证书）进行连接，并使用名为`httpbin-credential`的证书与密钥。此外，它使用Istio的默认ingress gateway。
+
 
 
 尝试使用之前的方式进行访问
@@ -4603,6 +4847,19 @@ root@node1:~/istio-1.16.0# curl -v -HHost:httpbin.example.com --resolve "httpbin
 * Connection #0 to host httpbin.example.com left intact
 curl: (16) OpenSSL SSL_write: Broken pipe, errno 32
 ```
+
+这段输出描述了使用 curl 命令请求一个 HTTP 服务的过程。在这个例子中，请求的是在 httpbin.example.com 上的 `/status/418` 路径。下面是对输出的简单描述：
+
+1. curl 首先将域名 httpbin.example.com，端口号，和 IP 地址（192.168.1.233）添加到 DNS 缓存。
+2. curl 连接到目标 IP（192.168.1.233）和端口号（32696）的服务器。
+3. 启动 TLS（Transport Layer Security，传输层安全性）协议过程。
+4. 进行 TLSv1.3 握手，双方协商加密算法，确认服务器证书等。
+5. 获得服务器证书的详细信息（通常包括证书的主题，颁发者，有效期，等）。
+6. 确认 SSL 证书已验证。
+7. 使用 HTTP/2 协议与服务器通信。
+8. 在尝试发送请求时，出现一个错误：OpenSSL SSL_write: Broken pipe, errno 32。 这意味着在client尝试向服务器发送请求数据时，连接意外断开。
+
+至此，请求没有成功执行，原因是在发送数据过程中出现了错误。这可能是由于服务器端的问题或者网络问题。建议检查服务器端日志以了解可能的错误原因。
 
 
 
@@ -4696,7 +4953,53 @@ root@node1:~/istio-1.16.0# curl -v -HHost:httpbin.example.com --resolve "httpbin
 * Connection #0 to host httpbin.example.com left intact
 ```
 
-对比此前的握手验证过程,这一次明显增多
+与之前的输出相比，这次的请求已经成功访问了httpbin.example.com的"/status/418"路径，并通过端口32696建立了安全连接。在这次尝试中，TLSv1.3握手成功完成，并验证了服务器的证书。客户端像服务器一样也使用了自己的证书和密钥。此次请求使用了HTTP/2协议进行通信，没有再出现Broken pipe错误。
+
+成功访问的原因可能有以下几点：
+
+1. 服务器证书问题已解决：在这次的输出中，可以看到服务器证书已经得到验证，证书的颁发者、起始日期和过期日期都是有效的。并且与目标域名`httpbin.example.com`匹配。
+
+2. 客户端证书和密钥正确：此次的请求中，客户端正确地提供了自己的证书（client.example.com.crt）和密钥（client.example.com.key），这在之前的尝试中可能未正确提供。
+
+3. 正确处理HTTP/2协议：此次的尝试成功使用了HTTP/2协议，与服务器建立了连接，没有出现Broken pipe错误。这表明客户端和服务器之间的协议版本已就绪，并且协议处理正确。
+
+综上所述，第二次尝试已解决了之前遇到的问题，导致可以正常访问目标路径。这些变化有可能是因为修复了证书问题、提供了正确的客户端证书和密钥，以及正确处理了HTTP/2协议。
+
+对比此前的握手验证过程,这一次明显增多，我们可以用Mermaid 时序图描述TLS握手过程如下：
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+
+    C->>S: ClientHello (TLSv1.3)
+    S->>C: ServerHello (TLSv1.3)
+    S->>C: Encrypted Extensions
+    S->>C: Request CERT
+    S->>C: 提供服务器证书
+    S->>C: CERT verify
+    S->>C: Finished
+    C->>S: ChangeCipherSpec
+    C->>S: 提供客户端证书
+    C->>S: CERT verify
+    C->>S: Finished
+    C->>S: 使用HTTP/2发起请求
+    S->>C: HTTP/2 响应 (418)
+```
+
+1. 客户端向服务器发送ClientHello消息，指明使用TLSv1.3。
+2. 服务器回复ServerHello消息，确认使用TLSv1.3。
+3. 服务器发送Encrypted Extensions消息。
+4. 服务器请求客户端证书（Request CERT消息）。
+5. 服务器提供服务器证书。
+6. 服务器发送CERT verify消息，要求客户端验证服务器证书。
+7. 服务器发送Finished消息。
+8. 客户端发送ChangeCipherSpec消息，告知服务器将开始加密所有后续的通信。
+9. 客户端提供客户端证书。
+10. 客户端发送CERT verify消息，证明客户端证书有效。
+11. 客户端发送Finished消息。
+12. 之后，客户端使用HTTP/2向服务器发起请求。
+13. 服务器通过HTTP/2发回响应（418代码，表示“我是一个茶壶”）。
 
 
 
