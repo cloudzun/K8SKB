@@ -2630,6 +2630,21 @@ spec:
 
 
 
+这个配置文件是一个Istio VirtualService资源的定义。它的作用是在Istio服务网格内部定义路由规则，以便将特定的流量引导至不同的服务实例。现在来具体了解一下这个文件的组成部分和功能：
+
+- `apiVersion`: 指定Istio API版本，这里是`networking.istio.io/v1alpha3`。这个版本表明此资源是使用Istio v1alpha3 API创建的。
+- `kind`: 这个资源的类型，这里是`VirtualService`，表示我们定义一个Istio虚拟服务。
+- `metadata`: 元数据部分，提供这个资源的一些基本信息。在这个例子里，我们只定义了`name`，也就是这个VirtualService的名称，这里叫做`reviews`。
+- `spec`: 资源的规格定义，主要包含的内容有：
+  - `hosts`: 定义了这个VirtualService生效的目标主机或服务。这里我们指定`reviews`作为目标服务，意味着此VirtualService将应用于`reviews`服务上。
+  - `http`: 定义了HTTP路由规则，可以为一个或多个规则。在这个例子中，只有一个规则：
+    - `route`: 定义目标路由规则，包括一个或多个目标。在这个例子中，只有一个目标：
+      - `destination`: 定义目标服务。这里，`host: reviews`，表示目标服务是`reviews`。`subset: v2`意味着将流量路由至版本为v2的`reviews`服务实例。
+
+简而言之，这个Istio VirtualService资源将所有发送到`reviews`服务的流量路由至版本为v2的`reviews`服务实例。这对于实现流量管理，如蓝绿部署、金丝雀发布等策略非常有用。
+
+
+
 查看bookinfo页面，看黑星星
 
 
@@ -2668,6 +2683,28 @@ spec:
         host: ratings
         subset: v1
 ```
+
+
+
+这是一个Istio VirtualService资源配置文件。它定义了一个名为"ratings"的VirtualService，用于在服务网格内管理流量。以下是各部分的详细解释：
+
+- `apiVersion`: 指定Istio API的版本，这里是`networking.istio.io/v1alpha3`。
+- `kind`: 资源类型为`VirtualService`，表明这是一个Istio VirtualService资源。
+- `metadata`: 定义了资源的元数据。
+  - `name`: 名称为`ratings`的资源。
+- `spec`: 描述VirtualService的具体规范。
+  - `hosts`: 指定VirtualService所管理的主机或服务，这里是`ratings`。
+  - `http`: 定义HTTP流量规则。
+    - `fault`: 故障注入规则，用于模拟服务异常，如延迟和故障，帮助测试服务的弹性。
+      - `delay`: 延迟注入，表示所有调用"ratings"服务的请求将被延迟。
+        - `percent`: 注入延迟的请求百分比。这里是100%，表示所有请求都会受到延迟影响。
+        - `fixedDelay`: 固定延迟时间，这里是2秒。表明流量将被延迟2秒。
+    - `route`: 定义路由规则。
+      - `destination`: 目标服务的信息。
+        - `host`: 目标服务的主机名，这里是"ratings"。
+        - `subset`: 目标服务的子集（例如版本），这里是"v1"。表示流量将路由至"ratings"服务的"v1"版本。
+
+总结：这个配置文件表示了一个名为"ratings"的VirtualService作用于"ratings"服务，实现了故障注入，对全部请求进行延迟2秒的操作，并将流量路由至"ratings"服务的"v1"版本。这种配置方式在模拟故障以测试服务的弹性时非常有用。
 
 
 
@@ -2721,7 +2758,38 @@ spec:
     timeout: 1s
 ```
 
-​	
+
+
+这是一个Istio VirtualService资源的配置文件，用于在Istio服务网格内管理服务"reviews"的流量。
+
+详细解析如下：
+
+1. `apiVersion`: 这个参数表示配置文件使用的API版本，本例中为"networking.istio.io/v1alpha3"。
+
+2. `kind`: 表示资源类型，在这里类型是"VirtualService"。
+
+3. `metadata`: 配置文件的元数据信息，包括资源名称等。
+
+   - `name`: 这个参数表示资源的名字，这里为"reviews"。
+
+4. `spec`: 资源配置的具体规格。
+
+   - `hosts`: 表示与此配置相关联的主机。这里的主机是"reviews"。
+
+   - `http`: HTTP 路由规则的配置列表。
+
+     - `route`: 定义流量路由规则。
+
+       - `destination`: 定义流量的目的地。
+
+         - `host`: 流量要发送到的目的主机，这里指定为"reviews"。
+         - `subset`: 流量要路由到的目标服务的子集，在本例中为"v2"版本。
+
+     - `timeout`: 设定请求超时时间，在这个例子中，超时时间为1秒。
+
+总结：该配置文件定义了一个Istio VirtualService资源，为在服务网格内名为"reviews"的服务，将所有流量路由至"v2"版本，并设置了1秒的请求超时时间。
+
+
 
 从bookinfo页面上刷新一次
 
@@ -2743,6 +2811,40 @@ kubectl logs -f ratings-v1-xxxxx -c istio-proxy
 ```
 
 注意观察日志中的两个条目的`path`和`start_time`
+
+
+
+这是两条Istio Envoy代理的访问日志，记录了服务之间HTTP请求和响应的信息。每条记录包含了许多字段，分别代表请求处理中的不同信息，我会逐一解释：
+
+1. 日期和时间：日志发生的时间，第一条记录的时间是"2022-12-01T08:53:38.675Z"，第二条记录是"2022-12-01T08:53:39.688Z"。
+
+2. 请求方法和URL："GET /ratings/0 HTTP/1.1"表示使用HTTP/1.1协议发送一个GET请求到"/ratings/0"这个URL。
+
+3. 响应状态码：200表示请求成功，"-"表示没有额外的状态标志。
+
+4. 是否通过上游服务："via_upstream"表示请求是经过上游服务处理的。
+
+5. 后续的"-"表示该字段没有额外信息。
+
+6. 请求的字节数：0表示请求头中没有"Content-Length"字段。
+
+7. 响应的字节数：48表示响应的正文部分包含48个字节。
+
+8. 请求持续时间：1表示请求处理耗时1毫秒。
+
+9. 后续的"0"和"-"表示该字段没有额外信息。
+
+10. 用户代理："Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:107.0) Gecko/20100101 Firefox/107.0"表示请求者使用的浏览器和操作系统信息，即Windows 10系统上的Firefox 107.0版本。
+
+11. 请求ID："7b7596ea-aa34-98f9-9d7a-e17fbd58cdf3"表示该请求的唯一标识符。
+
+12. 目标主机："ratings:9080"表示目标服务的主机名和端口号。
+
+13. 被请求的主机IP和端口："10.244.135.9:9080"表示处理请求的主机IP地址和监听的端口号。
+
+14. 其他相关信息，如路由设置、源IP地址等。
+
+总之，这两条日志记录了发送到"ratings"服务URL "/ratings/0"的两个GET请求。请求方法是HTTP/1.1，请求成功（状态码为200），请求处理时间为1毫秒，请求者使用的浏览器是Windows 10系统上的Firefox 107.0。
 
 
 
@@ -2802,6 +2904,32 @@ spec:
       baseEjectionTime: 3m
       maxEjectionPercent: 100
 ```
+
+
+
+这是一个Istio的`DestinationRule`资源配置。Istio用于管理服务网格中的网络行为。这个特定的资源配置用于定义和调整名为`httpbin`的服务的流量行为。
+
+资源的各部分如下所述：
+
+1. `apiVersion`：指定Istio API的版本，本例中为"networking.istio.io/v1alpha3"。
+2. `kind`: 指定要创建的资源类型，本例中为`DestinationRule`。
+3. `metadata`：设置资源的元数据，如名称等。在这个案例中，`DestinationRule`的名称是" httpbin "。
+4. `spec`：资源的具体规格和配置。
+   - `host`: 指定受此规则影响的服务名称，这里是`httpbin`。
+   - `trafficPolicy`: 定义与该服务相关的各种流量策略。
+     - `connectionPool`: 配置用于连接服务的连接池策略。
+       - `tcp`: 针对TCP连接的配置。
+         - `maxConnections`: 允许的最大TCP连接数，本例中设置为1。
+       - `http`: 针对HTTP连接的配置。
+         - `http1MaxPendingRequests`: 允许的最大待处理的HTTP1.x请求，本例中设为1。
+         - `maxRequestsPerConnection`: 每个TCP连接允许的最大HTTP请求数，这里设置为1。
+     - `outlierDetection`: 配置用于检测异常服务实例的策略。
+         - `consecutive5xxErrors`: 连续5xx错误数阈值，达到该数目后服务实例会被短暂逐出。这里设置为1。
+         - `interval`: 异常检测的时间间隔，本例中为1秒。
+         - `baseEjectionTime`: 逐出服务实例的基础时间，达到该时间后可能会恢复。这里设置为3分钟。
+         - `maxEjectionPercent`: 允许最大逐出实例的百分比，这里设置为100。
+
+总之，这个配置定义了一个针对`httpbin`服务的`DestinationRule`，限制其连接池中TCP最大连接为1，HTTP请求的最大等待数量为1，每个TCP连接上的最大HTTP请求数为1。另外，异常检测策略产生效果时，异常的服务实例迅速被逐出。注意这里的资源限制非常严格，实际生产环境中根据需要进行调整。
 
 
 
@@ -2893,6 +3021,22 @@ kubectl exec -it "$FORTIO_POD"  -c fortio -- /usr/bin/fortio load -curl http://h
 
 
 
+这段命令的目的是使用`fortio`工具向`httpbin`服务发送一个HTTP GET请求，并输出结果。让我们逐行分解这段命令。
+
+1. `FORTIO_POD=$(kubectl get pods -lapp=fortio -o 'jsonpath={.items[0].metadata.name}')`
+
+   这一行将`FORTIO_POD`变量设置为运行`fortio`应用的Kubernetes pod的名称。该命令通过`-lapp=fortio`标签选择器来查找匹配的pods，然后使用`-o 'jsonpath={.items[0].metadata.name}'`选项提取第一个匹配的pod的名称。
+
+2. `kubectl exec -it "$FORTIO_POD"  -c fortio -- /usr/bin/fortio load -curl http://httpbin:8000/get`
+
+   这一行使用`kubectl exec`命令在运行`fortio`应用的pod中执行一个命令。`-it`选项表示交互式地运行该命令。`-c fortio`选项表示在`fortio`容器中执行命令。
+
+   命令执行的实际内容是：`/usr/bin/fortio load -curl http://httpbin:8000/get`。`fortio`工具位于`/usr/bin/fortio`路径，我们使用`load`子命令向指定的URL发送HTTP请求。`-curl`选项表示只发送一个请求（而不是持续发送请求以进行性能测试）并以curl-like的格式显示输出。`http://httpbin:8000/get`是`httpbin`服务的URL和端口，我们要向其发送GET请求。
+
+总结起来，这段命令首先找到运行`fortio`应用的Kubernetes pod，然后在该pod的`fortio`容器中使用`fortio`工具向`httpbin`服务发送一个HTTP GET请求，并输出结果。
+
+
+
 ```bash
 root@node1:~/istio-1.16.0# FORTIO_POD=$(kubectl get pods -lapp=fortio -o 'jsonpath={.items[0].metadata.name}')
 root@node1:~/istio-1.16.0# kubectl exec -it "$FORTIO_POD"  -c fortio -- /usr/bin/fortio load -curl http://httpbin:8000/get
@@ -2924,11 +3068,56 @@ x-envoy-upstream-service-time: 27
 
 
 
+这个输出展示了一个来自 `fortio` 客户端向 `httpbin` 服务发送 HTTP GET 请求的结果。以下是输出中各部分的解释：
+
+1. 请求：`kubectl exec -it "$FORTIO_POD"  -c fortio -- /usr/bin/fortio load -curl http://httpbin:8000/get`。这个命令在名为 "FORTIO_POD" 的 Pod 中运行 `fortio` 容器，并向 `http://httpbin:8000/get` 发送 HTTP GET 请求。
+
+2. 响应状态行：`HTTP/1.1 200 OK`。这表示请求成功，服务器返回了 200 OK 状态码。
+
+3. 响应头部信息：
+   - server: envoy - 表明响应由 Envoy 代理服务器生成。
+   - date: Thu, 01 Dec 2022 09:03:34 GMT - 响应生成的日期和时间。
+   - content-type: application/json - 表明响应内容类型为 JSON。
+   - content-length: 594 - 响应内容的长度为 594 字节。
+   - access-control-allow-origin: * - 跨域资源共享（CORS）相关的头部，允许任何来源访问此资源。
+   - access-control-allow-credentials: true - 表明响应可以在浏览器中暴露凭据。
+   - x-envoy-upstream-service-time: 27 - Envoy 代理请求上游服务所消耗的时间，单位为毫秒。
+
+4. 响应内容：一个 JSON 对象，包含以下字段：
+   - args: 一个空对象，表示没有传递任何查询参数。
+   - headers: 包含传递给请求的所有头部信息的对象。
+   - origin: 发送请求的来源 IP 地址。
+   - url: 请求的完整 URL。
+
+这个输出表明，当 `fortio` 客户端向 `httpbin` 服务发送单个 HTTP GET 请求时，请求已成功完成并返回了预期的响应。在这个实例中，可以了解请求和响应的详细信息，以验证服务是否按预期工作或调试潜在问题。
+
+
+
 触发熔断  2个并发，执行20次
 
 ```bash
 kubectl exec -it "$FORTIO_POD"  -c fortio -- /usr/bin/fortio load -c 2 -qps 0 -n 20 -loglevel Warning http://httpbin:8000/get
 ```
+
+
+
+这个命令同样使用 `kubectl` 命令操作 Kubernetes 集群，与前一个命令类似，但有一些主要区别。让我们逐个分析这个命令的各个部分：
+
+1. `kubectl exec -it "$FORTIO_POD" -c fortio`：`exec` 命令用于在 Kubernetes pod 中执行一个命令。`-it` 标志表示交互式终端模式。`"$FORTIO_POD"` 是运行 fortio 应用的 pod 的名称。`-c fortio` 选项用来指定在 `fortio` 容器中执行命令。
+   
+2. `-- /usr/bin/fortio load`：`--` 标志表示后面的命令将在指定容器中执行。`/usr/bin/fortio load` 是要在 `fortio` 容器中执行的命令，用于生成负载。
+
+3. `-c 2`：一个重要区别是这里使用 `-c 2` 选项，表示并发发送 2 个请求。前一个命令中只发送了一个请求。
+
+4. `-qps 0`：表示每秒查询（Query Per Second）的速率被设置为 0。当 qps 为零时，Fortio 将以最大速度发送请求，而不限制请求速度。
+
+5. `-n 20`：指定发送 20 个请求。前一个命令中只发送了一个请求。
+
+6. `-loglevel Warning`：设置日志记录级别为 "Warning"，这意味着只会输出警告和更高级别的日志信息。
+
+7. `http://httpbin:8000/get`：这是要发送 HTTP GET 请求的目标 URL，同样指向名为 `httpbin` 的服务，端口 8000 上的 `/get` 路径。
+
+总结：这个命令与先前的命令相比，主要区别在于并发数、请求数量和日志记录级别。这个命令将以最大速度并发发送 2 个请求，共 20 个请求，同时日志记录级别设为 "Warning"。
 
 
 
@@ -2945,11 +3134,71 @@ All done 20 calls (plus 0 warmup) 10.408 ms avg, 185.8 qps
 
 
 
+这是使用 `fortio` 命令发送请求时得到的统计输出。我们可以从以下几个方面对输出进行分析：
+
+1. **Sockets used**：用于发送请求的套接字数量为 11 个。在理想的 keepalive 状态下，只需要 2 个套接字。这里使用了更多的套接字，可能因为请求是分批进行的，或者部分连接没有被完全重用。
+
+2. **Jitter**：抖动为 false，表示在同一时间发送请求时没有延迟差异。
+
+3. **响应代码**：
+   - Code 200：成功的响应数为 10 个，占比 50.0%。
+   - Code 503：服务不可用的响应数为 10 个，占比 50.0%。
+
+   这些结果表明，一半的请求已正常处理，另一半遇到了服务不可用的问题，可能是目标服务器接收请求的能力有限，或者负载均衡器将部分流量引向了异常状态的实例。
+
+4. **Response Header Sizes**：
+   - count: 20 次响应。
+   - avg: 平均头部大小为 115.25 字节。
+   - +/- 115.3: 平均头部大小的标准差。
+   - min: 最小头部大小为 0 字节。
+   - max: 最大头部大小为 231 字节。
+   - sum: 总计头部大小为 2305 字节。
+
+   这部分统计信息显示了所收到的响应头部大小的分布。
+
+5. **Response Body/Total Sizes**：
+   - count: 20 次响应。
+   - avg: 平均响应正文大小为 532.75 字节，包含响应头部和正文的总大小。
+   - +/- 291.8: 平均大小的标准差。
+   - min: 最小正文大小为 241 字节。
+   - max: 最大正文大小为 825 字节。
+   - sum: 总计正文大小为 10655 字节。
+
+   这部分统计信息显示了收到的响应正文以及包含响应头部和正文的总大小的分布。
+
+6. **All done**：总共发送了 20 个请求（plus 0 warmup，没有进行预热请求）。
+   - 平均每个请求耗时为 10.408 毫秒。
+   - 请求发送速率为 185.8 qps（每秒请求数）。
+
+这些统计数据帮助我们了解请求在目标服务器上的执行情况，以及系统的延迟和吞吐量。根据这些信息，我们可以深入探究服务的性能表现，优化请求配置并解决潜在问题。
+
+
+
 触发熔断 again 3个并发，执行30次
 
 ```bash
 kubectl exec -it "$FORTIO_POD"  -c fortio -- /usr/bin/fortio load -c 3 -qps 0 -n 30 -loglevel Warning http://httpbin:8000/get
 ```
+
+
+
+这个命令与前两个命令类似，但并发数和请求数量有所不同。让我们分析这个命令：
+
+1. `kubectl exec -it "$FORTIO_POD" -c fortio`：与前两个命令相同，`exec`  命令用于在 Kubernetes pod 中执行一个命令。使用交互式终端模式 (`-it`)，并在名为 `"$FORTIO_POD"` 的 pod 的 `fortio` 容器中执行命令。
+
+2. `-- /usr/bin/fortio load`：与前两个命令相同，`--` 标志表示后面的命令将在指定容器中执行。`/usr/bin/fortio load` 是要在 `fortio` 容器中执行的命令，用于生成负载。
+
+3. `-c 3`：这次使用 `-c 3` 选项，表示并发发送 3 个请求。与前两个命令相比，这将增加并发请求的数量。
+
+4. `-qps 0`：与前两个命令相同，表示每秒查询（Query Per Second）的速率被设置为 0。当 qps 为零时，Fortio 将以最大速度发送请求，而不限制请求速度。
+
+5. `-n 30`：指定发送 30 个请求。这是另一个主要变化，因为在这个命令中总请求数量增加到了 30 个。
+
+6. `-loglevel Warning`：与前一个命令相同，设置日志记录级别为 "Warning"，这意味着只会输出警告和更高级别的日志信息。
+
+7. `http://httpbin:8000/get`：与前两个命令相同，这是要发送 HTTP GET 请求的目标 URL，仍旧指向名为 `httpbin` 的服务，端口 8000 上的 `/get` 路径。
+
+总结：这个命令的核心区别在于并发数从 2 增加到了 3，同时请求数量从 20 增加到了 30。这意味着这个命令将以最大速度并发发送 3 个请求，共计 30 个请求。日志记录级别依然设为 "Warning"。
 
 
 
@@ -2986,6 +3235,26 @@ cluster.outbound|8000||httpbin.default.svc.cluster.local.upstream_rq_pending_tot
 ```
 
  `overflow`即是被熔断的访问次数
+
+这个输出是通过在 Fortio Pod 的 Istio-Proxy 容器上执行 `pilot-agent request GET stats` 命令来收集有关 `httpbin` 服务的 Envoy 代理统计信息。然后使用 `grep` 命令过滤特定的统计数据，关注于 httpbin 服务的 pending 请求。
+
+以下是每行输出的解释：
+
+1. `cluster.outbound|8000||httpbin.default.svc.cluster.local.circuit_breakers.default.remaining_pending: 1`：默认熔断器设置下，剩余可处理的 pending 请求数量为 1。
+
+2. `cluster.outbound|8000||httpbin.default.svc.cluster.local.circuit_breakers.default.rq_pending_open: 0`：默认熔断器设置下，尚未打开的 pending 请求数量为 0。
+
+3. `cluster.outbound|8000||httpbin.default.svc.cluster.local.circuit_breakers.high.rq_pending_open: 0`：高优先级熔断器设置下，尚未打开的 pending 请求数量为 0。
+
+4. `cluster.outbound|8000||httpbin.default.svc.cluster.local.upstream_rq_pending_active: 0`：向上游 httpbin 服务发送的当前活动的 pending 请求数量为 0。
+
+5. `cluster.outbound|8000||httpbin.default.svc.cluster.local.upstream_rq_pending_failure_eject: 0`：由于连接池的失败导致的从 pending 请求中移除的请求数量为 0。
+
+6. `cluster.outbound|8000||httpbin.default.svc.cluster.local.upstream_rq_pending_overflow: 42`：向上游 httpbin 服务的 pending 请求溢出计数为 42。这意味着有关此服务的 42 个请求因连接池已满而被拒绝。
+
+7. `cluster.outbound|8000||httpbin.default.svc.cluster.local.upstream_rq_pending_total: 29`：自上游 httpbin 服务启动以来的所有 pending 请求总数为 29。
+
+这些统计信息有助于了解与 httpbin 服务相关的请求性能，例如熔断器设置、请求排队情况以及由于连接池溢出导致的请求拒绝。
 
 
 
