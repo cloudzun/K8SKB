@@ -628,6 +628,30 @@ echo http://$GATEWAY_URL/productpage
 
  
 
+这是一组shell命令，用于从Kubernetes集群中获取Istio Ingress Gateway的相关信息，将这些信息分别赋值给环境变量，并输出Istio Ingress Gateway的URL以及应用程序的产品页面URL。
+
+1. `export INGRESS_HOST=$(kubectl get po -l istio=ingressgateway -n istio-system -o jsonpath='{.items[0].status.hostIP}')`：
+   这条命令使用`kubectl`查询标签为`istio=ingressgateway`的pod，位于名称空间`istio-system`中，然后从结果中提取第一个pod的`hostIP`。这个IP地址被赋值给环境变量`INGRESS_HOST`。
+
+2. `export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}')`：
+   这条命令查询名称空间`istio-system`中名为`istio-ingressgateway`的服务，并从该服务的端口规格中提取名为`http2`的端口的`nodePort`。这个端口号被赋值给环境变量`INGRESS_PORT`。
+
+3. `export SECURE_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}')`：
+   类似于上一条命令，此命令查询名称空间`istio-system`中名为`istio-ingressgateway`的服务，但这次是从服务的端口规格中提取名为`https`的端口的`nodePort`。这个端口号被赋值给环境变量`SECURE_INGRESS_PORT`。
+
+4. `export GATEWAY_URL=$INGRESS_HOST:$INGRESS_PORT`：
+   使用前面获取的`INGRESS_HOST`和`INGRESS_PORT`变量，将它们组合成一个完整的URL，并将其赋值给环境变量`GATEWAY_URL`。
+
+5. `echo $GATEWAY_URL`：
+   输出`GATEWAY_URL`的值，这是Istio Ingress Gateway的URL。
+
+6. `echo http://$GATEWAY_URL/productpage`：
+   在`GATEWAY_URL`基础上添加应用程序的产品页面路径`/productpage`，输出应用程序的产品页面URL。
+
+这组命令的目的是收集Istio Ingress Gateway的信息，这将帮助你通过URL访问应用程序，验证Istio配置是否正确。
+
+
+
 ```bash
 controlplane $ kubectl apply -f samples/bookinfo/networking/destination-rule-all.yaml
 destinationrule.networking.istio.io/productpage created
