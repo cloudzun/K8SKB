@@ -734,7 +734,25 @@ spec:
 ---
 ```
 
+这是一组 Istio 的 YAML 配置文件，用于定义目标规则 (DestinationRules)。Istio 是一个开源的服务网格，提供了服务间通信、安全和流量管理的功能。在这组配置文件中，定义了 4 个目标规则，分别针对 `productpage`、`reviews`、`ratings` 和 `details` 服务。
 
+1. 第一个 DestinationRule（目标规则）针对 `productpage` 服务：
+   - host（主机）：目标规则所应用的服务的名称，即 productpage。
+   - subsets（子集）：包含一个名为 v1 的子集，标签 version 为 v1。
+
+2. 第二个 DestinationRule 针对 `reviews` 服务：
+   - host：目标规则所应用的服务的名称，即 reviews。
+   - subsets：包含 v1、v2 和 v3 三个子集，对应的 version 标签分别为 v1、v2 和 v3。
+
+3. 第三个 DestinationRule 针对 `ratings` 服务：
+   - host：目标规则所应用的服务的名称，即 ratings。
+   - subsets：包含 v1、v2、v2-mysql 和 v2-mysql-vm 四个子集，对应的 version 标签分别为 v1、v2、v2-mysql 和 v2-mysql-vm。
+
+4. 第四个 DestinationRule 针对 `details` 服务：
+   - host：目标规则所应用的服务的名称，即 details。
+   - subsets：包含 v1 和 v2 两个子集，对应的 version 标签分别为 v1 和 v2。
+
+总的来说，这些配置文件定义了这些服务之间的子集和版本信息，以便在路由规则和流量管理中使用。
 
 创建将`review`流量都指向`v1`虚拟服务
 
@@ -809,7 +827,63 @@ spec:
 ---
 ```
 
+这个YAML配置文件包含了4个虚拟服务（VirtualService）配置，分别为productpage、reviews、ratings和details。它们在核心配置上与之前提及的基本配置相似，但涉及到了4个不同的服务。
 
+让我们一一分析这些虚拟服务的差异：
+
+1. ProductPage：
+连接到产品页面服务的流量将会被路由至该服务的`v1`子集。这个虚拟服务定义了如下的路由规则：
+
+```yaml
+hosts:
+- productpage
+http:
+- route:
+  - destination:
+      host: productpage
+      subset: v1
+```
+
+2. Reviews：
+连接到reviews服务的流量将会被路由至该服务的`v1`子集。这个虚拟服务定义了如下的路由规则：
+
+```yaml
+hosts:
+- reviews
+http:
+- route:
+  - destination:
+      host: reviews
+      subset: v1
+```
+
+3. Ratings：
+连接到ratings服务的流量将会被路由至该服务的v1子集。这个虚拟服务定义了如下的路由规则：
+
+```yaml
+hosts:
+- ratings
+http:
+- route:
+  - destination:
+      host: ratings
+      subset: v1
+```
+
+4. Details：
+连接到details服务的流量将会被路由至该服务的`v1`子集。这个虚拟服务定义了如下的路由规则：
+
+```yaml
+hosts:
+- details
+http:
+- route:
+  - destination:
+      host: details
+      subset: v1
+```
+
+总的来说，这些虚拟服务在多个服务上都实现了类似的功能。不同之处在于，它们各自针对不同的服务配置了相应的目标规则（DestinationRule）。这些配置确保了流量会分别路由至各服务对应的`v1`子集。
 
 使用浏览器查看效果,	即使反复F5，也是无星星版
 
@@ -856,7 +930,28 @@ spec:
         subset: v1
 ```
 
+这是一个Istio `VirtualService` YAML配置文件，用于定义`reviews`服务的流量路由规则。
 
+- `apiVersion: networking.istio.io/v1alpha3`：表示这个资源对象遵循Istio Networking API，版本是 v1alpha3。
+- `kind: VirtualService`：表示我们正在定义一个VirtualService资源。
+- `metadata`：资源的元数据部分。在这里，我们为VirtualService命名为 `reviews`。
+- `spec`：指定详细的VirtualService配置。
+  - `hosts`：此字段定义了一个或多个主机名，其流量将被应用VirtualService规则。在这个例子里，我们指定了一个主机名`reviews`。
+  - `http`：此字段定义了一个或多个HTTP路由规则。
+    - 第一条路由规则（在`- match`中定义）：
+      - `headers`：匹配流量的HTTP头信息。这里，我们需要匹配的头信息是 `end-user`。
+      - `exact: jason`：表示仅当头信息 `end-user` 精确匹配 `jason` 时，该规则才会应用。
+      - `route`：当匹配成功时，流量将被转发到目标服务。
+        - `destination`：指定流量的目标。
+          - `host: reviews`: 指定流量的目标主机为`reviews`服务。
+          - `subset: v2`: 指定流量应路由至`reviews`服务的子集（subset）`v2`。
+   - 第二条路由规则（在`- route`中定义，没有`match`字段）：
+     - `route`：这意味着这是一个默认路由，当没有满足上面的匹配规则时，流量将被转发到次目标服务。
+       - `destination`：指定流量的目标。
+         - `host: reviews`: 指定流量的目标主机为`reviews`服务。
+         - `subset: v1`: 指定流量应路由至`reviews`服务的子集（subset）`v1`。
+
+总结一下：这个VirtualService定义了如何处理目标为`reviews`服务的流量。当流量包含一个名为`end-user`、内容为`jason`的HTTP头时，流量将被路由至 `reviews` 服务的 `v2` 子集。在其他情况下（无匹配的头信息），流量将被路由至 `reviews` 服务的 `v1` 子集。
 
 清理环境
 
@@ -992,6 +1087,14 @@ spec:
       weight: 50
 ```
 
+
+
+这个配置文件定义了一个Istio VirtualService，它设置了针对reviews服务的流量路由规则。其中关键部分是流量的分配。
+
+根据这个配置，所有进入reviews服务的流量将被平均分配到reviews服务的`v1`子集（版本1）和`v3`子集（版本3）。每个子集分别接收50%的流量权重。这样可以实现对不同版本reviews服务的负载均衡，以及在服务的多个版本间实现平滑的流量切换。
+
+
+
 使用浏览器查看页面效果，主要是关注reviews的版本
 
 
@@ -1026,6 +1129,14 @@ spec:
         host: reviews
         subset: v3
 ```
+
+
+
+这个配置文件同样定义了一个Istio VirtualService，它针对reviews服务设置了流量路由规则。然而，与之前的配置文件不同，这个配置文件没有为流量设置权重分配。
+
+在这个配置文件中，所有进入reviews服务的流量将被直接路由至reviews服务的`v3`子集（即版本3）。因为这个配置文件没有为不同版本的reviews服务设置权重分配，所以`v3`子集会接收到全部的流量。这意味着仅使用reviews服务的`v3`版本，而不再对其他版本进行任何负载均衡。
+
+
 
 使用浏览器查看页面效果，主要是关注`reviews`的版本
 
@@ -1087,6 +1198,19 @@ spec:
     hosts:
     - "*"
 ```
+
+
+
+这个配置文件定义了一个Istio Gateway，它指定如何将外部流量引入到Istio服务网格中。Gateway是Istio中用于在服务网格和外部网络之间建立连接关系的关键组件。
+
+以下是关于这个配置文件的主要部分：
+- `metadata.name` 指定了Gateway的名称，也就是 "test-gateway"。
+- 在 `spec.selector` 中，配置文件使用键值对 "istio: ingressgateway" 来指定Gateway应绑定到Istio网格中的Ingress Gateway组件。这意味着所有进入Istio网格的流量将通过此Ingress Gateway处理。
+- `spec.servers` 定义了一个服务器以接收进入服务网格的流量。
+  - 使用端口号80，名为"http"，以及HTTP协议，这指定了Ingress Gateway接收HTTP流量的端口。
+  - `hosts` 列表中的通配符 "*" 表示此Gateway将接受发送到任何域名的流量。
+
+总之，这个Gateway配置文件定义了一个名为 "test-gateway" 的Ingress Gateway，在80端口上接收任何HTTP流量，并将这些流量引入到Istio服务网格中。
 
 
 
@@ -1200,6 +1324,33 @@ spec:
 ```
 
 
+
+这是一个Istio VirtualService配置文件，用于定义基于特定条件将请求路由到目标服务。具体来说，这个配置文件指定了与网关 "test-gateway" 和 HTTP 请求路径相关的路由规则。
+
+- `apiVersion`: 这表示Istio API 的版本号。
+- `kind`: 表明这是一个VirtualService配置。
+
+该配置文件具有以下元信息（metadata）：
+- `name`: 配置文件的名称（在这里为 "test-gateway"）。
+
+核心逻辑如下：
+
+- `hosts`: 列出了匹配的主机名，星号表示匹配任何主机。
+- `gateways`: 这里只有一个网关（"test-gateway"）。这是请求需要从该网关经过才能进入Istio服务网格的规则。
+
+接着，定义了HTTP请求的路由规则：
+
+- `match`: 包含两个匹配条件：
+    - 第一个条件匹配所有以 `/details` 为前缀的URI。
+    - 第二个条件匹配准确的URI `/health`。
+
+- 当请求的URI与上述任一条件匹配时，路由规则将被触发。在这种情况下，请求将路由到以下目的地：
+
+  - `destination`: 目标服务：
+    - `host`: 目标服务的名称（这里是 "details"）。
+    - `port`: 目标服务的端口号（这里是9080）。
+
+总之，这个配置文件定义了一个VirtualService，当请求从"test-gateway"网关进入Istio服务网格并满足指定的URI匹配条件（以 `/details` 为前缀或准确匹配 `/health`）时，请求将被路由到 "details" 服务的9080端口。
 
 
 
@@ -1440,6 +1591,28 @@ spec:
 
 
 
+这个配置文件是一个Istio ServiceEntry资源的定义，主要用于将外部服务（不属于服务网格的服务）纳入Istio服务网格内，使得网格内的服务能够调用这些外部服务并对流量应用Istio的流量管理和安全策略。
+
+具体解释如下：
+
+- `apiVersion: networking.istio.io/v1alpha3`：声明了这个资源使用Istio网络API的v1alpha3版本。
+- `kind: ServiceEntry`：定义了这个资源的类型，即一个Istio ServiceEntry。
+- `metadata:`：资源的元数据。
+  - `name: httpbin-ext`：给这个资源分配了一个名字，叫做 "httpbin-ext"。
+- `spec:`：资源的详细配置。
+  - `hosts:`：一个外部服务的域名列表。
+    - `httpbin.org`：指定了需要访问的外部服务的域名为"httpbin.org"。
+  - `ports:`：定义外部服务需要暴露的端口信息。
+    - `number: 80`：暴露的端口号为80。
+    - `name: http`：给此端口分配一个名字，叫做 "http"。
+    - `protocol: HTTP`：声明此端口上运行的协议是HTTP。
+  - `resolution: DNS`：表示使用DNS解析来找到外部服务的IP地址。
+  - `location: MESH_EXTERNAL`：指明这是一个外部服务（不在Istio服务网格内）。对此类服务，Istio将透明地执行域名解析和负载均衡。
+
+总之，这个配置文件创建了一个名为 "httpbin-ext" 的Istio ServiceEntry，允许服务网格内的服务调用外部域名 "httpbin.org" 上的HTTP服务，访问端口为80。
+
+
+
 查看ServiceEntry
 
 ```bash
@@ -1585,6 +1758,28 @@ export TCP_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgatew
 
 
 
+这组命令行的主要目的是提取Istio Ingress Gateway的相关信息，并将它们存储为环境变量，以便以后使用。下面是对这些命令的逐行解析：
+
+1. `export INGRESS_HOST=$(kubectl get po -l istio=ingressgateway -n istio-system -o jsonpath='{.items[0].status.hostIP}')`
+
+   这个命令从Istio系统名称空间（namespace）获取与Istio Ingress Gateway相关的pod（通过标签"istio=ingressgateway"）。然后，使用JSONPath表达式提取主机IP地址（hostIP）并将其值存储在名为`INGRESS_HOST`的环境变量中。
+
+2. `export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}')`
+
+   这个命令在Istio系统名称空间中查找名为`istio-ingressgateway`的服务。接着，通过JSONPath表达式提取名为"http2"的端口对应的节点端口（nodePort）。将获取的端口号存储在名为`INGRESS_PORT`的环境变量中。
+
+3. `export SECURE_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}')`
+
+   与前一个命令类似，这个命令在Istio系统名称空间中查找名为`istio-ingressgateway`的服务。不过，这次我们提取名为"https"的端口对应的节点端口（nodePort）。将获取的端口号存储在名为`SECURE_INGRESS_PORT`的环境变量中。
+
+4. `export TCP_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="tcp")].nodePort}')`
+
+   类似于第2和第3个命令，这个命令提取名为"tcp"的端口对应的节点端口（nodePort）并将端口号存储在名为`TCP_INGRESS_PORT`的环境变量中。
+
+这组命令帮助我们收集了Istio Ingress Gateway的主机IP、HTTP/2端口、HTTPS端口以及TCP端口，以便在以后的操作中使用。
+
+
+
 创建ingress gateway，定义接入点 
 
 ```bash
@@ -1619,6 +1814,25 @@ spec:
 ```
 
 
+
+这是一个Istio Gateway配置文件，用于定义一个初始接入点，以使外部用户能够访问到在Istio Service Mesh内部运行的服务。以下是详细解释：
+
+1. `apiVersion: networking.istio.io/v1alpha3`：配置文件的API版本，这里使用的是Istio网络API的v1alpha3版本。
+2. `kind: Gateway`：表明这是一个Istio Gateway资源类型。
+3. `metadata`：资源的元数据。
+    - `name: httpbin-gateway`：Gateway资源的名称，这里叫做`httpbin-gateway`。
+4. `spec`：配置资源的详细规格。
+    - `selector`：用于选择一个或多个与此Gateway关联的Istio Ingress Gateway负载均衡器。
+        - `istio: ingressgateway`：选择所有标签为`istio=ingressgateway`的Ingress Gateway。
+    - `servers`：一个服务器列表，每个服务器对应一个端口和协议，以及允许连接的主机名。
+        - `port`： 定义服务器监听的端口和协议。
+            - `number: 80`：此服务器监听80端口。
+            - `name: http`：端口名称定义为http。
+            - `protocol: HTTP`：指定此端口使用HTTP协议。
+        - `hosts`：允许访问这个Gateway的外部主机名列表。
+            - `"httpbin.example.com"`：外部访问访问此服务需要通过`httpbin.example.com`的域名。
+
+总结：这个配置文件定义了一个Gateway（名为httpbin-gateway），该Gateway允许外部请求通过主机名`httpbin.example.com`访问到Istio Service Mesh内部的服务，监听80端口并使用HTTP协议。
 
 
 
@@ -1660,6 +1874,29 @@ spec:
           number: 8000
         host: httpbin
 ```
+
+
+
+这是一个Istio VirtualService配置文件。其主要作用是来定义流量路由规则，将访问特定主机名（本例中为httpbin.example.com）的流量导向指定的Istio服务。以下是配置文件各个部分的解析：
+
+1. `apiVersion`：这个配置文件遵循的API版本，为networking.istio.io/v1alpha3。
+2. `kind`：配置类型为VirtualService。
+3. `metadata`：元数据部分。
+   - `name`：VirtualService的名称，为httpbin。
+4. `spec`：以下是具体的VirtualService规格配置。
+   1. `hosts`：流量路由规则适用的匹配域名列表。本例中，匹配域名为httpbin.example.com。
+   2. `gateways`：定义此VirtualService通过哪些Gateway发布。本例中，使用httpbin-gateway。
+   3. `http`：定义HTTP路由规则。
+       - `match`：用于匹配特定条件的流量。
+           - `uri`：根据请求URI进行匹配。
+               - 第一个匹配规则：匹配以/status开头的URL路径。
+               - 第二个匹配规则：匹配以/delay开头的URL路径。
+       - `route`：指定匹配规则后要执行的路由操作。
+           - `destination`：设定流量路由目标。
+               - `port`：目标服务的端口，本例中为8000。
+               - `host`：目标服务的主机名，本例中为httpbin。
+
+综上所述，这个配置文件定义了一个VirtualService，名为httpbin，用于将主机名为httpbin.example.com的流量，通过httpbin-gateway网关，根据相应的URL匹配将流量路由至目标服务httpbin的8000端口。
 
 
 
@@ -1788,6 +2025,24 @@ spec:
 
 
 
+这是一个新的Istio Gateway和VirtualService配置文件。
+
+Gateway配置部分：
+- `kind: Gateway` 定义了这是一个Gateway资源。
+- `metadata.name` 定义了Gateway的名称为：`httpbin-gateway`。
+- `spec.selector.istio` 使用默认的Istio ingressgateway。
+- `spec.servers` 部分定义了1个服务器，其使用了80端口，协议为HTTP，名称为http。此服务器接受来自任何host的请求（hosts设定为`*`）。
+
+VirtualService配置部分：
+- `kind: VirtualService` 定义了这是一个VirtualService资源。
+- `metadata.name` 定义了VirtualService的名称为：`httpbin`。
+- `spec.hosts` 设置了所有的主机（`*`）。
+- `spec.gateways` 将VirtualService绑定到之前创建的`httpbin-gateway`。
+- `spec.http.match` 包含一个匹配规则，要求URI路径以`/headers`作为前缀。
+- `spec.http.route.destination` 部分定义了匹配规则后的流量将被发送到`httpbin`服务的8000端口。
+
+此配置文件实现的功能是：将所有访问`httpbin.example.com`域名以及URL路径前缀为`/headers`的请求，通过`httpbin-gateway`网关转发至`httpbin`服务的8000端口。
+
 
 
 使用浏览器加 `/headers` 在群集外进行访问
@@ -1871,6 +2126,18 @@ export SOURCE_POD=$(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.n
 
 
 
+这个命令是用于在Kubernetes环境中找到并获取一个名为`sleep`的应用程序的pod名称，然后将名称保存在名为`SOURCE_POD`的环境变量中。
+
+让我逐步解释命令组件：
+
+1. `kubectl get pod -l app=sleep`: 这部分命令使用`kubectl`工具从Kubernetes集群中获取pod信息，并使用`-l app=sleep`参数来过滤仅具有标签`app=sleep`的pod。
+2. `-o jsonpath={.items..metadata.name}`: 这部分是一个输出格式化选项，它要求`kubectl`以JSON格式返回结果，并使用jsonpath表达式`{.items..metadata.name}`提取名称字段。这将返回一个名称列表，其中包括所有匹配的pod。
+3. `export SOURCE_POD=$(…)`: 此部分将前面提到的命令的输出（即找到的pod名称）保存到名为`SOURCE_POD`的环境变量中，以便于以后在其他命令中使用。
+
+此命令在某些场景中很有用，例如，您需要确定与特定应用程序关联的pod中的一个以便向其发送请求以进行测试。
+
+
+
 为外部httpbin服务创建service entry
 
 ```bash
@@ -1887,7 +2154,7 @@ nano istiolabmanual/egressse.yaml
 
 
 
-```bash
+```yaml
 apiVersion: networking.istio.io/v1alpha3
 kind: ServiceEntry
 metadata:
@@ -1901,6 +2168,27 @@ spec:
     protocol: HTTP
   resolution: DNS
 ```
+
+
+
+这是一个Istio的配置文件，定义了一个`ServiceEntry`资源。`ServiceEntry`资源用于为集群外提供的服务在Istio服务网格中创建条目，以便将这些外部服务视为网格中的服务。这使得Istio可以将流量路由到这些外部服务，并对其施加策略。
+
+以下是对这个配置文件的详细解析：
+
+1. `apiVersion: networking.istio.io/v1alpha3` ：这指定了Istio资源的版本以及使用的Istio API子集。
+2. `kind: ServiceEntry` ：此字段指定这是一个`ServiceEntry`资源。
+3. `metadata` ：包含此资源的元数据。
+   - `name: httpbin`： 为资源分配的名称为`httpbin`。
+4. `spec` ：定义`ServiceEntry`的具体配置。
+   - `hosts`： 列出与此资源关联的外部服务主机。
+     - `httpbin.org` ：此`ServiceEntry`将包含`httpbin.org`域。
+   - `ports`： 定义与外部服务关联的端口。
+     - `number: 80`：端口号为80。
+     - `name: http-port`：为端口分配的名称为`http-port`。
+     - `protocol: HTTP`：使用的通信协议为HTTP。
+   - `resolution: DNS`：指定如何解析外部服务的地址。此字段中使用的`DNS`值表示Istio将使用DNS解析来发现外部服务的IP。
+
+这个`ServiceEntry`配置允许Istio网格内的服务访问`httpbin.org`。这表示Istio将对`http://httpbin.org`的请求执行类似于集群内部服务的操作。因此，该配置可以帮助在Istio服务网格中实现请求的平滑路由、熔断、故障注入等功能。
 
 
 
@@ -2023,6 +2311,29 @@ spec:
 
 
 
+这是一个Istio Gateway配置文件。Gateway是一个用于加载入网格或从网格中注入流量的特殊Istio资源。在本例中，这是一个关于Istio egress网关的配置。Istio的egress网关允许你对出站流量进行安全、受控和观察能力的管理。
+
+让我们详细解析一下这个配置文件：
+
+- `apiVersion`: 使用的Istio API版本是`networking.istio.io/v1alpha3`。
+- `kind`: 此资源类型是`Gateway`。
+- `metadata`: 定义了资源的元数据。
+  - `name`: 资源的名称是`istio-egressgateway`。
+- `spec`: 描述了Gateway资源的配置：
+  - `selector`: 定义了哪些部署工作负载应与此Gateway关联。
+    - `istio: egressgateway`: 已选择Istio egressgateway工作负载。
+  - `servers`: 定义了与此Gateway关联的端口、协议和允许的主机。
+    - `port`: 定义了端口，协议和名称。
+      - `number: 80`： 端口号为80。
+      - `name: http`： 端口名称为http。
+      - `protocol: HTTP`： 协议是HTTP。
+    - `hosts`: 列出哪些主机可以使用这个Gateway。
+      - `httpbin.org`: 允许从这个网关访问`httpbin.org`。
+
+总结一下，这个Istio Gateway配置允许从网格的工作负载访问外部服务`httpbin.org`，通过Istio egress网关并使用HTTP协议在端口80上发起请求。
+
+
+
 查看gateway
 
 ```bash
@@ -2102,6 +2413,58 @@ spec:
 
 
 
+这个配置文件的目的是通过Istio Egress网关来控制和监控Kubernetes集群内部服务对外部服务（在这个例子中是`httpbin.org`）的访问。
+
+通过Istio的Egress网关，集群中的服务能够:
+
+1. 通过Istio管理和安全地访问外部服务：所有出站流量都会被引导到Istio Egress网关，从而实现了统一的流量控制和安全策略。
+2. 对访问外部服务的流量进行监控和跟踪：因为流量都经过Egress网关，所以Istio可以采集外部服务调用的指标数据，如延迟、错误率等。
+3. 灵活地通过配置应用路由规则：例如，在处理过程中对请求或响应进行修改，或者将流量引导到一个备用的外部服务上。
+4. 实施细粒度的访问控制策略：通过定义DestinationRule和VirtualService规则，可以有效地实施安全策略，例如为不同的服务设置不同的超时、重试、断路器策略等。
+
+具体到这个配置文件，有两个VirtualService和一个DestinationRule：
+
+1. 第一个VirtualService将集群内部服务发往`httpbin.org`的请求定向到Istio Egress网关。
+2. 第二个VirtualService将在Istio Egress网关收到的请求继续定向到`httpbin.org`。
+3. DestinationRule定义了访问Istio Egress网关的子集策略，包括负载平衡和连接池设置。这些设置可以为向外部服务发起的请求提供更好的性能和稳定性。
+
+
+
+这个配置文件定义了一个Istio VirtualService和一个DestinationRule，在Kubernetes集群中使用Istio egress网关访问外部服务`httpbin.org`。
+
+**VirtualService解析**
+
+1. `apiVersion`: 表示使用了Istio配置的版本，这里是`networking.istio.io/v1alpha3`。
+2. `kind`: 表示配置文件的类型，这里是VirtualService。
+3. `metadata`: 配置的元数据，其中定义了VirtualService的名称，这里是`vs-for-egressgateway`。
+4. `spec.hosts`: 定义了使用这个VirtualService的hosts，这里是`httpbin.org`。
+5. `spec.gateways`: 定义了应用此VirtualService的网关，这里包括`istio-egressgateway`（表示Istio egress网关）和`mesh`（表示Istio服务网格）。
+6. `spec.http`: 定义了HTTP路由规则。
+
+`spec.http`中有两个路由规则：
+* 第一个规则：
+  * 当入口网关是mesh，端口是80时，匹配该规则。
+  * 将请求路由到`istio-egressgateway.istio-system.svc.cluster.local`的httpbin子集，端口为80。
+  * 路由权重为100
+* 第二个规则：
+  * 当入口网关是istio-egressgateway，端口是80时，匹配该规则。
+  * 将请求路由到`httpbin.org`，端口为80。
+  * 路由权重为100
+
+首先, 请求从`mesh`中的服务提交至`istio-egressgateway`网关，然后，从网关转发至`httpbin.org`。
+
+**DestinationRule解析**
+
+1. `apiVersion`: 表示使用了Istio配置的版本，这里是`networking.istio.io/v1alpha3`。
+2. `kind`: 表示配置文件的类型，这里是DestinationRule。
+3. `metadata`: 配置的元数据，其中定义了DestinationRule的名称，这里是`dr-for-egressgateway`。
+4. `spec.host`: 定义了DestinationRule应用的主机，这里是`istio-egressgateway.istio-system.svc.cluster.local`（表示Istio egress网关的服务地址）。
+5. `spec.subsets`: 定义了主机的子集，这里有一个名为`httpbin`的子集。
+
+这个DestinationRule用于设置访问Istio egress网关时使用的子集策略，可以用于设置连接池、负载均衡等。
+
+
+
 查看Virtual Service 和Destination Rule信息
 
 ```bash
@@ -2170,6 +2533,20 @@ root@node1:~/istio-1.16.0# kubectl logs $SOURCE_POD -c istio-proxy | tail
 ```
 
 注意观察，启用了`egress gateway`之后此处的`upstream_cluster："outbound|80|httpbin|istio-egressgateway.istio-system.svc.cluster.local"`
+
+
+
+这个日志文件来源于名为`istio-proxy`的容器，它是Istio Sidecar代理。关于日志文件里的信息，主要包括以下几点：
+
+1. 在07:52:39.719382Z和07:52:39.719666Z，日志显示工作负载信任锚点从缓存中返回。这意味着Istio已经加载了与服务相关的证书，并缓存了它们。在这里，工作负载信任锚点主要用于验证其他服务的身份。
+
+2. 在07:52:39.719501Z和07:52:39.719557Z，日志显示Istio发送了一个SDS（Secret Discovery Service）推送请求。这里实现了安全通信所需证书的动态分发。
+
+3. 在07:52:40.051272Z和07:52:40.051666Z，日志显示Envoy代理的准备状况检查成功，Envoy代理已准备好处理外部请求。
+
+4. 在07:52:44.407739Z和07:52:44.407773Z，日志显示了一个向169.254.169.254发送的请求失败。这个IP通常是云服务器上的一个元数据服务器，用于从该服务器获取实例的元数据。这个警告可能与该请求的超时有关，但它不会影响我们的配置。
+
+5. 在2022-12-01T07:55:06.694Z和2022-12-01T08:01:34.332Z，本地服务向`httpbin.org`发起了两个请求，请求路径为`/ip`。在这两个请求中，都成功返回了HTTP状态码 200，表示请求已成功处理。注意，在第一个请求中，响应直接从`httpbin.org`（IP地址: 54.166.148.227）返回，在第二个请求中，响应先经过了我们之前配置的Istio Egress网关（Istio Egress Gateway 地址：10.244.135.13:8080），然后再路由至外部服务`httpbin.org`。这说明之前的Istio配置文件已成功生效，将流量导向了正确的路径。
 
 
 
