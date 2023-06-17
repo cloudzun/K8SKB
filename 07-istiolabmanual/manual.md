@@ -690,7 +690,7 @@ kubectl apply -f istio-1.16.0/samples/bookinfo/networking/destination-rule-all.y
 查看目标规则
 
 ```bash
-nano samples/bookinfo/networking/destination-rule-all.yaml
+nano istio-1.16.0/samples/bookinfo/networking/destination-rule-all.yaml
 ```
 
 
@@ -791,7 +791,7 @@ kubectl apply -f istio-1.16.0/samples/bookinfo/networking/virtual-service-all-v1
 查看该虚拟服务
 
 ```
-nano samples/bookinfo/networking/virtual-service-all-v1.yaml
+nano istio-1.16.0/samples/bookinfo/networking/virtual-service-all-v1.yaml
 ```
 
 
@@ -930,7 +930,7 @@ Jason同志应该可以看到黑星星
 查看该虚拟服务
 
 ```bash
-nano samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
+nano istio-1.16.0/samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
 ```
 
 ```yaml
@@ -1013,7 +1013,7 @@ kubectl apply -f istio-1.16.0/samples/bookinfo/networking/virtual-service-all-v1
 查看该虚拟服务
 
 ```bash
-nano samples/bookinfo/networking/virtual-service-all-v1.yaml
+nano istio-1.16.0/samples/bookinfo/networking/virtual-service-all-v1.yaml
 ```
 
 
@@ -1088,7 +1088,7 @@ kubectl apply -f istio-1.16.0/samples/bookinfo/networking/virtual-service-review
 查看该虚拟服务
 
 ```bash
-nano samples/bookinfo/networking/virtual-service-reviews-50-v3.yaml
+nano istio-1.16.0/samples/bookinfo/networking/virtual-service-reviews-50-v3.yaml
 ```
 
 
@@ -1136,7 +1136,7 @@ kubectl apply -f istio-1.16.0/samples/bookinfo/networking/virtual-service-review
 查看该虚拟服务
 
 ```bash
-nano samples/bookinfo/networking/virtual-service-reviews-v3.yaml
+nano istio-1.16.0/samples/bookinfo/networking/virtual-service-reviews-v3.yaml
 ```
 
 
@@ -1257,59 +1257,6 @@ test-gateway       62s
 
 
 
-查看该网关配置
-
-```bash
-kubectl describe gw test-gateway
-```
-
-
-
-```bash
-root@node1:~/istio-1.16.0# kubectl describe gw test-gateway
-Name:         test-gateway
-Namespace:    default
-Labels:       <none>
-Annotations:  <none>
-API Version:  networking.istio.io/v1beta1
-Kind:         Gateway
-Metadata:
-  Creation Timestamp:  2022-12-01T07:16:28Z
-  Generation:          1
-  Managed Fields:
-    API Version:  networking.istio.io/v1alpha3
-    Fields Type:  FieldsV1
-    fieldsV1:
-      f:metadata:
-        f:annotations:
-          .:
-          f:kubectl.kubernetes.io/last-applied-configuration:
-      f:spec:
-        .:
-        f:selector:
-          .:
-          f:istio:
-        f:servers:
-    Manager:         kubectl-client-side-apply
-    Operation:       Update
-    Time:            2022-12-01T07:16:28Z
-  Resource Version:  7717
-  UID:               93077ab8-0f8d-42ef-94d3-d9fa718f5b83
-Spec:
-  Selector:
-    Istio:  ingressgateway
-  Servers:
-    Hosts:
-      *
-    Port:
-      Name:      http
-      Number:    80
-      Protocol:  HTTP
-Events:          <none>
-```
-
-
-
 增加虚拟服务
 
 ```bash
@@ -1393,64 +1340,6 @@ root@node1:~/istio-1.16.0# kubectl get vs
 NAME           GATEWAYS               HOSTS   AGE
 bookinfo       ["bookinfo-gateway"]   ["*"]   18m
 test-gateway   ["test-gateway"]       ["*"]   100s
-```
-
-
-
-查看该虚拟服务配置
-
-```bash
-kubectl describe vs test-gateway
-```
-
-
-
-```bash
-root@node1:~/istio-1.16.0# kubectl describe vs test-gateway
-Name:         test-gateway
-Namespace:    default
-Labels:       <none>
-Annotations:  <none>
-API Version:  networking.istio.io/v1beta1
-Kind:         VirtualService
-Metadata:
-  Creation Timestamp:  2022-12-01T07:18:53Z
-  Generation:          1
-  Managed Fields:
-    API Version:  networking.istio.io/v1alpha3
-    Fields Type:  FieldsV1
-    fieldsV1:
-      f:metadata:
-        f:annotations:
-          .:
-          f:kubectl.kubernetes.io/last-applied-configuration:
-      f:spec:
-        .:
-        f:gateways:
-        f:hosts:
-        f:http:
-    Manager:         kubectl-client-side-apply
-    Operation:       Update
-    Time:            2022-12-01T07:18:53Z
-  Resource Version:  8001
-  UID:               329eb5c3-4518-4f32-b541-8399c282511f
-Spec:
-  Gateways:
-    test-gateway
-  Hosts:
-    *
-  Http:
-    Match:
-      Uri:
-        Prefix:  /details
-      Uri:
-        Exact:  /health
-    Route:
-      Destination:
-        Host:  details
-        Port:
-          Number:  9080
-Events:            <none>
 ```
 
 
@@ -1645,55 +1534,12 @@ spec:
 kubectl get se
 ```
 
-```bash
-kubectl describe se httpbin-ext
-```
-
 
 
 ```bash
 root@node1:~/istio-1.16.0# kubectl get se
 NAME          HOSTS             LOCATION        RESOLUTION   AGE
 httpbin-ext   ["httpbin.org"]   MESH_EXTERNAL   DNS          75s
-root@node1:~/istio-1.16.0# kubectl describe se httpbin-ext
-Name:         httpbin-ext
-Namespace:    default
-Labels:       <none>
-Annotations:  <none>
-API Version:  networking.istio.io/v1beta1
-Kind:         ServiceEntry
-Metadata:
-  Creation Timestamp:  2022-12-01T07:34:56Z
-  Generation:          1
-  Managed Fields:
-    API Version:  networking.istio.io/v1alpha3
-    Fields Type:  FieldsV1
-    fieldsV1:
-      f:metadata:
-        f:annotations:
-          .:
-          f:kubectl.kubernetes.io/last-applied-configuration:
-      f:spec:
-        .:
-        f:hosts:
-        f:location:
-        f:ports:
-        f:resolution:
-    Manager:         kubectl-client-side-apply
-    Operation:       Update
-    Time:            2022-12-01T07:34:56Z
-  Resource Version:  10086
-  UID:               df96eb55-35a1-46c0-9d1e-897d78dca7c4
-Spec:
-  Hosts:
-    httpbin.org
-  Location:  MESH_EXTERNAL
-  Ports:
-    Name:      http
-    Number:    80
-    Protocol:  HTTP
-  Resolution:  DNS
-Events:        <none>
 ```
 
 
@@ -1878,7 +1724,7 @@ nano istiolabmanual/ingressvs.yaml
 
 
 
-```bash
+```yaml
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
@@ -2013,7 +1859,7 @@ nano istiolabmanual/ingressgateway2.yaml
 
 
 
-```bash
+```yaml
 apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
@@ -2273,6 +2119,22 @@ root@node1:~/istio-1.16.0# kubectl logs $SOURCE_POD -c istio-proxy | tail
 [2022-12-01T07:55:06.694Z] "GET /ip HTTP/1.1" 200 - via_upstream - "-" 0 31 608 607 "-" "curl/7.81.0-DEV" "e839b6e0-060c-9c78-9f97-26dda40d94d0" "httpbin.org" "54.166.148.227:80" outbound|80||httpbin.org 10.244.104.16:55424 3.215.37.86:80 10.244.104.16:43594 - default
 ```
 
+这是从名为 sleep 的 Kubernetes 容器内的 istio-proxy （Envoy 代理）日志中提取的一段日志信息。我会为你逐条解释这些日志：
+
+1. `2022-12-01T07:52:39.719206Z` 和 `2022-12-01T07:52:39.719382Z` 分别表示返回了请求的 workload 证书和 trust anchor 的缓存，这是与 Istio 的证书管理和安全通信相关的条目。
+
+2. `2022-12-01T07:52:39.719501Z` 和 `2022-12-01T07:52:39.719557Z` 是与 Envoy 代理更新密钥和证书相关的信息（SDS 即 Secret Discovery Service 的推送）。
+
+3. `2022-12-01T07:52:39.719666Z` 表示又一次返回了请求的 workload trust anchor 的缓存。
+
+4. `2022-12-01T07:52:40.051272Z` 和 `2022-12-01T07:52:40.051666Z` 说明 Envoy 代理已经通过准备就绪检查，现在可以正常提供服务了。
+
+5. `2022-12-01T07:52:44.407739Z` 和 `2022-12-01T07:52:44.407773Z` 是警告信息，表示发送到 `http://169.254.169.254/metadata/instance` 的 HTTP 请求因超时而失败。这可能是因为在请求元数据时出现了问题，或者请求的目标服务不可用。
+
+6. 最后一条日志 `[2022-12-01T07:55:06.694Z] "GET /ip HTTP/1.1" 200 - via_upstream - "-" 0 31 608 607 "-" "curl/7.81.0-DEV" "e839b6e0-060c-9c78-9f97-26dda40d94d0" "httpbin.org" "54.166.148.227:80" outbound|80||httpbin.org 10.244.104.16:55424 3.215.37.86:80 10.244.104.16:43594 - default` 是一个访问 httpbin.org 的 GET 请求，请求的路径是 `/ip`。HTTP 响应状态为 200，表示请求成功。这个请求是通过 `curl/7.81.0-DEV` 客户端发起的，并在 Istio 服务网格中通过 Envoy 代理完成了路由。
+
+这个日志的内容主要与 Envoy 代理的启动、证书更新以及通过代理处理的 HTTP 请求有关。
+
 注意观察，此处的`upstream_cluster："outbound|80||httpbin.org"`
 
 
@@ -2491,6 +2353,27 @@ spec:
 
 
 
+当然可以。我为您提供了一个简化的 mermaid 序列图来表示配置文件中的路由过程。
+
+```mermaid
+sequenceDiagram
+participant Client as Client
+participant IstioMesh as Istio Mesh
+participant EgressGateway as Istio Egress Gateway
+participant HttpbinOrg as httpbin.org
+
+Client->>IstioMesh: HTTP Request (httpbin.org)
+IstioMesh->>EgressGateway: Route to Egress Gateway (subset: httpbin, port: 80)
+EgressGateway->>HttpbinOrg: Forward request (host: httpbin.org, port: 80)
+HttpbinOrg->>EgressGateway: FORWARD_RESPONSE
+EgressGateway->>IstioMesh: FORWARD_RESPONSE
+IstioMesh->>Client: HTTP Response (httpbin.org)
+```
+
+在这个图中，首先，客户端发送一个请求到 Istio 服务网格，目标是 httpbin.org。服务网格将请求路由到 Istio egress 网关（使用 httpbin 子集和端口 80）。接下来，Istio egress 网关将请求转发给 httpbin.org（使用端口 80）。来自 httpbin.org 的响应经过 Istio egress 网关和 Istio 服务网格，最后被发送给客户端。
+
+
+
 查看Virtual Service 和Destination Rule信息
 
 ```bash
@@ -2560,19 +2443,7 @@ root@node1:~/istio-1.16.0# kubectl logs $SOURCE_POD -c istio-proxy | tail
 
 注意观察，启用了`egress gateway`之后此处的`upstream_cluster："outbound|80|httpbin|istio-egressgateway.istio-system.svc.cluster.local"`
 
-
-
-这个日志文件来源于名为`istio-proxy`的容器，它是Istio Sidecar代理。关于日志文件里的信息，主要包括以下几点：
-
-1. 在07:52:39.719382Z和07:52:39.719666Z，日志显示工作负载信任锚点从缓存中返回。这意味着Istio已经加载了与服务相关的证书，并缓存了它们。在这里，工作负载信任锚点主要用于验证其他服务的身份。
-
-2. 在07:52:39.719501Z和07:52:39.719557Z，日志显示Istio发送了一个SDS（Secret Discovery Service）推送请求。这里实现了安全通信所需证书的动态分发。
-
-3. 在07:52:40.051272Z和07:52:40.051666Z，日志显示Envoy代理的准备状况检查成功，Envoy代理已准备好处理外部请求。
-
-4. 在07:52:44.407739Z和07:52:44.407773Z，日志显示了一个向169.254.169.254发送的请求失败。这个IP通常是云服务器上的一个元数据服务器，用于从该服务器获取实例的元数据。这个警告可能与该请求的超时有关，但它不会影响我们的配置。
-
-5. 在2022-12-01T07:55:06.694Z和2022-12-01T08:01:34.332Z，本地服务向`httpbin.org`发起了两个请求，请求路径为`/ip`。在这两个请求中，都成功返回了HTTP状态码 200，表示请求已成功处理。注意，在第一个请求中，响应直接从`httpbin.org`（IP地址: 54.166.148.227）返回，在第二个请求中，响应先经过了我们之前配置的Istio Egress网关（Istio Egress Gateway 地址：10.244.135.13:8080），然后再路由至外部服务`httpbin.org`。这说明之前的Istio配置文件已成功生效，将流量导向了正确的路径。
+在2022-12-01T07:55:06.694Z和2022-12-01T08:01:34.332Z，本地服务向`httpbin.org`发起了两个请求，请求路径为`/ip`。在这两个请求中，都成功返回了HTTP状态码 200，表示请求已成功处理。注意，在第一个请求中，响应直接从`httpbin.org`（IP地址: 54.166.148.227）返回，在第二个请求中，响应先经过了我们之前配置的Istio Egress网关（Istio Egress Gateway 地址：10.244.135.13:8080），然后再路由至外部服务`httpbin.org`。这说明之前的Istio配置文件已成功生效，将流量导向了正确的路径。
 
 
 
@@ -2933,76 +2804,34 @@ spec:
 
 总之，这个配置定义了一个针对`httpbin`服务的`DestinationRule`，限制其连接池中TCP最大连接为1，HTTP请求的最大等待数量为1，每个TCP连接上的最大HTTP请求数为1。另外，异常检测策略产生效果时，异常的服务实例迅速被逐出。注意这里的资源限制非常严格，实际生产环境中根据需要进行调整。
 
+以下是一个简化的 Mermaid 图，用于表示熔断器控制循环流程图。
 
-
-查看DestinationRule 
-
-```bash
-kubectl describe dr httpbin 
+```mermaid
+graph TD
+  A(客户端请求) --> B(熔断器)
+  B --> C1(连接池配置)
+  C1 --> C1a(TCP: 最大连接数 - 1)
+  C1 --> C1b(HTTP: 最大挂起请求数 - 1)
+  C1 --> C1c(HTTP: 每个连接的最大请求数 - 1)
+  B --> D1(异常检测)
+  D1 --> D1a(基于错误的Ejection)
+  D1a --> E1a1(连续5xx错误 - 1次)
+  E1a1 --> f1(熔断开启)
+  D1 --> E1b(检测间隔 - 1s)
+  D1 --> E1c(基本驱逐时间 - 3m)
+  D1 --> E1d(最大驱逐百分比 - 100%)
+  B --> F(熔断状态)
+  f1 --> F
+  F --> G(请求被拒绝)
+  F --> H(请求通过)
+  G --> I1(熔断结束)
+  H --> I2(熔断结束)
+  I1 --> J(恢复请求)
+  I2 --> J(恢复请求)
+  J --> A(客户端请求)
 ```
 
-
-
-```bash
-root@node1:~/istio-1.16.0# kubectl describe dr httpbin
-Name:         httpbin
-Namespace:    default
-Labels:       <none>
-Annotations:  <none>
-API Version:  networking.istio.io/v1beta1
-Kind:         DestinationRule
-Metadata:
-  Creation Timestamp:  2022-12-01T09:01:01Z
-  Generation:          1
-  Managed Fields:
-    API Version:  networking.istio.io/v1alpha3
-    Fields Type:  FieldsV1
-    fieldsV1:
-      f:metadata:
-        f:annotations:
-          .:
-          f:kubectl.kubernetes.io/last-applied-configuration:
-      f:spec:
-        .:
-        f:host:
-        f:trafficPolicy:
-          .:
-          f:connectionPool:
-            .:
-            f:http:
-              .:
-              f:http1MaxPendingRequests:
-              f:maxRequestsPerConnection:
-            f:tcp:
-              .:
-              f:maxConnections:
-          f:outlierDetection:
-            .:
-            f:baseEjectionTime:
-            f:consecutive5xxErrors:
-            f:interval:
-            f:maxEjectionPercent:
-    Manager:         kubectl-client-side-apply
-    Operation:       Update
-    Time:            2022-12-01T09:01:01Z
-  Resource Version:  20544
-  UID:               8db2a2a8-f121-4707-a8d3-9ce8e8f4f449
-Spec:
-  Host:  httpbin
-  Traffic Policy:
-    Connection Pool:
-      Http:
-        http1MaxPendingRequests:      1
-        Max Requests Per Connection:  1
-      Tcp:
-        Max Connections:  1
-    Outlier Detection:
-      Base Ejection Time:    3m
-      consecutive5xxErrors:  1
-      Interval:              1s
-      Max Ejection Percent:  100
-Events:                      <none>
-```
+这个流程图展示了熔断器的控制循环，包括客户端请求、熔断器、连接池设置、异常检测、熔断状态和请求恢复。熔断状态可能处于开启或关闭状态。在开启状态下，请求会被拒绝；在关闭状态下，请求会通过。根据您提供的熔断器配置，触发熔断开启的条件是连续5xx错误达到1次。熔断器的连接池配置与异常检测中的其他参数也在流程图中标注出来。
 
 
 
@@ -3238,25 +3067,21 @@ cluster.outbound|8000||httpbin.default.svc.cluster.local.upstream_rq_pending_tot
 
  `overflow`即是被熔断的访问次数
 
-这个输出是通过在 Fortio Pod 的 Istio-Proxy 容器上执行 `pilot-agent request GET stats` 命令来收集有关 `httpbin` 服务的 Envoy 代理统计信息。然后使用 `grep` 命令过滤特定的统计数据，关注于 httpbin 服务的 pending 请求。
+这个输出是通过在 Fortio Pod 的 Istio-Proxy 容器上执行 `pilot-agent request GET stats` 命令来收集有关 `httpbin` 服务的 Envoy 代理统计信息。然后使用 `grep` 命令过滤特定的统计数据，关注于 httpbin 服务的 pending 请求。根据输出中的统计信息，可以总结出以下关于熔断效果的观察结果：
 
-以下是每行输出的解释：
+1. 在 `httpbin.default.svc.cluster.local` 服务上，熔断器成功阻止了一些请求进入系统。可以从 `upstream_rq_pending_overflow` 的值（42）看出，有 42 个请求因为达到最大挂起请求阈值而未能进入系统。
 
-1. `cluster.outbound|8000||httpbin.default.svc.cluster.local.circuit_breakers.default.remaining_pending: 1`：默认熔断器设置下，剩余可处理的 pending 请求数量为 1。
+2. 至于剩余挂起的请求数量(`remaining_pending`)为 1，这意味着当前允许挂起的请求仅剩下 1 个。
 
-2. `cluster.outbound|8000||httpbin.default.svc.cluster.local.circuit_breakers.default.rq_pending_open: 0`：默认熔断器设置下，尚未打开的 pending 请求数量为 0。
+3. 关于 `rq_pending_open` 的值为 0，表示没有触发熔断开关的情况，这意味着熔断器仍然处于关闭状态。
 
-3. `cluster.outbound|8000||httpbin.default.svc.cluster.local.circuit_breakers.high.rq_pending_open: 0`：高优先级熔断器设置下，尚未打开的 pending 请求数量为 0。
+4. 对于 `upstream_rq_pending_active` 的值为 0，意味着目前系统内没有积压的挂起请求。
 
-4. `cluster.outbound|8000||httpbin.default.svc.cluster.local.upstream_rq_pending_active: 0`：向上游 httpbin 服务发送的当前活动的 pending 请求数量为 0。
+5. 关于 `upstream_rq_pending_failure_eject` 的值为 0，表示没有触发失败的请求。
 
-5. `cluster.outbound|8000||httpbin.default.svc.cluster.local.upstream_rq_pending_failure_eject: 0`：由于连接池的失败导致的从 pending 请求中移除的请求数量为 0。
+6. 最后，`upstream_rq_pending_total` 的值为 29，这表示总共有 29 个请求处于挂起状态。
 
-6. `cluster.outbound|8000||httpbin.default.svc.cluster.local.upstream_rq_pending_overflow: 42`：向上游 httpbin 服务的 pending 请求溢出计数为 42。这意味着有关此服务的 42 个请求因连接池已满而被拒绝。
-
-7. `cluster.outbound|8000||httpbin.default.svc.cluster.local.upstream_rq_pending_total: 29`：自上游 httpbin 服务启动以来的所有 pending 请求总数为 29。
-
-这些统计信息有助于了解与 httpbin 服务相关的请求性能，例如熔断器设置、请求排队情况以及由于连接池溢出导致的请求拒绝。
+总体来说，熔断器对 `httpbin.default.svc.cluster.local` 服务产生了作用，有限制地允许请求进入系统，并防止系统过载。在这种配置下，熔断器成功地保护了服务，确保不会因为达到最大负载而崩溃。
 
 
 
@@ -3300,7 +3125,7 @@ kubectl apply -f istio-1.16.0/samples/bookinfo/networking/virtual-service-rating
 查看延时故障配置文件
 
 ```bash
-nano samples/bookinfo/networking/virtual-service-ratings-test-delay.yaml
+nano istio-1.16.0/samples/bookinfo/networking/virtual-service-ratings-test-delay.yaml
 ```
 
 
@@ -3388,7 +3213,7 @@ kubectl apply -f istio-1.16.0/samples/bookinfo/networking/virtual-service-rating
 查看注入故障配置文件
 
 ```bash
-nano samples/bookinfo/networking/virtual-service-ratings-test-abort.yaml
+nano istio-1.16.0/samples/bookinfo/networking/virtual-service-ratings-test-abort.yaml
 ```
 
 
@@ -3607,35 +3432,6 @@ spec:
    - `app: httpbin`：选择app标签值为httpbin的Pod。这匹配了之前提到的httpbin-v1 Deployment创建的带有相同app标签的Pod。
 
 总的来说，这个配置文件定义了一个名为httpbin的Service，它监听8000端口并将请求转发到后端标签为'app: httpbin'的Pod的80端口。
-
-
-
-查看服务
-
-```bash
-kubectl describe svc httpbin
-```
-
-
-
-```bash
-root@node1:~/istio-1.16.0# kubectl describe svc httpbin
-Name:              httpbin
-Namespace:         default
-Labels:            app=httpbin
-Annotations:       <none>
-Selector:          app=httpbin
-Type:              ClusterIP
-IP Family Policy:  SingleStack
-IP Families:       IPv4
-IP:                10.106.199.214
-IPs:               10.106.199.214
-Port:              http  8000/TCP
-TargetPort:        80/TCP
-Endpoints:         10.244.104.18:80,10.244.135.16:80
-Session Affinity:  None
-Events:            <none>
-```
 
 
 
@@ -5360,7 +5156,7 @@ kubectl apply -f istiolabmanual/jwtra.yaml
 
 查看验证策略
 
-```
+```bash
 nano istiolabmanual/jwtra.yaml
 ```
 
