@@ -98,13 +98,13 @@ Thank you for installing Istio 1.16.  Please take a few minutes to tell us about
 安装仪表板：
 
 ```bash
-kubectl apply -f samples/addons
+kubectl apply -f istio-1.16.0/addons
 ```
 
 
 
 ```bash
-controlplane $ kubectl apply -f samples/addons
+controlplane $ kubectl apply -f istio-1.16.0/addons
 serviceaccount/grafana created
 configmap/grafana created
 service/grafana created
@@ -299,7 +299,7 @@ kubectl label namespace default istio-injection=enabled
 安装 bookinfo
 
 ```bash
-kubectl apply -f samples/bookinfo/platform/kube/bookinfo.yaml
+kubectl apply -f istio-1.16.0/bookinfo/platform/kube/bookinfo.yaml
 ```
 
 
@@ -307,7 +307,7 @@ kubectl apply -f samples/bookinfo/platform/kube/bookinfo.yaml
 ```bash
 controlplane $ kubectl label namespace default istio-injection=enabled
 namespace/default labeled
-controlplane $ kubectl apply -f samples/bookinfo/platform/kube/bookinfo.yaml
+controlplane $ kubectl apply -f istio-1.16.0/bookinfo/platform/kube/bookinfo.yaml
 service/details created
 serviceaccount/bookinfo-details created
 deployment.apps/details-v1 created
@@ -582,6 +582,8 @@ Events:
   Warning  Unhealthy  33s (x4 over 35s)  kubelet            Readiness probe failed: Get "http://192.168.0.7:15021/healthz/ready": dial tcp 192.168.0.7:15021: connect: connection refused
 ```
 
+这个配置文件包含了 `productpage` 和 `istio-proxy` 容器的详细设置。`productpage` 容器是一个微服务，用于呈现书店示例的产品页面。`istio-proxy` 容器是 istio sidecar 代理，提供了流量管理、安全和观察功能。这两个容器共同工作，以支持该 Pod 的功能。
+
 
 
 检查productpage页面访问
@@ -602,7 +604,7 @@ controlplane $ kubectl exec -it $(kubectl get pod -l app=ratings -o jsonpath='{.
 启动默认网关
 
 ```bash
-kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
+kubectl apply -f istio-1.16.0/bookinfo/networking/bookinfo-gateway.yaml
 ```
 
 
@@ -610,7 +612,7 @@ kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
 使用默认目标规则
 
 ```bash
-kubectl apply -f samples/bookinfo/networking/destination-rule-all.yaml
+kubectl apply -f istio-1.16.0/bookinfo/networking/destination-rule-all.yaml
 ```
 
 
@@ -653,7 +655,7 @@ echo http://$GATEWAY_URL/productpage
 
 
 ```bash
-controlplane $ kubectl apply -f samples/bookinfo/networking/destination-rule-all.yaml
+controlplane $ kubectl apply -f istio-1.16.0/bookinfo/networking/destination-rule-all.yaml
 destinationrule.networking.istio.io/productpage created
 destinationrule.networking.istio.io/reviews created
 destinationrule.networking.istio.io/ratings created
@@ -680,7 +682,7 @@ controlplane $
 （可选）启用默认目标规则
 
 ```bash
-kubectl apply -f samples/bookinfo/networking/destination-rule-all.yaml
+kubectl apply -f istio-1.16.0/bookinfo/networking/destination-rule-all.yaml
 ```
 
 
@@ -781,7 +783,7 @@ spec:
 创建将`review`流量都指向`v1`虚拟服务
 
 ```bash
-kubectl apply -f samples/bookinfo/networking/virtual-service-all-v1.yaml
+kubectl apply -f istio-1.16.0/bookinfo/networking/virtual-service-all-v1.yaml
 ```
 
 
@@ -991,7 +993,7 @@ kubectl delete -f samples/bookinfo/networking/virtual-service-reviews-test-v2.ya
 （可选）启用默认目标规则
 
 ```bash
-kubectl apply -f samples/bookinfo/networking/destination-rule-all.yaml
+kubectl apply -f istio-1.16.0/bookinfo/networking/destination-rule-all.yaml
 ```
 
 
@@ -1003,7 +1005,7 @@ kubectl apply -f samples/bookinfo/networking/destination-rule-all.yaml
 将所有流量指向`reviews:v1`
 
 ```bash
-kubectl apply -f samples/bookinfo/networking/virtual-service-all-v1.yaml
+kubectl apply -f istio-1.16.0/bookinfo/networking/virtual-service-all-v1.yaml
 ```
 
 
@@ -1078,7 +1080,7 @@ spec:
 将`50%` 的流量从 `reviews:v1` 转移到 `reviews:v3`
 
 ```bash
-kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-50-v3.yaml
+kubectl apply -f istio-1.16.0/bookinfo/networking/virtual-service-reviews-50-v3.yaml
 ```
 
 
@@ -1126,7 +1128,7 @@ spec:
 将 `100%` 的流量路由到 `reviews:v3`
 
 ```bash
-kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v3.yaml
+kubectl apply -f istio-1.16.0/bookinfo/networking/virtual-service-reviews-v3.yaml
 ```
 
 
@@ -1477,7 +1479,7 @@ kubectl delete -f istiolabmanual/virtualservice.yaml
 安装sleep应用
 
 ```bash
-kubectl apply -f samples/sleep/sleep.yaml
+kubectl apply -f istio-1.16.0/sleep/sleep.yaml
 ```
 
 
@@ -1728,7 +1730,7 @@ istioctl install --set profile=demo -y
 创建httpbin服务
 
 ```bash
-kubectl apply -f samples/httpbin/httpbin.yaml
+kubectl apply -f istio-1.16.0/httpbin/httpbin.yaml
 ```
 
 
@@ -2137,7 +2139,7 @@ istio-egressgateway-d84b5f89f-558m4    1/1     Running   0          12m
 安装sleep应用
 
 ```bash
-kubectl apply -f samples/sleep/sleep.yaml
+kubectl apply -f istio-1.16.0/sleep/sleep.yaml
 ```
 
 
@@ -2592,7 +2594,7 @@ kubectl delete -f istiolabmanual/egressvs.yaml 
 （可选）加载default destination rules.
 
 ```bash
-kubectl apply -f samples/bookinfo/networking/destination-rule-all.yaml
+kubectl apply -f istio-1.16.0/bookinfo/networking/destination-rule-all.yaml
 ```
 
 
@@ -2863,7 +2865,7 @@ kubectl delete -f samples/bookinfo/networking/virtual-service-all-v1.yaml
 部署httpin服务
 
 ```bash
-kubectl apply -f samples/httpbin/httpbin.yaml
+kubectl apply -f istio-1.16.0/httpbin/httpbin.yaml
 ```
 
 
@@ -3007,7 +3009,7 @@ Events:                      <none>
 安装测试工具
 
 ```bash
-kubectl apply -f samples/httpbin/sample-client/fortio-deploy.yaml
+kubectl apply -f istio-1.16.0/httpbin/sample-client/fortio-deploy.yaml
 ```
 
 
@@ -3275,8 +3277,8 @@ kubectl delete svc httpbin fortio
 启用路由策略
 
 ```bash
-kubectl apply -f samples/bookinfo/networking/virtual-service-all-v1.yaml
-kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
+kubectl apply -f istio-1.16.0/bookinfo/networking/virtual-service-all-v1.yaml
+kubectl apply -f istio-1.16.0/bookinfo/networking/virtual-service-reviews-test-v2.yaml
 ```
 
 
@@ -3290,7 +3292,7 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-test-v2.yam
 注入延时故障
 
 ```bash
-kubectl apply -f samples/bookinfo/networking/virtual-service-ratings-test-delay.yaml
+kubectl apply -f istio-1.16.0/bookinfo/networking/virtual-service-ratings-test-delay.yaml
 ```
 
 
@@ -3378,7 +3380,7 @@ spec:
 注入异常中断故障
 
 ```bash
-kubectl apply -f samples/bookinfo/networking/virtual-service-ratings-test-abort.yaml
+kubectl apply -f istio-1.16.0/bookinfo/networking/virtual-service-ratings-test-abort.yaml
 ```
 
 
@@ -3640,7 +3642,7 @@ Events:            <none>
 启动sleep服务
 
 ```bash
-kubectl apply -f samples/sleep/sleep.yaml
+kubectl apply -f istio-1.16.0/sleep/sleep.yaml
 ```
 
 
@@ -5051,8 +5053,8 @@ kubectl apply -f <(istioctl kube-inject -f samples/sleep/sleep.yaml) -n bar
 
 ```bash
 kubectl create ns legacy
-kubectl apply -f samples/httpbin/httpbin.yaml -n legacy
-kubectl apply -f samples/sleep/sleep.yaml -n legacy
+kubectl apply -f istio-1.16.0/httpbin/httpbin.yaml -n legacy
+kubectl apply -f istio-1.16.0/sleep/sleep.yaml -n legacy
 ```
 
 
@@ -5746,7 +5748,7 @@ kubectl logs -f productpage-xxx istio-proxy
 安装仪表板： 
 
 ```bash
-kubectl apply -f samples/addons
+kubectl apply -f istio-1.16.0/addons
 ```
 
 
