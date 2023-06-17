@@ -5063,7 +5063,19 @@ kubectl apply -f samples/sleep/sleep.yaml -n legacy
 for from in "foo" "bar" "legacy"; do for to in "foo" "bar"; do kubectl exec $(kubectl get pod -l app=sleep -n ${from} -o jsonpath={.items..metadata.name}) -c sleep -n ${from} -- curl http://httpbin.${to}:8000/ip -s -o /dev/null -w "sleep.${from} to httpbin.${to}: %{http_code}\n"; done; done
 ```
 
-  两两互通，和谐
+  这是一个用于测试连接和HTTP响应状态的Shell命令。这个命令在几个不同的命名空间（foo、bar和legacy）中运行sleep Pod，并尝试向HTTP服务器（httpbin）发送请求。以下是对这个命令的详细解释：
+
+1. 外层for循环：遍历"foo" "bar" "legacy"三个命名空间。${from}变量代表当前循环的命名空间名称。
+2. 内层for循环：遍历"foo" "bar"两个命名空间。${to}变量代表当前循环的目标命名空间名称。
+3. kubectl get pod：在${from}命名空间中获取带有'app=sleep'标签的Pod，并用`-o jsonpath={.items..metadata.name}`选项来提取Pod名称。
+4. kubectl exec：在${from}命名空间中执行指定的Pod（带有'app=sleep'标签的Pod）和sleep容器。后面的`--`表示执行的命令将在Pod内部运行。
+5. curl命令：执行HTTP请求。访问目标URL：http://httpbin.${to}:8000/ip。使用-s选项使输出无声，-o /dev/null将返回的内容重定向到/dev/null，最后，-w "sleep.${from} to httpbin.${to}: %{http_code}\n"将显示每次请求的源和目标以及返回的HTTP状态代码。
+
+因此，这个命令的目的是检查在不同命名空间中的sleep Pod与其他命名空间中的httpbin服务之间的连接情况。最终，每个请求的源和目标以及HTTP状态代码将被输出。
+
+
+
+两两互通，和谐
 
 ```bash
 root@node1:~/istio-1.16.0# for from in "foo" "bar" "legacy"; do for to in "foo" "bar"; do kubectl exec $(kubectl get pod -l app=sleep -n ${from} -o jsonpath={.items..metadata.name}) -c sleep -n ${from} -- curl http://httpbin.${to}:8000/ip -s -o /dev/null -w "sleep.${from} to httpbin.${to}: %{http_code}\n"; done; done
@@ -5127,6 +5139,18 @@ spec:
     mode: PERMISSIVE
 ```
 
+这是一个Istio的`PeerAuthentication`资源配置文件。它用于定义服务之间的认证策略，主要用于配置mTLS（双向TLS）行为。下面是关于这个配置文件的详细解释：
+
+1. `apiVersion: "security.istio.io/v1beta1"`：指定资源对象使用的API版本，这里用的是Istio Security API的v1beta1版本。
+2. `kind: "PeerAuthentication"`：资源对象的Kind（类型），表示这是一个`PeerAuthentication`资源。
+3. `metadata`：元数据部分，其中包含资源对象的名称和其他相关信息。
+   - `name: "default"`：资源对象的名称为"default"。
+4. `spec`：配置的具体细节：
+   - `mtls`：定义mTLS的配置。
+     - `mode: PERMISSIVE`：设置mTLS模式为"PERMISSIVE"。在这种模式下，服务可以同时接收使用TLS加密或者未加密的流量。这将允许任何能与服务通信的来源发送请求，而无论其是否使用TLS。
+
+总之，这个配置文件定义了一个名为"default"的`PeerAuthentication`资源，该资源将服务的mTLS模式设置为"PERMISSIVE"，允许服务接收来自其他使用或不使用TLS加密的服务的请求。这通常用于平滑升级和过渡，但请注意，这样的设置可能会降低安全性。在需要保证较高安全性的场景下，可以考虑使用更严格的模式，如"STRICT"。
+
 
 
 查看这三个名称空间的相互访问情况
@@ -5176,6 +5200,10 @@ spec:
   mtls:
     mode: STRICT
 ```
+
+在这个配置文件中，唯一不同的部分是`spec`下的`mtls`设置。`mode`的值从"PERMISSIVE"变为了"STRICT"。
+
+这意味着在Istio服务网格中，mTLS（双向TLS）策略已经升级为"STRICT"模式。在此模式下，只有使用TLS加密的流量才能通过认证。与刚才的"PERMISSIVE"模式相比，"STRICT"模式提供了更高的安全性，因为它要求所有流量都进行加密。在"STRICT"模式下，不允许未加密的流量进入服务。
 
 
 
@@ -5301,7 +5329,22 @@ root@node1:~/istio-1.16.0# kubectl exec $(kubectl get pod -l app=sleep -n foo -o
 200
 ```
 
-  一切正常，本来就是by default的吗
+这个命令行包含了几个子命令，组合在一起完成了在命名空间`foo`下的`sleep` Pod内部检查`http://httpbin.foo:8000/ip`的HTTP响应状态的操作。让我们逐段分解这个命令行。
+
+1. `$(kubectl get pod -l app=sleep -n foo -o jsonpath={.items..metadata.name})`：这个子命令用于获取命名空间`foo`下的带有`app=sleep`标签的Pod的名称。`-o jsonpath={.items..metadata.name}`表示仅输出Pod的名称。
+
+2. `kubectl exec`：这是一个用于在当前运行的Kubernetes Pod中执行命令的命令行工具。
+
+3. `-c sleep`：这个选项表示在`sleep`容器中执行命令。
+
+4. `-n foo`：这个选项表示在命名空间`foo`下执行操作。
+
+5. `-- curl http://httpbin.foo:8000/ip -s -o /dev/null -w "%{http_code}\n"`：这是在`sleep`容器中执行的curl命令。该命令访问`http://httpbin.foo:8000/ip`并返回响应状态。`-s`表示静默模式，用于不显示输出的进度指示或错误消息。`-o /dev/null`表示将响应的主体输出重定向到`/dev/null`。`-w "%{http_code}\n"`表示输出HTTP响应的状态码，后跟换行符。
+
+输出：
+`200`
+
+这表示请求成功，在访问`http://httpbin.foo:8000/ip`时返回的HTTP响应状态码为200，表示操作成功。  一切正常，本来就是by default的吗
 
 
 
@@ -5335,6 +5378,23 @@ spec:
   - issuer: "testing@secure.istio.io"
     jwksUri: "https://raw.githubusercontent.com/istio/istio/release-1.5/security/tools/jwt/samples/jwks.json"
 ```
+
+这是一个Istio RequestAuthentication资源的YAML配置文件。RequestAuthentication资源用于配置请求的认证策略，对于符合策略的请求，Istio将要求客户端提供有效的JWT（JSON Web Token）令牌。以下是配置文件的详细解释：
+
+1. apiVersion: 配置文件版本，security.istio.io/v1beta1 表示这是Istio security 的 v1beta1 版本。
+2. kind: 资源类型，这里是 RequestAuthentication 用于配置请求认证策略。
+3. metadata: 包括资源的名称和命名空间。
+   - name: 资源名称，这里是 "jwt-example"
+   - namespace: 资源所在的命名空间，这里是 "foo"
+
+4. spec: RequestAuthentication资源的具体配置信息。
+   - selector: 定义策略适用的目标工作负载，通过指定匹配标签来选择目标。
+     - matchLabels: 目标工作负载的标签选择器，这里需要标签 "app: httpbin" 的工作负载才能匹配。
+   - jwtRules: 定义处理JWT的规则。
+     - issuer: JWT发行人，这里是 "testing@secure.istio.io"
+     - jwksUri: JWT签名密钥集的URL，这里是 "https://raw.githubusercontent.com/istio/istio/release-1.5/security/tools/jwt/samples/jwks.json"
+
+这个配置文件定义了一个请求认证策略，要求具有标签 "app: httpbin" 的工作负载的请求提供有效的JWT，发行人为 "testing@secure.istio.io"，同时通过提供的jwksUri验证JWT的签名。
 
 
 
@@ -5401,6 +5461,23 @@ spec:
        requestPrincipals: ["testing@secure.istio.io/testing@secure.istio.io"]
 ```
 
+这个配置文件定义了一个Istio的AuthorizationPolicy资源。AuthorizationPolicy用于在服务间通信上应用访问控制策略。具体来说，这个策略允许具有特定JWT令牌的请求访问"httpbin"服务。下面是配置文件各部分的详细解释：
+
+1. `apiVersion: security.istio.io/v1beta1` - 表示这是一个Istio的安全相关资源。
+2. `kind: AuthorizationPolicy` - 表示这个资源是一个授权策略。
+3. `metadata` - 包括策略的名称（`name: require-jwt`）和命名空间（`namespace: foo`）。
+4. `spec` - 描述策略的具体设置。
+   a. `selector` - 选择要应用此策略的工作负载。这里，策略适用于具有标签`app: httpbin`的工作负载。
+   b. `action: ALLOW` - 表示允许满足规则条件的请求。
+   c. `rules` - 规定允许哪些请求访问服务。在此示例中，有一个规则：
+      - `from` - 定义请求来源：
+        i. `source` - 指定来源的标识或属性。
+          - `requestPrincipals: ["testing@secure.istio.io/testing@secure.istio.io"]` - 允许具有指定请求主体的请求。
+
+这个AuthorizationPolicy与之前的RequestAuthentication配置文件有关联。在前一个RequestAuthentication策略中，我们要求所有发往具有标签 `app: httpbin` 的工作负载的请求提供一个有效的JWT。而在这个AuthorizationPolicy中，我们定义了允许哪些已验证的JWT请求访问"httpbin"服务。这里我们允许请求主体为"testing@secure.istio.io/testing@secure.istio.io"的JWT令牌通过。
+
+总之，这两个策略结合在一起可以达到这样的效果：如果向具有 "app: httpbin" 标签的工作负载发起请求，请求者需要提供一个有效的JWT令牌，且令牌中的请求主体必须为 "testing@secure.istio.io/testing@secure.istio.io"，只有满足这些条件的请求才会被允许通过。
+
 
 
 设置指向JWT的Token变量
@@ -5409,6 +5486,18 @@ spec:
 TOKEN=$(curl https://raw.githubusercontent.com/istio/istio/release-1.5/security/tools/jwt/samples/demo.jwt -s) && echo $TOKEN | cut -d '.' -f2 - | base64 --decode -
 ```
 
+这个命令是一种在Unix或Linux终端中执行的多步骤过程，旨在从Istio的GitHub仓库获取一个示例的JWT（JSON Web Token），并对其进行解码。让我们逐步解析这个命令：
+
+1. `TOKEN=$(curl https://raw.githubusercontent.com/istio/istio/release-1.5/security/tools/jwt/samples/demo.jwt -s)`: 使用curl命令从Istio的GitHub仓库下载一个示例的JWT，并将其内容保存在名为`TOKEN`的变量中。`-s`参数使curl操作在静默模式下进行，这意味着它不会显示进度或错误消息。
+
+2. `echo $TOKEN`: 输出`TOKEN`变量的值。这将打印下载的JWT字符串。
+
+3. `cut -d '.' -f2 -`: 使用cut命令从JWT字符串中提取第二部分（以'.'分隔）。一个典型的JWT由三部分组成：header、payload和signature，它们用点号分隔。这个命令将JWT解析为其净荷部分。
+
+4. `base64 --decode -`: 使用base64命令对提取后的净荷部分进行解码。这将把Base64编码的净荷部分解码为一个JSON对象。
+
+整个命令通过管道将这些步骤连接起来，使输出能够顺利流转。最后，你会看到JWT的净荷部分作为一个易读的JSON对象。
+
 
 
 使用有效JWT进行访问
@@ -5416,6 +5505,18 @@ TOKEN=$(curl https://raw.githubusercontent.com/istio/istio/release-1.5/security/
 ```bash
 kubectl exec $(kubectl get pod -l app=sleep -n foo -o jsonpath={.items..metadata.name}) -c sleep -n foo -- curl "http://httpbin.foo:8000/headers" -s -o /dev/null -H "Authorization: Bearer $TOKEN" -w "%{http_code}\n"
 ```
+
+这个命令行是一个用于发送请求到"httpbin"服务的复合命令。它在名为 "foo" 的命名空间中执行，并向"httpbin"服务发送带有JWT令牌的请求。让我们逐步解析它：
+
+1. `kubectl get pod -l app=sleep -n foo -o jsonpath={.items..metadata.name}`：这个子命令用于获取在 "foo" 命名空间中标签为 "app=sleep" 的pod的名称。使用 `-o jsonpath={.items..metadata.name}` 选择输出仅包含pod名称的子集。
+
+2. `kubectl exec $(...) -c sleep -n foo --`: 这一部分的命令使用 `kubectl exec` 在 "foo" 命名空间中找到具有 "app=sleep" 标签的Pod，并在其中的sleep容器中执行后续的命令。`$(...)` 部分会被之前子命令的结果（即对应的Pod的名称）替换。
+
+3. `curl "http://httpbin.foo:8000/headers" -s -o /dev/null -H "Authorization: Bearer $TOKEN" -w "%{http_code}\n"`：这一部分的命令在sleep容器内使用curl向"httpbin"服务发送请求。它请求"httpbin"服务的 "/headers" 接口，使用之前获取的TOKEN作为发送请求的JWT令牌。`-s` 参数表示静默模式，`-o /dev/null` 将响应主体发送到/dev/null, 然后 `-w "%{http_code}\n"` 参数输出HTTP状态码并以换行符结尾。
+
+这个命令与之前的命令有关。之前的命令获取并解码了JWT令牌的净荷部分。而这个命令使用获取的JWT令牌（保存在TOKEN变量中）作为身份验证信息向"httpbin"服务发送请求。结合之前分析的Istio授权策略，这意味着只有请求包含有效的JWT令牌且JWT的请求主体合法时，请求才会被 "httpbin" 服务接受，并返回HTTP状态码。
+
+
 
 正常,200
 
@@ -5516,6 +5617,45 @@ kubectl logs -f productpage-xxx istio-proxy
 [2022-12-02T02:36:05.715Z] "GET /details/0 HTTP/1.1" 200 - via_upstream - "-" 0 178 2 2 "-" "curl/7.68.0" "7b923129-a124-9cf9-9c32-8fbe97cb3f57" "details:9080" "10.244.135.8:9080" outbound|9080||details.default.svc.cluster.local 10.244.135.11:49730 10.97.72.135:9080 10.244.135.11:34060 - default
 [2022-12-02T02:36:05.721Z] "GET /reviews/0 HTTP/1.1" 200 - via_upstream - "-" 0 438 791 791 "-" "curl/7.68.0" "7b923129-a124-9cf9-9c32-8fbe97cb3f57" "reviews:9080" "10.244.104.11:9080" outbound|9080||reviews.default.svc.cluster.local 10.244.135.11:48624 10.102.110.0:9080 10.244.135.11:47568 - default
 ```
+
+这个日志包含了两条记录，分别表示两个HTTP请求的信息。每条记录包括请求时间、响应状态、相关元数据等。让我们逐条分析。
+
+1. 第一条日志：
+
+```bash
+[2022-12-01T07:08:05.712268Z]     info    xdsproxy        connected to upstream XDS server: istiod.istio-system.svc:15012
+```
+
+记录了在2022年12月1日07:08:05（UTC）时, 代理成功连接到了上游XDS服务器 istiod.istio-system.svc，端口15012。XDS是Istio中用来分发配置信息的协议。
+
+2. 第二条日志：
+
+```bash
+[2022-12-02T02:36:05.715Z] "GET /details/0 HTTP/1.1" 200 - via_upstream - "-" 0 178 2 2 "-" "curl/7.68.0" "7b923129-a124-9cf9-9c32-8fbe97cb3f57" "details:9080" "10.244.135.8:9080" outbound|9080||details.default.svc.cluster.local 10.244.135.11:49730 10.97.72.135:9080 10.244.135.11:34060 - default
+```
+
+这条记录显示了一个使用HTTP/1.1协议的GET请求，请求路径为/details/0，发生在2022-12-02T02:36:05.715Z。请求得到了200的响应状态码，表示请求成功。请求的其他信息如下：
+
+- 通过上游服务器（via_upstream）处理请求。
+- 请求头部没有Referer字段（"-"）。
+- 请求体大小为0字节。
+- 响应体大小为178字节。
+- 请求响应时间为2毫秒。
+- 请求端使用的工具是curl/7.68.0。
+- 请求的唯一标识符（UUID）为7b923129-a124-9cf9-9c32-8fbe97cb3f57。
+- 请求的目标服务是details，端口号为9080。
+- 请求被路由到了内部IP 10.244.135.8，端口号为9080。
+- 请求来源与目标间的连接信息：outbound|9080||details.default.svc.cluster.local 10.244.135.11:49730 10.97.72.135:9080 10.244.135.11:34060 - default。
+
+3. 第三条日志：
+
+```bash
+[2022-12-02T02:36:05.721Z] "GET /reviews/0 HTTP/1.1" 200 - via_upstream - "-" 0 438 791 791 "-" "curl/7.68.0" "7b923129-a124-9cf9-9c32-8fbe97cb3f57" "reviews:9080" "10.244.104.11:9080" outbound|9080||reviews.default.svc.cluster.local 10.244.135.11:48624 10.102.110.0:9080 10.244.135.11:47568 - default
+```
+
+这条记录与第二条类似，不过请求的目标路径为/reviews/0，响应体大小为438字节，请求响应时间为791毫秒，请求被路由到了内部IP 10.244.104.11，端口号为9080。请求来源与目标间的连接信息：outbound|9080||reviews.default.svc.cluster.local 10.244.135.11:48624 10.102.110.0:9080 10.244.135.11:47568 - default。
+
+
 
 
 
@@ -5847,7 +5987,7 @@ export PATH="$PATH:/root/istio-1.16.0/bin"
 
 清理 Bookinfo
 
-```
+```bash
 samples/bookinfo/platform/kube/cleanup.sh
 ```
 
@@ -5855,7 +5995,7 @@ samples/bookinfo/platform/kube/cleanup.sh
 
 卸载istio
 
-```
+```bash
 kubectl delete -f samples/addons
 istioctl manifest generate --set profile=demo | kubectl delete --ignore-not-found=true -f -
 ```
@@ -5866,7 +6006,7 @@ istioctl manifest generate --set profile=demo | kubectl delete --ignore-not-foun
 
 删除命名空间 istio-system 
 
-```
+```bash
 kubectl delete namespace istio-system
 ```
 
@@ -5874,7 +6014,7 @@ kubectl delete namespace istio-system
 
 指示 Istio 自动注入 Envoy 边车代理的标签默认也不删除。 不需要的时候，使用下面命令删掉它。
 
-```
+```bash
 kubectl label namespace default istio-injection-
 ```
 
