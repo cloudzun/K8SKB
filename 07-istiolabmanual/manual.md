@@ -5096,7 +5096,7 @@ istio-system   default   STRICT   6m22s
 清理
 
 ```bash
-kubectl delete peerauthentication --all-namespaces –all
+kubectl delete peerauthentication --all-namespaces --all
 kubectl delete ns foo bar legacy
 ```
 
