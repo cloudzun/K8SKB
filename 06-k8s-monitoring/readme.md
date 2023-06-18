@@ -1830,13 +1830,74 @@ prometheus-operator-rules         6h11m
 
 
 
-使用helm安装loki
+使用helm安装loki （需要网络畅通）
 
 ```bash
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo update
 helm upgrade --install loki grafana/loki-stack -n monitoring
 ```
+
+
+
+国内安装方法
+
+
+
+下载helm chart
+
+```bash
+wget https://chengzhstor.blob.core.windows.net/k8slab/loki-stack-2.9.10.tgz
+
+tar xf loki-stack-2.9.10.tgz
+
+cd loki-stack/
+```
+
+
+
+替换映像
+
+```bash
+nano charts/loki/values.yaml
+```
+
+
+
+```yaml
+image:
+  repository: registry.cn-hangzhou.aliyuncs.com/chengzh/loki #修改
+  tag: 2.8.0
+  pullPolicy: IfNotPresent
+```
+
+
+
+```bash
+nano charts/promtail/values.yaml
+```
+
+
+
+```yaml
+image:
+  # -- The Docker registry
+  registry: registry.cn-hangzhou.aliyuncs.com #修改
+  # -- Docker image repository
+  repository: chengzh/promtail #修改
+  # -- Overrides the image tag whose default is the chart's appVersion
+  tag: null
+```
+
+
+
+安装
+
+```bash
+ helm install  loki  -n monitoring ./
+```
+
+
 
 
 
