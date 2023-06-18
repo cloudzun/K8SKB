@@ -6,7 +6,7 @@
 
 
 
-比如适配1.23的分支是0.10，则克隆匹配的分支
+比如适配1.23的分支是0.10，则克隆匹配的分支 ,建议使用该分支
 
 ```bash
 git clone -b release-0.10 https://github.com/prometheus-operator/kube-prometheus.git
@@ -150,11 +150,15 @@ nano manifests/kubeStateMetrics-deployment.yaml
         - --port=8081
         - --telemetry-host=127.0.0.1
         - --telemetry-port=8082
-        image: registry.cn-hangzhou.aliyuncs.com/chengzh/kube-state-metrics:2.9.2
+        image: registry.cn-hangzhou.aliyuncs.com/chengzh/kube-state-metrics:2.3.0
 
 ```
 
-​		将`k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.9.2.0`  替换为：`registry.cn-hangzhou.aliyuncs.com/chengzh/kube-state-metrics:2.9.2`
+将`k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.3.0`  替换为：`registry.cn-hangzhou.aliyuncs.com/chengzh/kube-state-metrics:2.3.0`
+
+​		
+
+备注：对于当前最新版本，将`k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.9.2.0`  替换为：`registry.cn-hangzhou.aliyuncs.com/chengzh/kube-state-metrics:2.9.2`
 
 
 
@@ -177,7 +181,11 @@ nano manifests/kubeStateMetrics-deployment.yaml
         image: registry.cn-hangzhou.aliyuncs.com/chengzh/prometheus-adapter:v0.10.0
 ```
 
-将  `registry.k8s.io/prometheus-adapter/prometheus-adapter:v0.10.0` 替换为：`registry.cn-hangzhou.aliyuncs.com/chengzh/prometheus-adapter:v0.10.0`
+将  `registry.k8s.io/prometheus-adapter/prometheus-adapter:v0.9.1` 替换为：`registry.cn-hangzhou.aliyuncs.com/chengzh/prometheus-adapter:v0.9.1.0`
+
+
+
+备注：对于当前最新版本，将  `registry.k8s.io/prometheus-adapter/prometheus-adapter:v0.10.0` 替换为：`registry.cn-hangzhou.aliyuncs.com/chengzh/prometheus-adapter:v0.10.0`
 
 
 
@@ -310,17 +318,7 @@ kubectl patch service alertmanager-main --namespace=monitoring --type='json' --p
 
 
 
-清理堆栈
 
-```bash
-kubectl delete --ignore-not-found=true -f manifests/ -f manifests/setup
-```
-
-
-
-​	
-
-如果使用lens，在metric配置页面中选择 Prometheus Operator monitoring/prometheus-k8s:9090
 
 
 
@@ -332,17 +330,15 @@ kubectl delete --ignore-not-found=true -f manifests/ -f manifests/setup
 
 推荐报表
 
-- k8s-views-global： 15757
-- k8s-views-namespaces： 15758
-- k8s-views-nodes： 15759
-- k8s-views-pods： 15760
+- 15757：k8s-views-global
+- 15758：k8s-views-namespaces
+- 15759：k8s-views-nodes
+- 15760：k8s-views-pods
 
-- 1860：Node Exporter Full
 - 13105：K8S Prometheus Dashboard 20211010 中文版
+- 11074： Node Exporter for Prometheus Dashboard EN 20201010
 
-- ： Node Exporter for Prometheus Dashboard EN 20201010
-
-- 12633：
+- 12633：Linux主机详情
 
 
 
@@ -1284,7 +1280,7 @@ mysql-exporter            16s
 
 
 
-# 黑盒监控
+# 黑盒监控和静态配置
 
 检查黑blackbox-exporter配置
 
@@ -1395,11 +1391,9 @@ metadata:
 
 
 
-# 静态配置
 
 
-
-## 监控web url
+## 监控 web url
 
 创建静态配置
 
@@ -1450,7 +1444,7 @@ KUBE_EDITOR="nano"  kubectl edit prometheus k8s -n monitoring
   
 
 ```yaml
-image: quay.io/prometheus/prometheus:v2.32.1
+spec:
   additionalScrapeConfigs: #增加配置
     key: prometheus-additional.yaml
     name: additional-configs
@@ -1590,7 +1584,7 @@ kubectl create secret generic additional-configs --from-file=prometheus-addition
 
 
 
-加载10467  dashboard在grafana中查看Windows相关数据15453 
+加载10467  dashboard在grafana中查看Windows相关数据，其他相关报表：15453 
 
 ![image-20221115151412641](readme.assets/image-20221115151412641.png)
 
@@ -1831,6 +1825,115 @@ prometheus-operator-rules         6h11m
 ![image-20221115154241343](readme.assets/image-20221115154241343.png)
 
 
+
+# 使用Loki构建轻量级日志收集体系
+
+
+
+使用helm安装loki
+
+```bash
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+helm upgrade --install loki grafana/loki-stack -n monitoring
+```
+
+
+
+检查安装情况
+
+```bash
+kubectl get pod -n monitoring | grep loki
+kubectl get svc -n monitoring | grep loki
+```
+
+
+
+```bash
+root@node1:~# kubectl get pod -n monitoring | grep loki
+loki-0                                 1/1     Running   0          6h11m
+loki-promtail-22nfd                    1/1     Running   0          6h11m
+loki-promtail-6f5wl                    1/1     Running   0          6h11m
+loki-promtail-957s4                    1/1     Running   0          6h11m
+root@node1:~# kubectl get svc -n monitoring | grep loki
+loki                    ClusterIP   10.107.108.73    <none>        3100/TCP                        6h11m
+loki-headless           ClusterIP   None             <none>        3100/TCP                        6h11m
+loki-memberlist         ClusterIP   None             <none>        7946/TCP                        6h11m
+```
+
+
+
+观察loki的cluster-ip
+
+
+
+在grafana里增加loki数据源，
+
+![image-20221114165928698](readme.assets/image-20221114165928698.png)
+
+​	注意：如果loki安装在grafana之外的名称空间，则使用上述观察到的loki cluter-ip和端口）
+
+![image-20221114170348619](readme.assets/image-20221114170348619.png)
+
+
+
+其后观察使用以下范例观察收集的日志信息
+
+```yaml
+{namespace="kube-system"}
+```
+
+![image-20221114170447199](readme.assets/image-20221114170447199.png)
+
+
+
+```yaml
+{namespace="kube-system", pod=~"calico.*"}
+```
+
+![image-20221114170628964](readme.assets/image-20221114170628964.png)
+
+
+
+![image-20221114170709099](readme.assets/image-20221114170709099.png)
+
+
+
+```yaml
+{namespace="kube-system", pod=~"calico.*"} |~ "avg"
+```
+
+![image-20221114170754240](readme.assets/image-20221114170754240.png)
+
+
+
+```yaml
+{namespace="kube-system", pod=~"calico.*"} |~ "avg" | logfmt | longest > 16ms
+```
+
+![image-20221114171008923](readme.assets/image-20221114171008923.png)
+
+
+
+```yaml
+{namespace="kube-system", pod=~"calico.*"} |~ "avg" | logfmt | longest > 16ms and avg >6ms
+```
+
+![image-20221114171111960](readme.assets/image-20221114171111960.png)
+
+
+
+亦可在此处查看注入filebeat sidecare的pod日志
+
+```yaml
+{namespace="default", pod=~"app-6d8c4bc6db-mtbj7"}
+```
+
+![image-20221114182625091](readme.assets/image-20221114182625091.png)
+
+
+
+![image-20221114182726583](readme.assets/image-20221114182726583.png)
 
 
 
@@ -2591,111 +2694,22 @@ Events:
 
 
 
-# 使用Loki构建轻量级日志收集体系
 
 
 
-使用helm安装loki
 
-```bash
-helm repo add grafana https://grafana.github.io/helm-charts
-helm repo update
-helm upgrade --install loki grafana/loki-stack -n monitoring
-```
+# 备注
 
 
 
-检查安装情况
+清理堆栈
 
 ```bash
-kubectl get pod -n monitoring | grep loki
-kubectl get svc -n monitoring | grep loki
+kubectl delete --ignore-not-found=true -f manifests/ -f manifests/setup
 ```
 
 
 
-```bash
-root@node1:~# kubectl get pod -n monitoring | grep loki
-loki-0                                 1/1     Running   0          6h11m
-loki-promtail-22nfd                    1/1     Running   0          6h11m
-loki-promtail-6f5wl                    1/1     Running   0          6h11m
-loki-promtail-957s4                    1/1     Running   0          6h11m
-root@node1:~# kubectl get svc -n monitoring | grep loki
-loki                    ClusterIP   10.107.108.73    <none>        3100/TCP                        6h11m
-loki-headless           ClusterIP   None             <none>        3100/TCP                        6h11m
-loki-memberlist         ClusterIP   None             <none>        7946/TCP                        6h11m
-```
+​	
 
-
-
-观察loki的cluster-ip
-
-
-
-在grafana里增加loki数据源，
-
-![image-20221114165928698](readme.assets/image-20221114165928698.png)
-
-​	注意：如果loki安装在grafana之外的名称空间，则使用上述观察到的loki cluter-ip和端口）
-
-![image-20221114170348619](readme.assets/image-20221114170348619.png)
-
-
-
-其后观察使用以下范例观察收集的日志信息
-
-```yaml
-{namespace="kube-system"}
-```
-
-![image-20221114170447199](readme.assets/image-20221114170447199.png)
-
-
-
-```yaml
-{namespace="kube-system", pod=~"calico.*"}
-```
-
-![image-20221114170628964](readme.assets/image-20221114170628964.png)
-
-
-
-![image-20221114170709099](readme.assets/image-20221114170709099.png)
-
-
-
-```yaml
-{namespace="kube-system", pod=~"calico.*"} |~ "avg"
-```
-
-![image-20221114170754240](readme.assets/image-20221114170754240.png)
-
-
-
-```yaml
-{namespace="kube-system", pod=~"calico.*"} |~ "avg" | logfmt | longest > 16ms
-```
-
-![image-20221114171008923](readme.assets/image-20221114171008923.png)
-
-
-
-```yaml
-{namespace="kube-system", pod=~"calico.*"} |~ "avg" | logfmt | longest > 16ms and avg >6ms
-```
-
-![image-20221114171111960](readme.assets/image-20221114171111960.png)
-
-
-
-亦可在此处查看注入filebeat sidecare的pod日志
-
-```yaml
-{namespace="default", pod=~"app-6d8c4bc6db-mtbj7"}
-```
-
-![image-20221114182625091](readme.assets/image-20221114182625091.png)
-
-
-
-![image-20221114182726583](readme.assets/image-20221114182726583.png)
+如果使用lens，在metric配置页面中选择 Prometheus Operator monitoring/prometheus-k8s:9090
