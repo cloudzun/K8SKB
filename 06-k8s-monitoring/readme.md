@@ -2002,6 +2002,8 @@ loki-memberlist         ClusterIP   None             <none>        7946/TCP     
 
 # 实现Elasticsearch+filebeat+Kibana Stack
 
+注意：这个实验对资源要求较高，请确保节点有4个CPU 8GB内存的配置。而且需要部署一个块存储解决方案，请根据实际情况选做。
+
 
 
 ## 部署块存储方案 
@@ -2010,6 +2012,14 @@ loki-memberlist         ClusterIP   None             <none>        7946/TCP     
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.2.4/deploy/longhorn.yaml
+```
+
+
+
+针对 1.27.2
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.4.2/deploy/longhorn.yaml
 ```
 
 
@@ -2117,24 +2127,12 @@ kubectl create ns efk
 
 
 
-
-
 下载Helm仓库源码
 
 ```bash
-wget -O helm-charts.tgz  https://github.com/elastic/helm-charts/archive/7.9.2.tar.gz
-tar -zxvf helm-charts.tgz
-cd helm-charts-7.9.2
-```
-
-
-
-国内替代方案
-
-```bash
-wget -O helm-charts.tgz  https://github.com/elastic/helm-charts/archive/7.9.2.tar.gz
-tar -zxvf helm-charts.tgz
-cd helm-charts-7.9.2
+wget -O helm-charts.tgz  https://ghproxy.com/https://github.com/elastic/helm-charts/archive/refs/tags/v8.5.1.tar.gz
+tar xf  helm-charts.tgz
+cd helm-charts-8.5.1
 ```
 
 
@@ -2170,100 +2168,10 @@ esConfig: {}
 
 
 
-```bash
-nano elasticsearch/templates/poddisruptionbudget.yaml
-```
-
-
-
-```yaml
----
-{{- if .Values.maxUnavailable }}
-apiVersion: policy/v1 #改成v1
-kind: PodDisruptionBudget
-metadata:
-  name: "{{ template "elasticsearch.uname" . }}-pdb"
-spec:
-  maxUnavailable: {{ .Values.maxUnavailable }}
-  selector:
-    matchLabels:
-      app: "{{ template "elasticsearch.uname" . }}"
-{{- end }}
-```
-
-
-
-
-
 安装elasticsearch
 
 ```bash
 helm install es --namespace=efk ./elasticsearch
-```
-
-
-
-修改 filebeat api version
-
-```bash
-nano filebeat/templates/clusterrole.yaml
-```
-
-
-
-```yaml
-{{- if .Values.managedServiceAccount }}
-apiVersion: rbac.authorization.k8s.io/v1 # 将此处版本修改为当前设置
-kind: ClusterRole
-metadata:
-  name: {{ template "filebeat.serviceAccount" . }}-cluster-role
-  labels:
-    app: "{{ template "filebeat.fullname" . }}"
-    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-    heritage: {{ .Release.Service | quote }}
-    release: {{ .Release.Name | quote }}
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - namespaces
-  - nodes
-  - pods
-  verbs:
-  - get
-  - list
-  - watch
-{{- end -}}
-```
-
-
-
-```bash
-nano filebeat/templates/clusterrolebinding.yaml 
-```
-
-
-
-```yaml
-{{- if .Values.managedServiceAccount }}
-apiVersion: rbac.authorization.k8s.io/v1 # 将此处版本修改为当前设置
-kind: ClusterRoleBinding
-metadata:
-  name: {{ template "filebeat.serviceAccount" . }}-cluster-role-binding
-  labels:
-    app: "{{ template "filebeat.fullname" . }}"
-    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-    heritage: {{ .Release.Service | quote }}
-    release: {{ .Release.Name | quote }}
-roleRef:
-  kind: ClusterRole
-  name: {{ template "filebeat.serviceAccount" . }}-cluster-role
-  apiGroup: rbac.authorization.k8s.io
-subjects:
-- kind: ServiceAccount
-  name: {{ template "filebeat.serviceAccount" . }}
-  namespace: {{ .Release.Namespace }}
-{{- end -}}
 ```
 
 
@@ -2483,6 +2391,8 @@ spec:
           emptyDir: {}
 ```
 
+
+
 ```bash
 kubectl apply -f app.yaml 
 ```
@@ -2581,8 +2491,8 @@ spec:
         app: app
     spec:
       containers:
-        - name: filebeat   # sidecar容器                     
-          image: registry.cn-beijing.aliyuncs.com/dotbalo/filebeat:7.10.2 
+        - name: filebeat
+          image: registry.cn-beijing.aliyuncs.com/dotbalo/filebeat:7.10.2
           resources:
             requests:
               memory: "100Mi"
@@ -2614,13 +2524,13 @@ spec:
           securityContext:
             runAsUser: 0
           volumeMounts:
-            - name: logpath # 指向穿针引线的emptyDir
+            - name: logpath
               mountPath: /data/log/app/
-            - name: filebeatconf # 指向配置文件
-              mountPath: /usr/share/filebeat/filebeat.yml 
+            - name: filebeatconf
+              mountPath: /usr/share/filebeat/filebeat.yml
               subPath: usr/share/filebeat/filebeat.yml
         - name: app
-          image: registry.cn-beijing.aliyuncs.com/dotbalo/alpine:3.6 
+          image: registry.cn-beijing.aliyuncs.com/dotbalo/alpine:3.6
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: logpath
@@ -2635,17 +2545,119 @@ spec:
           command:
             - sh
             - -c
-            - while true; do date >> /opt/date.log; sleep 2;  done 
+            - while true; do echo "$(date) - cloudzun is here" >> /opt/date.log; sleep 2; done
       volumes:
-        - name: logpath #沟通sidecar容器和app容器的桥梁作用显现
+        - name: logpath
           emptyDir: {}
-        - name: filebeatconf #定义日志字段和发送目标的配置文件
+        - name: filebeatconf
+          configMap:
+            name: filebeatconf
+            items:
+              - key: filebeat.yml
+                path: usr/share/filebeat/filebeat.yml
+
+```
+
+在配置文件中，有两个容器：filebeat 和 app。这两个容器之间的关系是协同工作，一个负责生成日志，一个负责收集日志。它们共享一个卷（volume），用于存储和共享日志文件。
+
+1. app 容器：此容器主要负责运行应用程序，生成日志条目。日志内容包含 "cloudzun is here"。生成的日志会被存储在共享卷的特定目录中。
+
+2. filebeat 容器：此容器负责从共享卷中读取 app 容器生成的日志文件，并收集这些日志。一旦收集到日志，filebeat 可以将这些日志发送到指定的日志存储解决方案，如 Elasticsearch 等，以便于存储、分析和可视化。
+
+通过这种方式，两个容器共同完成日志生成、收集和传输的任务。在 Kubernetes Deployment 配置中，它们协同工作，提高日志处理的效率。
+
+这个配置文件定义了一个 Kubernetes Deployment 资源。让我详细介绍以下各部分：
+
+1. 描述 API 版本、资源类型和元数据：
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  labels:
+    app: app
+    env: release
+```
+
+这里定义了 Deployment 资源，使用 API 版本 `apps/v1`。Deployment 的名称是 `app`，有两个标签：`app: app` 和 `env: release`。
+
+2. 配置 Deployment spec：
+
+```yaml
+spec:
+  selector:
+    matchLabels:
+      app: app
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+```
+
+Deployment spec 配置了要与此 Deployment 匹配的标签选择器（使用标签 `app: app`）、只创建 1 个副本，并定义了更新策略为滚动更新，限制最大不可用副本数为 0，最大过载副本数为 1（允许在更新过程中创建 1 个额外副本）。
+
+3. 定义 Pod 的模板：
+
+```yaml
+template:
+    metadata:
+      labels:
+        app: app
+    spec:
+```
+
+Pod 的模板定义了将应用于所创建的 Pod 的元数据和标签。这里，只为 Pod 设置了一个标签：`app: app`。
+
+4. 配置容器：
+
+Pod 模板包含两个容器：`filebeat` 和 `app`。这两个容器使用不同的镜像并具有不同的配置。
+
+- 文件 Filebeat 容器配置：
+
+这个容器使用镜像 `registry.cn-beijing.aliyuncs.com/dotbalo/filebeat:7.10.2`。它的资源请求和限制分别设置了内存和 CPU 的值。此外，还定义了一些环境变量和 Volume 挂载。
+
+- 应用程序容器配置：
+
+这个容器使用镜像 `registry.cn-beijing.aliyuncs.com/dotbalo/alpine:3.6`，并运行刚才讨论的修改过的 Shell 命令，将当前日期、时间和 "cloudzun is here" 字符串写入 `/opt/date.log` 文件，每次写入之间暂停 2 秒。它还定义了一些环境变量（如时区和编码设置）以及 Volume 挂载。
+
+5. 配置卷：
+
+```yaml
+volumes:
+        - name: logpath
+          emptyDir: {}
+        - name: filebeatconf
           configMap:
             name: filebeatconf
             items:
               - key: filebeat.yml
                 path: usr/share/filebeat/filebeat.yml
 ```
+
+为 Pod 配置了两个卷。第一个 volume 叫做 `logpath`，它是一个 emptyDir 类型的卷，可在容器间共享。第二个 volume 叫做 `filebeatconf`，它使用了一个名为 `filebeatconf` 的 ConfigMap，并映射了其中的 `filebeat.yml` 配置文件。
+
+这个 Deployment 的总体目的是在一个 Pod 中运行两个容器。第一个容器（名为 filebeat）负责收集日志，而第二个容器（名为 app）负责生成日志。这些容器共享一个 volume (`logpath`)，用于存储生成的日志文件。配置文件中的其它部分主要用于设置资源限制、更新策略和环境变量。
+
+
+
+查询`elasticsearch-master-credentials` secret 中的 password 字段值
+
+```bash
+kubectl get secret -n efk elasticsearch-master-credentials -o jsonpath="{.data.password}" | base64 --decode; echo
+```
+
+
+
+```bash
+root@node1:~# kubectl get secret -n efk elasticsearch-master-credentials -o jsonpath="{.data.password}" | base64 --decode; echo
+WVch8DMgTaK4GEgD
+```
+
+​	如上述输出所示，本例中的密码为：`WVch8DMgTaK4GEgD`
 
 
 
@@ -2667,18 +2679,41 @@ data:
       paths:
         - /data/log/*/*.log
       tail_files: true
-      fields: # 日志字段
+      fields:
         pod_name: '${podName}'
         pod_ip: '${podIp}'
         pod_deploy_name: '${podDeployName}'
         pod_namespace: '${podNamespace}'
     output.elasticsearch:
-      hosts: ["elasticsearch-master.efk:9200"] # 此处需要填充elasticsearch服务器地址
+      hosts: ["https://10.104.54.238:9200"] #替换为elasticsearch-master.efk:9200 的地址
+      protocol: "https"
+      ssl.verification_mode: "none"
+      username: "elastic"
+      password: "WVch8DMgTaK4GEgD"
       topic: "filebeat-sidecar"
       codec.json:
         pretty: false
       keep_alive: 30s
 ```
+
+这是一个 Kubernetes ConfigMap 配置文件，其主要作用是为 Filebeat 提供配置。ConfigMap 具有以下特征：
+
+1. `apiVersion` 和 `kind`: 这是一个典型的 Kubernetes 配置文件，指定了版本为 "v1"，资源类型为 "ConfigMap"。
+2. `metadata`: 定义了 ConfigMap 的元数据，包括名称 "filebeatconf"。
+3. `data`: 在这部分，需要设置 Filebeat 的配置文件 "filebeat.yml"。这是一个多行的 YAML 段落，包含了 Filebeat 的设置。以下是这个 "filebeat.yml" 文件的详细内容：
+
+   - `filebeat.inputs`: 定义了 Filebeat 应该收集哪些日志文件。
+     - `input_type`: 设置为 "log"，表明需要处理的是普通的日志文件。
+     - `paths`: 指定了日志文件路径，即："/data/log/*/*.log"。
+     - `tail_files`: 设置为 true，表示 Filebeat 从日志文件末尾开始读取。
+     - `fields`: 定义了一些自定义字段，如 pod_name，pod_ip，pod_deploy_name，和 pod_namespace。这些字段通过环境变量获取值，并添加到收集到的日志中，以便在 Elasticsearch 中进行查询。
+
+   - `output.elasticsearch`: 定义了日志输出到 Elasticsearch 集群的配置。
+     - `hosts`: 配置 Elasticsearch 服务的地址，这里的地址需要替换为实际的 URL。
+     - `protocol`, `ssl.verification_mode`, `username`, 和 `password`: 指定了 Elasticsearch 服务的连接协议（https），跳过 SSL 验证，还提供了用户名和密码进行身份验证。
+     - `topic`, `codec.json`, 和 `keep_alive`: 配置了日志输出的主题，指定使用 JSON 格式，并设置了连接的保持时间为 30 秒。
+
+这个配置文件与之前我们讨论的 Deployment 配置文件之间的联系是，它将被用作 filebeat 容器的配置。在之前的 Deployment 配置中，我们提到了 filebeat 容器使用了一个名为 "filebeatconf" 的 ConfigMap（即当前的配置文件）作为其配置。通过挂载这个 ConfigMap 到 filebeat 容器的 `/usr/share/filebeat/filebeat.yml` 路径，我们可以为 filebeat 容器提供所需的配置，以便它知道如何收集日志，将它们发送到 Elasticsearch 等。
 
 
 
@@ -2794,14 +2829,32 @@ Events:
 
 
 
+
+
 # 备注
 
 
 
-清理堆栈
+清理Prometheus堆栈
 
 ```bash
 kubectl delete --ignore-not-found=true -f manifests/ -f manifests/setup
+```
+
+
+
+清理loki
+
+```bash
+helm uninstall loki -n monitoring
+```
+
+
+
+清理EFK
+
+```bash
+helm uninstall es fb kb -n efk
 ```
 
 

@@ -15,7 +15,11 @@ data:
         pod_deploy_name: '${podDeployName}'
         pod_namespace: '${podNamespace}'
     output.elasticsearch:
-      hosts: ["elasticsearch-master.efk:9200"] #替换为elasticsearch服务的地址
+      hosts: ["https://10.104.54.238:9200"] #替换为elasticsearch-master.efk:9200 的地址
+      protocol: "https"
+      ssl.verification_mode: "none"
+      username: "elastic"
+      password: "WVch8DMgTaK4GEgD"
       topic: "filebeat-sidecar"
       codec.json:
         pretty: false

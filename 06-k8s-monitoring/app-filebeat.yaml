@@ -22,8 +22,8 @@ spec:
         app: app
     spec:
       containers:
-        - name: filebeat                        
-          image: registry.cn-beijing.aliyuncs.com/dotbalo/filebeat:7.10.2 
+        - name: filebeat
+          image: registry.cn-beijing.aliyuncs.com/dotbalo/filebeat:7.10.2
           resources:
             requests:
               memory: "100Mi"
@@ -58,10 +58,10 @@ spec:
             - name: logpath
               mountPath: /data/log/app/
             - name: filebeatconf
-              mountPath: /usr/share/filebeat/filebeat.yml 
+              mountPath: /usr/share/filebeat/filebeat.yml
               subPath: usr/share/filebeat/filebeat.yml
         - name: app
-          image: registry.cn-beijing.aliyuncs.com/dotbalo/alpine:3.6 
+          image: registry.cn-beijing.aliyuncs.com/dotbalo/alpine:3.6
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: logpath
@@ -76,7 +76,7 @@ spec:
           command:
             - sh
             - -c
-            - while true; do date >> /opt/date.log; sleep 2;  done 
+            - while true; do echo "$(date) - cloudzun is here" >> /opt/date.log; sleep 2; done
       volumes:
         - name: logpath
           emptyDir: {}
