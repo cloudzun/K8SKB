@@ -2002,7 +2002,9 @@ loki-memberlist         ClusterIP   None             <none>        7946/TCP     
 
 # 实现Elasticsearch+filebeat+Kibana Stack
 
-注意：这个实验对资源要求较高，请确保节点有4个CPU 8GB内存的配置。而且需要部署一个块存储解决方案，请根据实际情况选做。
+**注意**：这个实验对资源要求较高，请确保节点有4个CPU 8GB内存的配置。而且需要部署一个块存储解决方案（本例中使用Longhorn），请根据实际情况选做。
+
+如果资源不足（但是至少不能低于上述配置的对折），则可以使用Operator方式部署经济适用性堆栈，请参考：[使用Operator部署Elastic技术堆栈](https://github.com/cloudzun/K8SKB/blob/main/05-k8s-appdeloy/README.md#%E4%BD%BF%E7%94%A8operator%E9%83%A8%E7%BD%B2elastic%E6%8A%80%E6%9C%AF%E5%A0%86%E6%A0%88)
 
 
 
@@ -2644,7 +2646,13 @@ volumes:
 
 
 
-查询`elasticsearch-master-credentials` secret 中的 password 字段值
+使用以下命令获取`hosts`和`password`信息
+
+```bash
+kubectl get svc -n efk | grep elasticsearch-master 
+```
+
+
 
 ```bash
 kubectl get secret -n efk elasticsearch-master-credentials -o jsonpath="{.data.password}" | base64 --decode; echo
@@ -2658,6 +2666,22 @@ WVch8DMgTaK4GEgD
 ```
 
 ​	如上述输出所示，本例中的密码为：`WVch8DMgTaK4GEgD`
+
+
+
+备注：如果EFK堆栈采用Operator方式部署则使用以下命令获取`hosts`和`password`信息
+
+```bash
+kubectl get svc -n elastic-system | grep quickstart-es-http
+```
+
+
+
+```bash
+kubectl get secret -n elastic-system quickstart-es-elastic-user -o=jsonpath='{.data.elastic}' | base64 --decode; echo
+```
+
+
 
 
 
