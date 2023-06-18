@@ -178,10 +178,10 @@ nano manifests/kubeStateMetrics-deployment.yaml
         - --prometheus-url=http://prometheus-k8s.monitoring.svc:9090/
         - --secure-port=6443
         - --tls-cipher-suites=TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256>
-        image: registry.cn-hangzhou.aliyuncs.com/chengzh/prometheus-adapter:v0.10.0
+        image: registry.cn-hangzhou.aliyuncs.com/chengzh/prometheus-adapter:v0.9.1
 ```
 
-将  `registry.k8s.io/prometheus-adapter/prometheus-adapter:v0.9.1` 替换为：`registry.cn-hangzhou.aliyuncs.com/chengzh/prometheus-adapter:v0.9.1.0`
+将  `registry.k8s.io/prometheus-adapter/prometheus-adapter:v0.9.1` 替换为：`registry.cn-hangzhou.aliyuncs.com/chengzh/prometheus-adapter:v0.9.1`
 
 
 
@@ -2048,6 +2048,16 @@ kubectl patch service longhorn-frontend --namespace=longhorn-system --type='json
 
 ## 部署EFK Stack
 
+创建命名空间
+
+```bash
+kubectl create ns efk
+```
+
+
+
+
+
 下载Helm仓库源码
 
 ```bash
@@ -2096,6 +2106,31 @@ esConfig: {}
 #  log4j2.properties: |
 #    key = value
 ```
+
+
+
+```bash
+nano elasticsearch/templates/poddisruptionbudget.yaml
+```
+
+
+
+```yaml
+---
+{{- if .Values.maxUnavailable }}
+apiVersion: policy/v1 #改成v1
+kind: PodDisruptionBudget
+metadata:
+  name: "{{ template "elasticsearch.uname" . }}-pdb"
+spec:
+  maxUnavailable: {{ .Values.maxUnavailable }}
+  selector:
+    matchLabels:
+      app: "{{ template "elasticsearch.uname" . }}"
+{{- end }}
+```
+
+
 
 
 
