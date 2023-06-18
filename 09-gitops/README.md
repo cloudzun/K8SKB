@@ -1007,6 +1007,24 @@ CMD ["/opt/app/example"]
 ```
 这个 Dockerfile 描述的构建过程非常简单，首选 Golang:1.17 版本的镜像作为编译环境，将源码拷贝到镜像中，然后运行 go build 编译源码生成二进制可执行文件，最后配置启动命令。
 
+这是一个简单的Dockerfile，用于构建一个Go语言应用程序的Docker镜像。Dockerfile是一种用于定义构建Docker镜像的文本文件。它描述了一系列命令和操作，可以将基础镜像转换为所需的新镜像。
+
+下面是这个Dockerfile中的命令及其解释：
+
+1. `FROM golang:1.17`：这行代码表示我们选择基于官方的"golang"镜像，版本为1.17。Docker会从Docker Hub拉取这个镜像并作为构建的基础。
+
+2. `WORKDIR /opt/app`：设置工作目录为`/opt/app`。在镜像中，后续所有的操作都将相对于此目录执行。
+
+3. `COPY . .`：复制当前上下文中的所有文件和目录到工作目录（`/opt/app`）。
+
+4. `RUN go build -o example`：使用`go build`命令来编译当前目录下的Go代码，编译后的可执行文件命名为`example`。这个命令会在镜像构建过程中执行。
+
+5. `CMD ["/opt/app/example"]`：这行代码指定了容器启动时运行的默认命令。在这种情况下，当容器启动时，将运行`/opt/app/example`程序。
+
+这个Dockerfile的主要目的是创建一个包含Go应用程序的Docker镜像。使用它构建的镜像，当运行时会自动启动并执行该Go应用程序。
+
+
+
 ```bash
 docker build -t golang:1 -f Dockerfile-1 .
 ```
@@ -1089,6 +1107,20 @@ CMD ["/opt/app/example"]
 ```
 将 Golang:1.17 基础镜像替换为 golang:1.17-alpine 版本，一般来说，Alpine 版本的镜像相比较普通镜像来说删除了一些非必需的系统应用，所以镜像体积更小
 
+与之前的Dockerfile相比，唯一的差异在于基础镜像的选择。在此Dockerfile中，我们使用的基础镜像是：
+
+```dockerfile
+FROM golang:1.17-alpine
+```
+
+这里选择的是`golang:1.17-alpine`镜像，它基于Alpine Linux（一种轻量级的Linux发行版）。相较于之前的`golang:1.17`镜像，Alpine版本的镜像体积更小，适用于对容器镜像体积有要求的场景。Alpine镜像在保持核心功能的同时精简了不必要的组件和库，从而降低了镜像的大小。
+
+需要注意的是，Alpine镜像由于缺少部分常见软件包，可能会导致某些依赖问题和兼容性问题。在选择此镜像时，请确保应用程序能在Alpine环境中正常工作。
+
+其余Dockerfile中的命令与上一个例子保持一致，用于设置工作目录、复制文件、编译并执行Go应用程序。
+
+
+
 ```bash
 docker build -t golang:2 -f Dockerfile-2 .
 ```
@@ -1169,6 +1201,21 @@ WORKDIR /opt/app
 COPY example ./
 CMD ["/opt/app/example"]
 ```
+
+这个新的Dockerfile与之前讨论的两个Dockerfile的主要差异在于基础镜像。此次，基础镜像是 `ubuntu:latest`，而不是之前使用的 `golang:1.17` 或者 `golang:1.17-alpine`。
+
+差异部分解释如下：
+
+**基础镜像**: 这个Dockerfile选择了`ubuntu:latest`作为基础镜像，这意味着构建的容器会基于最新的Ubuntu版本。而之前的两个Dockerfile分别使用了`golang:1.17`和`golang:1.17-alpine`镜像。这两个Golang镜像都已经包含了Go编译器和运行环境。而在这个新的Dockerfile中，你需要手动安装Go编译器（该Dockerfile中没有这个步骤，此处有误）。
+
+之前的Dockerfile：
+
+- 第一个：基于官方的`golang:1.17`镜像。
+- 第二个：基于Alpine Linux的`golang:1.17-alpine`镜像（更小的体积）。
+
+除了基础镜像不同之外，这个新的Dockerfile的其他部分与之前的两个Dockerfile相似。工作目录（WORKDIR）设置为`/opt/app`，源代码文件被复制到容器的当前工作目录，CMD在启动容器时执行Go应用程序。
+
+需要注意的是，这个新的Dockerfile不能直接使用，因为它_没有_安装Go编译器。
 
 
 ```bash
@@ -1254,13 +1301,26 @@ WORKDIR /opt/app
 COPY --from=builder /opt/app/example ./example
 CMD ["/opt/app/example"]
 ```
-多阶段构建其实就是将 Dockerfile-1 和 Dockerfile-3 的内容进行合并重组
+该Dockerfile与先前讨论的第三个Dockerfile相似，但有一些关键差异。这个Dockerfile使用了多阶段构建，更加优化且更为高效。它分为两个阶段：
 
-这段内容里有两个 FROM 语句，所以这是一个包含两个阶段的构建过程。
+第一阶段（构建Go应用程序二进制文件）：
 
-第一个阶段是从第 4 行至第 7 行，它的作用是编译生成二进制可执行文件，就像之前在本地执行的编译操作一样。
+1. 从`golang:1.17`镜像构建，将其命名为"builder"。
+2. 设置工作目录为`/opt/app`。
+3. 将本地目录下的所有文件复制到`/opt/app`。
+4. 使用`go build`命令，将源代码编译为名为`example`的可执行文件。
 
-第二阶段在第 10 行到 13 行，它的作用是将第一阶段生成的二进制可执行文件复制到当前阶段，把 ubuntu:latest 作为运行环境，并设置 CMD 启动命令。
+第二阶段（运行Go应用程序二进制文件）：
+
+1. 从`ubuntu:latest`镜像构建。
+2. 设置工作目录为`/opt/app`。
+3. 使用`COPY`命令中的`--from=builder`选项，从第一阶段复制`example`文件到`/opt/app`目录，同时重命名为`example`。
+4. 使用`CMD`指令在启动容器时执行Go应用程序。
+
+与之前基于`ubuntu:latest`镜像的Dockerfile相比，这个Dockerfile的优势在于：
+
+1. 使用了多阶段构建，将构建二进制文件和运行二进制文件的过程分开。这样可以减小最终镜像的体积，因为第二阶段只包含必要的二进制文件。
+2. 无需在`ubuntu:latest`中手动安装Go编译器，因为第一个阶段使用了`golang:1.17`镜像，它已经包括编译器。这简化了Dockerfile并使得构建过程更加高效。
 
 ```bash
 docker build -t golang:4 -f Dockerfile-4 .
@@ -1329,9 +1389,28 @@ COPY --from=builder /opt/app/example ./example
 CMD ["/opt/app/example"]
 
 ```
-要进一步缩小体积，可以继续使用其他更小的镜像作为第二阶段的运行镜像，这就要说到 Alpine 了。
+这个Dockerfile与之前的多阶段构建Dockerfile非常相似，但有一些关键差异。最大的区别是在第二阶段使用`alpine`镜像而不是`ubuntu:latest`镜像。以下是Dockerfile的详细解释：
 
-Alpine 镜像是专门为容器化定制的 Linux 发行版，它的最大特点是体积非常小。现在，尝试使用它，将第二阶段构建的镜像替换为 Alpine 镜像
+第一阶段（构建Go应用程序二进制文件）：
+
+1. 从`golang:1.17`镜像构建，将其命名为"builder"。
+2. 设置工作目录为`/opt/app`。
+3. 将本地目录下的所有文件复制到`/opt/app`。
+4. 使用`CGO_ENABLED=0`禁用CGO，然后使用`go build`命令，将源代码编译为名为`example`的可执行文件。
+
+第二阶段（运行Go应用程序二进制文件）：
+
+1. 从`alpine`镜像构建。
+2. 设置工作目录为`/opt/app`。
+3. 使用`COPY`命令中的`--from=builder`选项，从第一阶段复制`example`文件到`/opt/app`目录，同时重命名为`example`。
+4. 使用`CMD`指令在启动容器时执行Go应用程序。
+
+与先前的多阶段Dockerfile相比，此Dockerfile具有以下优点：
+
+1. 第二阶段使用`alpine`镜像，它比`ubuntu:latest`镜像更小，可以生成更小的最终镜像，减少资源消耗和运行成本。
+2. 禁用CGO，使得应用程序在不支持glibc的系统上运行得更好，例如Alpine Linux。这提高了可移植性和兼容性。
+
+总的来说，这个Dockerfile实现了更加优化且高效的Go应用程序构建和运行过程。
 
 ```bash
 docker build -t golang:5 -f Dockerfile-5 .
@@ -1411,7 +1490,15 @@ WORKDIR /opt/app
 COPY --from=builder /opt/app/example ./example
 CMD ["/opt/app/example"]
 ```
-由于 scratch 镜像不包含任何内容，所以在编译 Golang 可执行文件的时候禁用了 CGO，这样才能让编译出来的程序在 scratch 镜像中运行
+在这个Dockerfile中，有几个不同之处：
+
+1. 使用`scratch`镜像：
+   最显著的区别是这个Dockerfile在第二阶段使用了`scratch`镜像，而不是之前的`ubuntu:latest`或`alpine`镜像。`scratch`是一个空白镜像，不包含任何文件系统或工具。使用`scratch`镜像，生成的Docker镜像仅包含了您复制进去的文件，使得镜像尺寸非常小，减少了资源消耗。
+
+2. 运行时不需要CGO：
+   在编译Go应用程序时，`CGO_ENABLED=0`禁用了C语言扩展。这意味着在编译过程中，不会链接任何C语言库，这对于使用`scratch`镜像很有帮助，因为它不包含任何C语言运行时库。你可以得到一个全静态编译的可执行文件，这使得应用程序能够在没有任何操作系统支持的情况下运行。
+
+这个Dockerfile相较于之前的版本，更加高效且精简。由于使用了`scratch`镜像，生成的Docker镜像会更小，从而减少存储和传输资源消耗。同时，禁用CGO可以简化应用程序的运行环境，这在`scratch`镜像中非常有用。
 
 ```bash
 docker build -t golang:6 -f Dockerfile-6 .
@@ -1488,7 +1575,16 @@ WORKDIR /opt/app
 COPY --from=builder /opt/app/example ./example
 CMD ["/opt/app/example"]
 ```
-这样，在每次代码变更而依赖不变的情况下，Docker 都会复用第 4 行和第 5 行产生的构建缓存，这可以加速镜像构建过程
+在这个Dockerfile中的不同之处：
+
+分离Go模块依赖下载：
+相较于前一个Dockerfile，这个Dockerfile在编译步骤之前，首先复制了`go.*`文件（如`go.mod`和`go.sum`）到工作目录，然后执行`go mod download`。这样可以下载并缓存Go模块依赖，从而在构建缓存中保存它们。这样，在每次代码变更而依赖不变的情况下，Docker 都会复用第 4 行和第 5 行产生的构建缓存，这可以加速镜像构建过程。
+
+将依赖下载和源代码复制分成两个步骤的优点是，只有当项目的依赖发生更改时（即更改了`go.mod`或`go.sum`文件），`go mod download`步骤才会失效并重新运行。换句话说，当你修改项目的源代码，而不是依赖项时，`go mod download`使用的是构建缓存，从而加快了构建速度。
+
+除了这个差异之外，这个Dockerfile与之前的版本保持一致，继续使用`scratch`镜像以创建一个极小的容器镜像，并禁用CGO来生成全静态编译的可执行文件。
+
+
 
 ```bash
 docker build -t golang:7 -f Dockerfile-7 .
