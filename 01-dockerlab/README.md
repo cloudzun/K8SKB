@@ -112,7 +112,17 @@ Server:
 docker run -d -p 2048:80 alexwhen/docker-2048
 ```
 
+这个命令是用来运行一个Docker容器的。详细解释如下：
 
+1. `docker run`: Docker命令行的基本命令之一，用于创建并启动一个新的容器。
+
+2. `-d`: 此参数表示在后台以分离模式（detached mode）运行容器，即在后台运行，不占用当前终端。
+
+3. `-p 2048:80`: `-p` 参数用于映射容器的端口到宿主机的端口。在本例中，将容器内部的80端口映射到宿主机的2048端口。冒号左边的端口是宿主机端口，冒号右边的端口是容器端口。
+
+4. `alexwhen/docker-2048`: 这是容器使用的镜像名，其中`alexwhen`是用户名，`docker-2048`是镜像仓库名。这个镜像是Docker Hub上一个预先构建好的包含2048游戏的镜像。
+
+综上所述，这个命令运行了一个名为`alexwhen/docker-2048`的镜像，并将该容器的内部80端口映射到了宿主机的2048端口。使用这个命令后，你可以通过访问宿主机的2048端口（如`http://localhost:2048`）在浏览器中玩2048游戏。
 
 ```bash
 root@node1:~# docker run -d -p 2048:80 alexwhen/docker-2048
@@ -451,7 +461,37 @@ IMAGE          CREATED       CREATED BY                                      SIZ
 <missing>      2 weeks ago   /bin/sh -c #(nop) ADD file:1f1efd56601ebc26a…   80.5MB
 ```
 
+这个输出描述了 `httpd` Docker 镜像的构建历史以及每个镜像层的内容。请允许我分析每个层：
 
+1. `<missing> 2 weeks ago /bin/sh -c #(nop) ADD file:1f1efd56601ebc26a… 80.5MB`: 在这个层中，有一个文件被添加到镜像中，增加了80.5MB的大小。
+
+2. `<missing> 13 days ago /bin/sh -c #(nop) ENV HTTPD_PREFIX=/usr/loc… 0B`: 这个层设置了环境变量`HTTPD_PREFIX`，值为`/usr/local/apache2`。这个层没有增加镜像的体积。
+
+3. `<missing> 13 days ago /bin/sh -c #(nop) ENV PATH=/usr/local/apach… 0B`: 这个层设置了环境变量`PATH`，以包括`/usr/local/apache2/bin`。这个层没有增加镜像的体积。
+
+4. `<missing> 13 days ago /bin/sh -c mkdir -p "HTTPD_PREFIX" && chow… 0B`: 这个层创建了一个目录(由之前设置的HTTPD_PREFIX环境变量指定）并更改了该目录的所有者。这个层没有增加镜像的体积。
+
+5. `<missing> 13 days ago /bin/sh -c #(nop) WORKDIR /usr/local/apache2 0B`: 这个层将镜像的工作目录设置为`/usr/local/apache2`。这个层没有增加镜像的体积。
+
+6. `<missing> 13 days ago /bin/sh -c set -eux; apt-get update; apt-g… 4.76MB`: 在这个层中，系统更新了软件包并安装了一些依赖，导致镜像增加了4.76MB的大小。
+
+7. `<missing> 13 days ago /bin/sh -c #(nop) ENV HTTPD_VERSION=2.4.54 0B`: 这个层设置了环境变量`HTTPD_VERSION`，值为`2.4.54`。这个层没有增加镜像的体积。
+
+8. `<missing> 13 days ago /bin/sh -c #(nop) ENV HTTPD_SHA256=eb397fee… 0B`: 这个层设置了环境变量`HTTPD_SHA256`，一个和`httpd`版本关联的哈希值。这个层没有增加镜像的体积。
+
+9. `<missing> 13 days ago /bin/sh -c #(nop) ENV HTTPD_PATCHES= 0B`: 这个层设置了空的环境变量 `HTTPD_PATCHES`。这个层没有增加镜像的体积。
+
+10. `<missing> 13 days ago /bin/sh -c set -eux; savedAptMark="(apt-m… 59.9MB`: 在这个层中，有额外的依赖和软件包被安装，导致镜像增加了59.9MB的大小。
+
+11. `<missing> 13 days ago /bin/sh -c #(nop) STOPSIGNAL SIGWINCH 0B`: 这个层设置Docker容器的停止信号为`SIGWINCH`。这个层没有增加镜像的体积。
+
+12. `<missing> 13 days ago /bin/sh -c #(nop) COPY file:c432ff61c4993ecd… 138B`: 在这个层中，有一个文件被复制到了镜像中，增加了138B的大小。
+
+13. `<missing> 13 days ago /bin/sh -c #(nop) EXPOSE 80 0B`: 这个层告诉Docker容器将暴露80端口。这个层没有增加镜像的体积。
+
+14. `157dcdf23d6c 13 days ago /bin/sh -c #(nop) CMD ["httpd-foreground"] 0B`: 这个层设置了镜像的默认命令，即在容器启动时运行`httpd-foreground`。这个层没有增加镜像的体积。
+
+这些层一起构成了`httpd`镜像，每个层表示一个文件系统变更。最终结果是一个可以运行Apache HTTP服务器的Docker镜像。
 
 针对httpd映像执行交互式操作
 
@@ -588,7 +628,15 @@ d079e3dd8acf   About a minute ago   httpd-foreground                            
 <missing>      2 weeks ago          /bin/sh -c #(nop) ADD file:1f1efd56601ebc26a…   80.5MB
 ```
 
+从给出的镜像层列表中，只有一层在最近的时间（约一分钟前）发生了变化：
 
+```bash
+d079e3dd8acf About a minute ago httpd-foreground 20MB
+```
+
+这一层的大小为 20MB，与之前的层相比，这一层显示了实际的镜像ID（`d079e3dd8acf`）而不是`<missing>`。这意味着这一层已经被更新。此层关联的命令是`httpd-foreground`，该命令可能表示正在运行Apache HTTP服务器的前台进程。
+
+其他镜像层没有变化，仍然保持了原来的状态。
 
 开始下一程之前，我们和过去小别
 
@@ -638,7 +686,7 @@ nano Dockerfile
 
 
 
-```bash
+```dockerfile
 FROM httpd
 
 MAINTAINER Abraham Cheng 
@@ -646,15 +694,33 @@ MAINTAINER Abraham Cheng
 COPY . /usr/local/apache2/htdocs
 ```
 
+这是一个简单的Dockerfile，用于构建一个具有自定义内容的Apache httpd web服务器镜像。以下是对各个指令的解释：
+
+1. `FROM httpd`: 此指令表示基础镜像是官方的Apache httpd镜像。Docker将从Docker Hub获取此镜像并用作构建新镜像的基础。
+
+2. `MAINTAINER Abraham Cheng`: 这是一个可选指令，用于为镜像设置维护者信息。在这个例子中，维护者是Abraham Cheng。虽然这个指令在现代Dockerfile中不常见（通常使用`LABEL maintainer="name"`替代），但它仍然有效。
+
+3. `COPY . /usr/local/apache2/htdocs`: 这条指令将当前目录下的所有文件及文件夹复制到镜像的`/usr/local/apache2/htdocs`路径下。这是Apache httpd web服务器默认的网站根目录，因此复制的内容将作为网站的新内容。
+
+这个Dockerfile的目的是基于官方的httpd镜像，将自定义内容部署到Apache web服务器上。在Docker编译这个Dockerfile（通过运行`docker build -t myhttpd .`）并创建一个新的镜像后，你可以运行这个镜像，它将启动一个Apache服务器，并使用`COPY`指令中复制的文件作为网站内容。
 
 
-构建映像,千万不要忽略后面的那个点 `.`
+
+构建映像,
 
 ```bash
 docker build -t myhttpd .
 ```
 
+这个命令是用来构建一个新的Docker镜像的。让我逐步为您解析这个命令的每个部分：
 
+1. `docker build`：这是Docker命令行工具的一个子命令，用于构建Docker镜像。它会根据当前目录下的Dockerfile文件中的指令来生成一个新的镜像。
+
+2. `-t myhttpd`：`-t`选项是为新构建的镜像设置一个标签（tag），在这里将生成的镜像标签设为`myhttpd`。标签是用于区分和管理Docker镜像的便捷方式，它们一般包含用户名、仓库名和版本信息。在这个例子中，我们只使用了一个简单的标签`myhttpd`，未指定版本信息。
+
+3. `.`：这是一个点（period），表示Docker命令应在当前目录中查找Dockerfile文件。Dockerfile包含了构建该镜像所需的全部操作步骤。
+
+综上所述，这个命令就是从当前目录中的Dockerfile构建一个新的Docker镜像，并将其标记为`myhttpd`。在构建过程中，Docker会逐行执行Dockerfile中的指令，将中间产物作为临时层，最后将所有层组合成一个新的镜像。
 
 ```bash
 root@node1:~/httpd# docker build -t myhttpd .
@@ -738,7 +804,30 @@ d2e5d1c35eaf   2 minutes ago   /bin/sh -c #(nop)  MAINTAINER Abraham Cheng     0
 <missing>      2 weeks ago     /bin/sh -c #(nop) ADD file:1f1efd56601ebc26a…   80.5MB
 ```
 
+在给出的新镜像层列表中，与最初的列表相比，有两个层次发生了变化：
 
+```bash
+b15f80031aa4 2 minutes ago /bin/sh -c #(nop) COPY dir:581fd85bc3c126c33… 127B
+d2e5d1c35eaf 2 minutes ago /bin/sh -c #(nop) MAINTAINER Abraham Cheng 0B
+```
+
+1. 第一个变化是添加了一个`MAINTAINER`层：
+
+```bash
+d2e5d1c35eaf 2 minutes ago /bin/sh -c #(nop) MAINTAINER Abraham Cheng 0B
+```
+
+这个层声明了维护者为Abraham Cheng，并且其大小为0B（无实际内容文件）。
+
+2. 第二个变化是一个新的`COPY`指令层：
+
+```bash
+b15f80031aa4 2 minutes ago /bin/sh -c #(nop) COPY dir:581fd85bc3c126c33… 127B
+```
+
+这一层复制了某个目录（`dir:581fd85bc3c126c33…`）到镜像中，并且这个操作导致了127B的空间增加。
+
+其他镜像层没有变化，仍然保持了原来的状态。
 
 大杀器,清理容器,但是不清理镜像
 
@@ -834,7 +923,17 @@ latest: digest: sha256:a2dc4e63cc2938857a974d3f1721446239468d33ba953250548781984
 docker run -d -p 5000:5000 -v /usr/local/registry:/var/lib/registry --restart=always --name registry registry:2
 ```
 
+这是一个使用`docker run`命令创建并运行一个新的Docker容器的示例。让我逐个解释每个参数及作用：
 
+1. `docker run`：Docker命令，用于创建并启动新的容器。
+2. `-d`：以“守护进程”模式运行容器（后台运行），不占用当前终端。
+3. `-p 5000:5000`：端口映射，将容器内的5000端口映射到宿主机的5000端口。这允许你通过访问宿主机的5000端口来访问容器内部运行的服务。
+4. `-v /usr/local/registry:/var/lib/registry`：卷映射，将宿主机的`/usr/local/registry`目录映射到容器内的`/var/lib/registry`目录。这使得容器能够读取和写入宿主机上的数据，实现数据持久化。
+5. `--restart=always`：设置容器的重启策略为“始终”，意味着如果容器因某种原因停止运行，Docker将自动重新启动它。
+6. `--name registry`：为这个容器设置一个自定义名称"registry"，方便识别和管理。
+7. `registry:2`：指定使用的Docker镜像为`registry`，并使用版本`2`的标签。此镜像是Docker官方提供的Docker Registry镜像，用于搭建和管理Docker镜像存储仓库。
+
+综上，该命令的作用是创建并运行一个名为"registry"的容器，基于Docker官方的Registry镜像版本2，将容器内的5000端口映射到宿主机的5000端口，并将宿主机的`/usr/local/registry`目录映射到容器内的`/var/lib/registry`目录。容器将以守护进程模式运行，并在停止后始终重启。
 
 ```bash
 root@node1:~/httpd# docker run -d -p 5000:5000 -v /usr/local/registry:/var/lib/registry --restart=always --name registry registry:2
@@ -1000,7 +1099,7 @@ nano index.html
 docker run -d -p 80:80 -v ~/http:/usr/local/apache2/htdocs httpd
 ```
 
-
+这个命令创建并在后台运行一个名为httpd的Docker容器，它开放了80端口并将主机上的路径`~/http`映射到Apache HTTP服务器的默认文档根目录`/usr/local/apache2/htdocs`。
 
 ```bash
 curl localhost
@@ -1052,7 +1151,7 @@ root@node1:~/http# curl localhost
 docker run -d -p 81:80 -v /usr/local/apache2/htdocs httpd
 ```
 
-
+`-v /usr/local/apache2/htdocs`：与之前的命令稍有不同，这个命令在卷映射部分仅提供了容器内的目标路径。这将导致Docker使用一个匿名卷来存储数据。在这种情况下，它将不能直接映射到主机文件系统上的特定目录。当使用匿名卷时，文件将存储在主机文件系统的某个位置，容器ID在路径中标识。 如果你不需要直接查看或编辑这些文件，这种方法可能更加简洁。
 
 查看容器页面
 
@@ -1227,7 +1326,18 @@ bridge name     bridge id               STP enabled     interfaces
 docker0         8000.0242a5e71d60       no
 ```
 
-  注意：如果 `brctl` 没有安装需要执行 `brctl sudo apt install bridge-utils`
+`brctl show`命令用于在Linux系统中查看和管理网桥（bridge）。网桥是一种网络设备，可以在类似于交换机的方式下转发网络数据帧。在Docker中，网络桥经常用于连接容器与主机网络。
+
+在输出中，我们可以看到以下信息：
+
+- `bridge name`: 网桥名称，这里是`docker0`。这是默认的Docker网络桥，当没有指定其他网络时，新创建的容器会自动连接到这个桥上。
+- `bridge id`: 网桥ID，这里是`8000.0242a5e71d60`。它是一个内部标识符，用于唯一区分该网络桥。
+- `STP enabled`: Spanning Tree Protocol (STP)是否启用，这里是`no`。STP是一个网络协议，用于防止网桥环路。在这个例子中，STP被禁用。
+- `interfaces`: 与该网桥关联的网络接口。在您的输出中，没有与`docker0`关联的接口。这意味着当前没有使用该网桥的容器。
+
+总之，您运行的`brctl show`命令显示了系统中存在一个名为`docker0`的网络桥，但目前没有与之关联的容器。这是Docker的默认网络桥，通常用于连接容器与主机网络。  
+
+注意：如果 `brctl` 没有安装需要执行 `brctl sudo apt install bridge-utils`
 
 
 
@@ -1289,7 +1399,11 @@ docker0         8000.0242a5e71d60       no              vethf3bd9f1
 
 注意上述输出 `docker0` 增加了新的 `interfaces` 
 
+与上一个`brctl show`命令的输出相比，现在的输出显示有一个网络接口已经关联到了网络桥`docker0`。
 
+- `interfaces`: 与该网桥关联的网络接口现在列表中有一个接口，即`vethf3bd9f1`。这是一个虚拟以太网（veth）设备，用于连接容器与主机网络。它表示一个新的Docker容器已经被创建，并连接到了`docker0`网络桥。
+
+这个变化表示已经创建了一个新的Docker容器，并且它已经成功地连接到了默认的网络桥`docker0`，从而使容器可以访问主机网络。
 
 查看新增加的veth的细节
 
@@ -1327,9 +1441,18 @@ root@node1:~/http# ip add
        valid_lft forever preferred_lft forever
 ```
 
-对比来看,上述输出多了 `29: vethf3bd9f1@if28:`
+这两次`ip add`命令的输出展示了主机上的网络接口信息。在第二个输出中，我们可以看到有一些变化，主要涉及到`docker0`网桥和与之关联的新接口`vethf3bd9f1@if28`。下面详细解释这些变化：
 
+1. `docker0`网桥：
+   - 第一个输出中，`docker0`的状态为`DOWN`。这表示尽管网络桥已激活，但它没有处于工作状态，因为没有与之关联的容器。
+   - 第二个输出中，`docker0`的状态变为了`UP`。这表示网络桥现在已经连接到至少一个容器，并处于工作状态。
 
+2. 新网络接口`vethf3bd9f1@if28`：
+   - 在第二个输出中，我们可以看到一个新的网络接口`vethf3bd9f1@if28`。这是一个虚拟以太网设备（veth），它实现了容器和主机之间的网络连接。
+   - `vethf3bd9f1@if28`的状态为`UP`，表示该接口激活并正常工作。
+   - 它的`master`属性值为`docker0`，表明该接口已成功附着在`docker0`网桥上。这使得与之关联的容器可以通过网桥访问主机网络。
+
+这些变化说明，一个新的Docker容器已经被创建，并通过新的虚拟以太网设备`vethf3bd9f1@if28`成功地连接到了`docker0`网络桥。这允许容器与主机网络通信，并使容器可以被外部访问（如果端口映射设置正确）。
 
 在httpd1容器里观察eth0设置
 
@@ -1953,7 +2076,7 @@ docker stop $(docker ps -a -q);docker rm $(docker ps -a -q)
 
 
 
-# 使用 docker-compose 部署WordPress
+# 使用 docker-compose 部署复杂应用
 
 
 
@@ -1963,7 +2086,7 @@ docker stop $(docker ps -a -q);docker rm $(docker ps -a -q)
 apt install docker-compose
 ```
 
-
+## 部署 WordPress
 
 创建docker-compose文件
 
@@ -2002,7 +2125,28 @@ volumes:
     db_data:
 ```
 
+这个配置文件是用于创建和部署一个由两个容器组成的Docker Compose环境：一个MySQL数据库及一个WordPress应用。文件内容是基于YAML语法格式编写的，使用了Docker Compose的3.3版本。下面是关于各组件的详细解释：
 
+1. `version: '3.3'`：定义了Docker Compose的文件版本。
+
+然后是服务定义部分：
+
+2. `services`：这里定义了我们要部署的两个服务。
+   
+   a) `db`：这个服务用于部署MySQL数据库。
+      - `image: mysql:5.7`：使用的镜像是`mysql:5.7`。
+      - `volumes`：这里定义一个卷，将容器内的`/var/lib/mysql`目录挂载到名为`db_data`的卷，以持久化数据库数据。
+      - `restart: always`：如果这个容器出现任何意外情况，它将总是重新启动。
+      - `environment`：这里设置了一些MySQL所需的环境变量。
+
+   b) `wordpress`：这个服务用于部署WordPress应用。
+      - `depends_on`：指定这个服务依赖于db服务，确保db服务首先启动。
+      - `image: wordpress:latest`：使用的镜像是最新版本的`wordpress`。
+      - `ports`：将容器的80端口映射到主机的8000端口，允许访问WordPress站点。
+      - `restart: always`：如果这个容器出现任何意外情况，它将总是重新启动。
+      - `environment`：这里设置了一些WordPress所需的环境变量，包括数据库连接信息。
+
+3. `volumes`：此部分定义了一个名为`db_data`的卷，它被用于存储MySQL数据库的数据。这样即使数据库容器重新启动或删除，数据仍然可以被保留。
 
 运行docker-compose
 
@@ -2255,9 +2399,91 @@ docker-compose down --volumes
 
 
 
+## 部署 NextCloud
+
+> Nextcloud是一套用于创建网络硬盘的客户端－服务器软件。其功能与Dropbox相近，但Nextcloud是自由及开放源代码软件，每个人都可以在私人服务器上安装并执行它。
+
+```bash
+nano docker-compose.yml
+```
+
+
+
+```yaml
+version: '2'
+
+volumes:
+  nextcloud:
+  db:
+
+services:
+  db:
+    image: mariadb:10.6
+    restart: always
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    volumes:
+      - db:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_PASSWORD=password
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+
+  app:
+    image: nextcloud
+    restart: always
+    ports:
+      - 8088:80
+    links:
+      - db
+    volumes:
+      - nextcloud:/var/www/html
+    environment:
+      - MYSQL_PASSWORD=password
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_HOST=db
+```
+
+这是一个使用 Docker Compose 的配置文件，它定义了两个服务：数据库服务 `db` 和 应用服务 `app`。此文件使用的 Docker Compose 版本为 '2'。接下来，我将分别解释配置文件中的每个部分。
+
+首先，我们定义了两个卷（volumes）：
+1. `nextcloud`：用于存储 Nextcloud 应用数据的数据卷。
+2. `db`：用于存储数据库数据的数据卷。
+
+接下来定义了两个服务：
+1. `db` 服务：
+   - 使用 `mariadb:10.6` 镜像。
+   - 使用 `always` 重启策略。这意味着当容器停止时，Docker 将始终尝试重新启动它。
+   - 运行一个自定义命令，设置事务隔离级别（READ-COMMITTED），以及配置二进制日志（binlog）和其格式（ROW）。
+   - 将名为 `db` 的数据卷挂载到 `/var/lib/mysql` 目录中。
+   - 定义了一些环境变量，例如：MySQL root 用户的密码、普通用户（`nextcloud`）的密码、使用的数据库名称（`nextcloud`）以及所创建的用户名称（`nextcloud`）。
+
+2. `app` 服务：
+   - 使用 `nextcloud` 镜像。
+   - 使用 `always` 重启策略。
+   - 将容器中的 80 端口映射到宿主机的 8088 端口。
+   - 通过 `links` 指令建立与 `db` 服务的连接。
+   - 将名为 `nextcloud` 的数据卷挂载到 `/var/www/html` 目录中。
+   - 定义了一些环境变量，例如：用于连接到数据库服务的 MySQL 密码、数据库名称、用户名以及主机名（`db`，即此配置文件中定义的数据库服务名）。
+
+总结一下，这个 Docker Compose 文件定义了一个使用 Nextcloud 应用和 MariaDB 数据库的基本配置。Docker 将创建两个容器，它们分别运行 Nextcloud 和 MariaDB，Nextcloud 将使用命名数据卷将应用数据存储在宿主机上，而 MariaDB 则将数据库数据存储在另一个命名卷中。使用此配置文件，你可以通过运行 `docker-compose up` 命令来部署 Nextcloud 应用。
+
+```bash
+docker-compose up -d
+```
+
 
 
 # Docker 可视化管理
+
+
+
+## 图形化UI
+
+> Portainer是一款轻量级的Docker环境管理UI工具，可用于管理Docker宿主机和Docker Swarm集群。它提供了直观的用户界面，支持管理Docker堆栈、容器、镜像、卷、网络等。
+
+
 
 安装 Portainer
 
@@ -2272,6 +2498,8 @@ docker run -d -p 9000:9000 --restart always -v /var/run/docker.sock:/var/run/doc
 ![image-20221220155902088](README.assets/image-20221220155902088.png)
 
 
+
+> Weave Scope是一个用于Docker和Kubernetes的可视化和监控工具。它提供了应用程序和整个基础架构的自上而下的视图，可以监控Kubernetes集群中的一系列资源的状态、资源使用情况、应用拓扑、scale等。此外，它还可以直接通过浏览器进入容器内部调试等。
 
 安装 Weave scope 
 
@@ -2324,6 +2552,10 @@ Weave Scope is listening at the following URL(s):
 
 
 
+## 性能监控
+
+> Prometheus是一个功能强大的监控报警系统，可以帮助用户实现对监控数据的查询、聚合、数据可视化以及告警等功能。它的使用范围主要针对性能和可用性监控，不适用于针对日志、事件、调用链等的监控。
+
 安装 Prometheus 堆栈
 
 ```bash
@@ -2357,3 +2589,246 @@ ADMIN_USER=admin ADMIN_PASSWORD=admin docker-compose up -d
 从weavescope页面中观察的  dockprom  堆栈中诸容器相互调用关系
 
 ![image-20221220161154248](README.assets/image-20221220161154248.png)
+
+
+
+## 反向代理管理
+
+> Nginx Proxy Manager是一个基于Docker镜像的代理管理器，只需要一个数据库即可运行。它提供美观且安全的管理界面，可轻松创建转发域、重定向、流和404主机，无需了解任何Nginx知识。它的最大特点是简单方便，即使没有Nginx基础的用户也能轻松完成反向代理的配置。此外，Nginx Proxy Manager还整合了Let's Encrypt证书申请，可轻松将网站转为HTTPS。
+
+```bash
+nano docker-compose.yml
+```
+
+```yaml
+version: '3.8'
+services:
+  app:
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+```
+
+这是一个Docker Compose文件，使用Docker Compose的版本3.8。Docker Compose是一个用于定义和运行多容器Docker应用程序的工具。此配置文件定义了一个名为“app”的服务，其中包含以下设置：
+
+1. `image`: 指定服务使用的Docker镜像 - `jc21/nginx-proxy-manager:latest`。这是一个具有Nginx反向代理管理器的镜像，用于管理、部署和监控Nginx反向代理服务器。
+
+2. `restart`: 设置为`unless-stopped`，这意味着容器将在任何情况下重启，除非用户明确的停止它。
+
+3. `ports`: 定义了服务需要公开的端口映射：
+   - '80:80' 表示将宿主机的80端口映射到容器的80端口（HTTP）
+   - '81:81' 表示将宿主机的81端口映射到容器的81端口（Nginx Proxy Manager的管理界面）
+   - '443:443' 表示将宿主机的443端口映射到容器的443端口（HTTPS）
+
+4. `volumes`: 定义了在宿主机和容器之间共享的存储卷：
+   - `./data:/data` 映射宿主机上的`data`目录到容器的`/data`目录，通常用于存储Nginx反向代理的配置信息和数据库文件。
+   - `./letsencrypt:/etc/letsencrypt` 映射宿主机上的`letsencrypt`目录到容器的`/etc/letsencrypt`目录，用于存储Let's Encrypt SSL证书。
+
+简而言之，这是一个使用Docker Compose部署Nginx反向代理管理器的配置文件。当使用此配置文件运行`docker-compose up`时，它将自动下载和运行`jc21/nginx-proxy-manager`镜像，并按照上述配置绑定端口和存储卷。
+
+```bash
+docker-compose up -d
+```
+
+登陆界面：http://nodeip:81
+
+默认凭据：
+
+```
+Email:    admin@example.com
+Password: changeme
+```
+
+
+
+![image-20230619100859433](README.assets/image-20230619100859433.png)
+
+![image-20230619100936859](README.assets/image-20230619100936859.png)
+
+# 最简Docker CI/CD 实验场景
+
+前提条件：
+
+1. GitHub账号
+
+2. Docker Hub账号
+
+   
+
+## 创建静态HTML文件和Dockerfile
+
+**1. HTML文件**
+
+这是一个最简单的HTML文件，名字可以为`index.html`：
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CICD Lab Page</title>
+</head>
+<body>
+    <h1>Welcome to My Lab</h1>
+    <p>Powered by Github + Docker hub </p>
+    <p>version: 2023/5/31 11:27 </p>
+    <p>Here is a link to my GitHub repository: <a href="https://github.com/cloudzun/cicdlab" target="_blank">https://github.com/cloudzun/cicdlab</a></p>
+</body>
+</html>
+```
+
+**2. Dockerfile**
+
+以下是一个简单的Dockerfile，它基于Alpine Linux映像，并将你的静态页面复制到镜像中：
+
+```dockerfile
+# 使用Alpine Linux作为基础映像
+FROM alpine:latest
+
+# 安装lighttpd
+RUN apk add --no-cache lighttpd
+
+# 将你的静态页面复制到镜像中
+COPY ./index.html /var/www/localhost/htdocs/index.html
+
+# 暴露80端口
+EXPOSE 80
+
+# 当容器启动时运行lighttpd
+CMD ["lighttpd", "-D", "-f", "/etc/lighttpd/lighttpd.conf"]
+```
+
+这个Dockerfile做了以下几件事：
+
+1. 使用`Alpine Linux`作为基础映像。
+2. 安装`lighttpd`，它是一个轻量级的HTTP服务器。
+3. 将你的静态HTML页面复制到镜像中的`/var/www/localhost/htdocs/`目录。
+4. 暴露了`80`端口，这是HTTP的默认端口。
+5. 当容器启动时，运行`lighttpd`并保持前台运行。
+   请注意，这个示例假设你的HTML文件名为`index.html`，并且它位于与`Dockerfile`相同的目录中。如果你的文件名或路径不同，你需要相应地修改COPY命令。
+
+请将这个`Dockerfile`和你的`HTML`文件放在你的GitHub仓库中的同一个目录下，然后提交这些文件到GitHub。这就完成了第一步。
+
+
+
+## 设置GitHub Acitons
+
+1. 在你的项目根目录下创建一个新的文件夹名为`.github/workflows`。
+2. 在`.github/workflows`文件夹中创建一个新的YAML文件，如`dockerimage.yml`。
+3. 在`dockerimage.yml`中添加以下内容：
+
+```yaml
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main # Change this to your default branch if it's not 'main'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      
+    - name: Login to DockerHub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        push: true
+        tags: docker.io/${{ secrets.DOCKER_HUB_USERNAME }}/cicdlab:latest
+```
+
+此工作流程文件将在每次将更改推送到主分支时触发，并且会构建并将Docker映像推送到Docker Hub。
+
+这是一个 GitHub Actions 配置文件，用于实现在向名为 "main" 的分支进行推送时，自动构建并将 Docker 镜像推送到 DockerHub 的功能。以下是关于配置文件各部分的解释：
+
+1. `name: Build and Push Docker Image`：为此工作流分配一个名称。
+
+2. `on`：定义触发此工作流的事件。
+   - `push`：当有新的推送发生时触发。
+   - `branches`：指定触发此工作流的分支名称。
+     - `main`：分支名称（默认为“main”，如果使用其他名称，请进行修改）。
+
+3. `jobs`：定义工作流中的任务。
+   - `build-and-push`：为任务分配一个 ID。
+   - `runs-on`: 定义任务执行的虚拟环境。在这里，使用的是最新版的 Ubuntu。
+
+4. `steps`：任务中执行的一系列步骤。
+   - 第一步（name: Checkout code）：检出仓库的代码。
+   - 第二步（name: Login to DockerHub）：登录到 DockerHub。
+     - 使用 `docker/login-action@v1`：标明用于登录 DockerHub 的 GitHub Action。
+     - `with`：配置 GitHub Action 的参数。
+       - `username` 和 `password`：从 GitHub Secrets 获取 DockerHub 的用户名和访问令牌。
+   - 第三步（name: Build and push Docker image）：构建并推送 Docker 镜像。
+     - 使用 `docker/build-push-action@v2`：标明用于构建和推送 Docker 镜像的 GitHub Action。
+     - `with`：配置 GitHub Action 的参数。
+       - `context`：指定构建上下文，这里是当前目录（`.`）。
+       - `push`：是否推送镜像，这里设置为 `true`。
+       - `tags`：定义 Docker 镜像的标签，包括 DockerHub 的用户名、仓库名称以及镜像的版本标签（在这里用 `latest` 标记最新版本）。
+
+通过此配置文件，当您向 "main" 分支提交更改时，GitHub Actions 会自动构建并推送 Docker 镜像到 DockerHub。
+
+
+
+在你的GitHub项目的`Settings`页面中，进入`Secrets`菜单，并添加你的Docker Hub用户名和访问令牌。这些密钥将在你的工作流中用于登录到Docker Hub。添加以下两个secret：
+
+- `DOCKER_HUB_USERNAME` - 你的Docker Hub用户名
+- `DOCKER_HUB_ACCESS_TOKEN` - 你的Docker Hub访问令牌
+
+现在每次向`main`分支（或者你在`dockerimage.yml`中设置的默认分支）提交更改时，GitHub Actions都将自动构建一个新的Docker映像并将其推送到你的Docker Hub仓库。
+
+
+
+## 创建 DOCKER_HUB_ACCESS_TOKEN
+
+1. 登录你的Docker Hub账户。
+2. 点击你的用户名，然后在下拉菜单中选择"Account Settings"。
+3. 在左侧的菜单中，选择"Security"。
+4. 在"New Access Token"下，给你的新令牌输入一个名字，然后点击"Create"。名字可以是任何你喜欢的名字，但最好选择一个能帮助你记住该令牌用途的名字。
+5. 你的新令牌将显示在下一屏幕上。确保你复制了这个令牌，因为你将无法再次看到它。
+
+6. 然后你可以将这个访问令牌复制到你的GitHub仓库的Secrets设置中（作为`DOCKER_HUB_ACCESS_TOKEN`）。
+
+
+
+## 执行容器映像的自动构建
+
+实际上，根据前面我们在GitHub Actions中设置的操作，每次你提交代码，都会触发GitHub Actions自动构建Docker镜像并将它推送到Docker Hub。因此，你并不需要在Docker Hub上设置自动构建。
+
+GitHub Actions已经接管了这部分工作。每次你推送更改到GitHub，它都会自动构建新的Docker镜像，并使用你在GitHub Secrets中设置的Docker Hub凭据将镜像推送到Docker Hub。
+
+所以，在这个设置中，Docker Hub主要作为存储和分发Docker镜像的平台，而真正的自动构建工作是由GitHub Actions完成的。
+
+请确认你的GitHub Actions工作流正常工作，即当你向GitHub仓库提交更改时，可以在GitHub Actions的日志中看到构建和推送Docker镜像的过程，并且可以在Docker Hub的仓库中看到新的镜像。
+
+
+
+## 使用Watchtower实现容器自动更新
+
+需要在Docker主机上安装和运行Watchtower。Watchtower是一个Docker容器，可以监视其他容器，并在Docker Hub上发现新的映像时自动更新它们。
+
+你可以使用以下命令启动Watchtower：
+
+```bash
+docker run -d --name watchtower -v /var/run/docker.sock:/var/run/docker.sock containrrr/watchtower --interval 30
+```
+
+在这个命令中，`--interval 30`参数使Watchtower每30秒检查一次更新。
+
+现在，你需要确保你的应用容器启动时使用了正确的Docker Hub镜像标签。Watchtower通过比较Docker Hub上的新镜像和本地镜像的标签来判断是否有新版本可用。
+
+如果你在运行你的应用容器时使用了类似`chengzh/cicdlab:latest`的标签，那么只要在Docker Hub上有新的`latest`标签出现，Watchtower就会发现并拉取新的映像，然后重启你的应用容器。
+
