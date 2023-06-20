@@ -2690,7 +2690,7 @@ postgres   1/1     1            1           13m   postgres         postgres     
 
 
 
-### Demo提示
+**Demo提示**
 
 使用简化版的application manifest，只响应frontend的更新
 
