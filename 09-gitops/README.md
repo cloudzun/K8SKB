@@ -3074,7 +3074,7 @@ spec:
         -   `spec`: 定义 Pod 规格。
             -   `containers`: 定义容器列表。
                 -   `name`: 容器名称，这里为 bluegreen-demo。
-                -   `image`: 容器使用的镜像，这里为 argoproj/rollouts-demo:blue。
+                -   `image`: 容器使用的镜像，这里为 `argoproj/rollouts-demo:blue`。
                 -   `imagePullPolicy`: 镜像拉取策略，这里为 IfNotPresent。
                 -   `ports`: 定义容器端口列表。
                     -   `name`: 端口名称，这里为 http。
@@ -3100,6 +3100,94 @@ spec:
 ```bash
 kubectl apply -f blue-green-rollout.yaml
 ```
+
+
+
+检查rollout
+
+```bash
+kubectl describe rollout bluegreen-demo
+```
+
+
+
+```bash
+root@node1:~/gitops# kubectl describe rollout bluegreen-demo
+Name:         bluegreen-demo
+Namespace:    default
+Labels:       app=bluegreen-demo
+Annotations:  <none>
+API Version:  argoproj.io/v1alpha1
+Kind:         Rollout
+Metadata:
+  Creation Timestamp:  2023-06-20T06:06:32Z
+  Generation:          1
+  Resource Version:    664472
+  UID:                 59dabacc-01b7-473e-834f-323a2b861807
+Spec:
+  Replicas:                3
+  Revision History Limit:  1
+  Selector:
+    Match Labels:
+      App:  bluegreen-demo
+  Strategy:
+    Blue Green:
+      Active Service:          bluegreen-demo
+      Auto Promotion Enabled:  true
+  Template:
+    Metadata:
+      Labels:
+        App:  bluegreen-demo
+    Spec:
+      Containers:
+        Image:              argoproj/rollouts-demo:blue
+        Image Pull Policy:  IfNotPresent
+        Name:               bluegreen-demo
+        Ports:
+          Container Port:  8080
+          Name:            http
+          Protocol:        TCP
+        Resources:
+          Requests:
+            Cpu:     5m
+            Memory:  32Mi
+Status:
+  Conditions:
+    Last Transition Time:  2023-06-20T06:06:32Z
+    Last Update Time:      2023-06-20T06:06:32Z
+    Message:               The Rollout "bluegreen-demo" is invalid: spec.strategy.blueGreen.activeService: Invalid value: "bluegreen-demo": service "bluegreen-demo" not found
+    Reason:                InvalidSpec
+    Status:                True
+    Type:                  InvalidSpec
+  Message:                 InvalidSpec: The Rollout "bluegreen-demo" is invalid: spec.strategy.blueGreen.activeService: Invalid value: "bluegreen-demo": service "bluegreen-demo" not found
+  Observed Generation:     1
+  Phase:                   Degraded
+Events:                    <none>
+
+```
+
+该输出是从 Kubernetes 获取的信息，描述名为 "bluegreen-demo" 的 Argo Rollout 对象。这是一个用于管理 Kubernetes 部署滚动更新的对象。从这个输出可以观察到对象的配置和状态情况。
+
+以下是输出的主要部分及其解释：
+
+1. 元数据（Metadata）：包含创建时间戳、资源版本和对象的 UID 等信息。
+
+2. Spec：这部分展示了 Rollout 对象的配置信息，包括：
+   - Replicas：副本数，这里设置为 3，表示要保持 3 个 Pod 实例运行。
+   - Revision History Limit：修订历史限制，设置为 1，表示保留 1 个旧版本的 ReplicaSet。
+   - Selector：用于匹配目标 Pod 的标签选择器。
+   - Strategy：定义滚动更新策略。这里使用了蓝绿部署策略（Blue Green Deployment），要求提供 Active Service 和自动升级设置。
+   - Template：Pod 模板，包括容器镜像、端口和资源请求等信息。
+
+3. Status：描述了 Rollout 对象的当前状态。以下是相关字段说明：
+   - Conditions：滚动更新的各种条件状态，当前显示有 InvalidSpec（无效的规范）问题。
+   - Message：详细描述问题原因。这里指出 "spec.strategy.blueGreen.activeService" 无效，因为找不到名为 "bluegreen-demo" 的服务。
+   - Observed Generation：观察到的 Rollout 对象的版本。
+   - Phase：回显 Rollout 的整体状态，当前为 "Degraded"（降级）。
+
+综上所述，输出中的问题提示表明在实际 Kubernetes 集群中找不到名为 "bluegreen-demo" 的服务。要解决此问题，请检查服务是否正确创建并与 Rollout 配置的 "spec.strategy.blueGreen.activeService" 值匹配。
+
+
 
 3. 创建 Service 和 Ingress
 
@@ -3161,6 +3249,161 @@ spec:
 ```bash
 kubectl apply -f blue-green-ingress.yaml 
 ```
+
+
+
+再次检查rollout
+
+```bash
+kubectl describe rollout bluegreen-demo
+```
+
+
+
+```bash
+root@node1:~/gitops# kubectl describe rollout bluegreen-demo
+Name:         bluegreen-demo
+Namespace:    default
+Labels:       app=bluegreen-demo
+Annotations:  rollout.argoproj.io/revision: 1
+API Version:  argoproj.io/v1alpha1
+Kind:         Rollout
+Metadata:
+  Creation Timestamp:  2023-06-20T06:06:32Z
+  Generation:          1
+  Resource Version:    665109
+  UID:                 59dabacc-01b7-473e-834f-323a2b861807
+Spec:
+  Replicas:                3
+  Revision History Limit:  1
+  Selector:
+    Match Labels:
+      App:  bluegreen-demo
+  Strategy:
+    Blue Green:
+      Active Service:          bluegreen-demo
+      Auto Promotion Enabled:  true
+  Template:
+    Metadata:
+      Labels:
+        App:  bluegreen-demo
+    Spec:
+      Containers:
+        Image:              argoproj/rollouts-demo:blue
+        Image Pull Policy:  IfNotPresent
+        Name:               bluegreen-demo
+        Ports:
+          Container Port:  8080
+          Name:            http
+          Protocol:        TCP
+        Resources:
+          Requests:
+            Cpu:     5m
+            Memory:  32Mi
+Status:
+  HPA Replicas:        3
+  Available Replicas:  3
+  Blue Green:
+    Active Selector:  6fdbc78886
+  Canary:
+  Conditions:
+    Last Transition Time:  2023-06-20T06:08:32Z
+    Last Update Time:      2023-06-20T06:08:32Z
+    Message:               RolloutCompleted
+    Reason:                RolloutCompleted
+    Status:                True
+    Type:                  Completed
+    Last Transition Time:  2023-06-20T06:08:34Z
+    Last Update Time:      2023-06-20T06:08:34Z
+    Message:               Rollout is healthy
+    Reason:                RolloutHealthy
+    Status:                True
+    Type:                  Healthy
+    Last Transition Time:  2023-06-20T06:08:32Z
+    Last Update Time:      2023-06-20T06:08:34Z
+    Message:               ReplicaSet "bluegreen-demo-6fdbc78886" has successfully progressed.
+    Reason:                NewReplicaSetAvailable
+    Status:                True
+    Type:                  Progressing
+    Last Transition Time:  2023-06-20T06:08:34Z
+    Last Update Time:      2023-06-20T06:08:34Z
+    Message:               Rollout has minimum availability
+    Reason:                AvailableReason
+    Status:                True
+    Type:                  Available
+  Current Pod Hash:        6fdbc78886
+  Observed Generation:     1
+  Phase:                   Healthy
+  Ready Replicas:          3
+  Replicas:                3
+  Selector:                app=bluegreen-demo,rollouts-pod-template-hash=6fdbc78886
+  Stable RS:               6fdbc78886
+  Updated Replicas:        3
+Events:
+  Type    Reason                Age   From                 Message
+  ----    ------                ----  ----                 -------
+  Normal  RolloutUpdated        20s   rollouts-controller  Rollout updated to revision 1
+  Normal  NewReplicaSetCreated  20s   rollouts-controller  Created ReplicaSet bluegreen-demo-6fdbc78886 (revision 1)
+  Normal  ScalingReplicaSet     20s   rollouts-controller  Scaled up ReplicaSet bluegreen-demo-6fdbc78886 (revision 1) from 0 to 3
+  Normal  RolloutCompleted      20s   rollouts-controller  Rollout completed update to revision 1 (6fdbc78886): Initial deploy
+  Normal  SwitchService         18s   rollouts-controller  Switched selector for service 'bluegreen-demo' from '' to '6fdbc78886'
+```
+
+相较于之前的输出，现在的 Rollout 对象 "bluegreen-demo" 显示正常且完成部署。以下是主要差异及解释：
+
+1. Blue Green 策略：
+   
+   现在的输出显示：
+
+   ```bash
+   Blue Green:
+     Active Selector:  6fdbc78886
+   ```
+
+   这表示已成功找到名为 "bluegreen-demo" 的服务，并成功将选择器切换为新创建的 ReplicaSet（6fdbc78886）。这说明已经成功创建了相应的服务并与 "spec.strategy.blueGreen.activeService" 的值匹配。
+
+2. 状态 Conditions：
+
+   现在的输出显示全部条件为 True，表示这次部署完成且正常。
+
+   ```bash
+   Conditions:
+     Last Transition Time:  2023-06-20T06:08:32Z
+     Last Update Time:      2023-06-20T06:08:32Z
+     Message:               RolloutCompleted
+     Reason:                RolloutCompleted
+     Status:                True
+     Type:                  Completed
+
+     ...                                 
+
+     Last Transition Time:  2023-06-20T06:08:34Z
+     Last Update Time:      2023-06-20T06:08:34Z
+     Message:               Rollout has minimum availability
+     Reason:                AvailableReason
+     Status:                True
+     Type:                  Available
+   ```
+
+   上述条件表明，Rollout 已经完成部署更新，所有副本都健康且满足最小可用性。新的 ReplicaSet（6fdbc78886）已经成功地使应用部署并处于稳定状态。
+
+3. 事件 Events：
+
+   现在的输出显示了几个正常的事件，包括：
+
+   ```bash
+   Normal  RolloutUpdated        20s   rollouts-controller  Rollout updated to revision 1
+   Normal  NewReplicaSetCreated  20s   rollouts-controller  Created ReplicaSet bluegreen-demo-6fdbc78886 (revision 1)
+   Normal  ScalingReplicaSet     20s   rollouts-controller  Scaled up ReplicaSet bluegreen-demo-6fdbc78886 (revision 1) from 0 to 3
+   Normal  RolloutCompleted      20s   rollouts-controller  Rollout completed update to revision 1 (6fdbc78886): Initial deploy
+   Normal  SwitchService         18s   rollouts-controller  Switched selector for service 'bluegreen-demo' from '' to '6fdbc78886'
+   ```
+
+   这些事件表明 Rollout 对象已成功更新到修订版本 1，创建了新的 ReplicaSet，并将该 ReplicaSet 扩展到包含 3 个副本。同时，成功切换了服务 "bluegreen-demo" 的选择器。
+
+比较之前的输出，现在 Rollout 状态正常，并已完成部署。问题找到并修复，即找不到相应的服务（名为 "bluegreen-demo"）。创建后，Rollout 已经正确实施蓝绿部署策略。
+
+
 
 更新host记录
 
@@ -3235,7 +3478,7 @@ kubectl argo rollouts dashboard
 
 点击进入 Rollout 的详情界面，在这里，能够以图形化的方式来查看 Rollout 的信息或进行回滚操作。
 
-
+![image-20230620142949796](README.assets/image-20230620142949796.png)
 
 
 
