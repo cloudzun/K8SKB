@@ -10,9 +10,7 @@
 
 
 
-### 安装 docker
-
-安装 docker, (1.23 还能支持 docker 作为容器运行时, 考虑到 docker 可以兼容更多的实验场景, 所以此例中保留使用 docker)
+**安装 docker**
 
 ```bash
 apt -y install apt-transport-https ca-certificates curl software-properties-common
@@ -60,7 +58,7 @@ systemctl enable docker
 
 
 
-### 安装 kubelet
+**安装 kubelet**
 
 ```
 apt-get update && apt-get install -y apt-transport-https
@@ -94,7 +92,7 @@ apt install -y kubelet=1.23.0-00 kubeadm=1.23.0-00  kubectl=1.23.0-00
 
 
 
-### 安装 Kind 
+**安装 Kind** 
 
 官方方式
 
@@ -115,7 +113,7 @@ sudo mv ./kind /usr/local/bin/kind
 
 
 
-### 创建实验用群集（单节点）
+**创建实验用群集（单节点）**
 
 创建群集配置文件
 
@@ -212,7 +210,7 @@ local-path-storage   local-path-provisioner-684f458cdd-2jfl4      1/1     Runnin
 
 
 
-## 安装基础群集服务
+**安装基础群集服务**
 
 
 
@@ -254,11 +252,11 @@ helm upgrade prometheus prometheus-community/kube-prometheus-stack \
 
 
 
-## Kubernetes 基本功能测试
+## (可选)Kubernetes 基本功能测试
 
 
 
-### 在 Kubernetes 群集上运行pod
+**在 Kubernetes 群集上运行pod**
 
 创建Pod定义文件
 
@@ -352,7 +350,7 @@ pod "hello-world-flask" deleted
 
 
 
-### 创建实验工作负载
+**创建实验工作负载**
 
 创建 deployment
 
@@ -391,7 +389,7 @@ kubectl label node node01 ingress-ready=true
 
 
 
-### 工作负载自愈
+**工作负载自愈**
 
 打开另外一个会话窗口访问服务
 ```bash
@@ -507,7 +505,7 @@ hello-world-flask-6bdf7b45dc-qbvf2   1/1     Running   0          2m1s
 
 
 
-### 自动扩容
+**自动扩容**
 
 （可选）安装 metrics 
 
@@ -1251,7 +1249,7 @@ horizontalpodautoscaler.autoscaling/frontend   Deployment/frontend   0%/80%     
 
 
 
-### 服务调用和发布
+**服务调用和发布**
 
 查看 backend 的pod
 
@@ -1387,7 +1385,7 @@ root@node1:~#
 
 
 
-### 应用配置
+**应用配置**
 
 连接到后端应用pod查看 env
 
@@ -1446,7 +1444,7 @@ exit
 
 
 
-### 应用扩缩容
+**应用扩缩容**
 
 查看HPA设置
 
@@ -1550,7 +1548,7 @@ postgres-fbd8f9f49-dsdr7    1/1     Running   0             17h
 
 
 
-### 创建 Helm Chart 目录结构
+**创建 Helm Chart 目录结构**
 
 ```bash
 cd kubernetes-example && mkdir helm
@@ -1567,7 +1565,7 @@ Chart.yaml  templates   values.yaml
 
 
 
-### 配置 Chart.yaml 内容
+**配置 Chart.yaml 内容**
 
 将下面的内容复制到 Chart.yaml 文件内。
 
@@ -1589,7 +1587,7 @@ appVersion: "0.1.0"
 
 
 
-### 填充 helm/templates
+**填充 helm/templates**
 
 `helm/templates` 目录用于存放模板文件，这些模板文件可以是 Kubernetes Manifest。因此，现在可以尝试不使用 Helm Chart 的模板功能，而是直接将 `deploy` 目录下的 Kubernetes Manifest 复制到 `helm/templates` 目录下。
 
@@ -1624,7 +1622,7 @@ helm install my-kubernetes-example ./helm --namespace example --create-namespace
 
 
 
-### 使用模板变量
+**使用模板变量**
 
 然而，刚才改造的最简单的 Helm Chart 无法满足多环境配置差异化的需求。到目前为止，它只是一个纯静态应用。
 
@@ -1891,7 +1889,7 @@ spec:
 
 
 
-### 部署预发布环境
+**部署预发布环境**
 
 为 Helm Chart 创建的 values.yaml 实际上是默认值，在预发布环境，希望将前后端的 HPA CPU averageUtilization 从默认的 90 调整为 60，可以在安装时使用 --set 来调整特定的字段，不需要修改 values.yaml 文件。
 
@@ -1963,7 +1961,7 @@ controlplane $ kubectl get deployment backend -n helm-staging --output jsonpath=
 
 
 
-### 部署生产环境
+**部署生产环境**
 
 部署到生产环境的例子相对来说配置项会更多，除了需要修改 database.enable 字段，禁用集群内数据库实例以外，还需要修改数据库连接的三个环境变量。所以，使用另一种安装参数传递方式：使用文件传递。要使用文件来传递安装参数，
 
@@ -2038,7 +2036,7 @@ controlplane $ kubectl get deployment backend -n helm-prod --output jsonpath='{.
 
 
 
-### 创建 GitHub Token
+**创建 GitHub Token**
 
 为了创建一个GitHub Token，用于发布Helm Chart，您需要执行以下步骤：
 
@@ -2072,7 +2070,7 @@ controlplane $ kubectl get deployment backend -n helm-prod --output jsonpath='{.
 
 
 
-### 推送 Helm Chart
+**推送 Helm Chart**
 
 在推送之前，还需要使用 GitHub ID 和刚才创建的 Token 登录到 GitHub Package。
 
@@ -2111,7 +2109,7 @@ Digest: sha256:2f3d04c9f2fda3e948dd31a96ba60b9bd2a939f16708ef5fb964f5d81314281f
 
 
 
-### 安装远端仓库的 Helm Chart
+**安装远端仓库的 Helm Chart**
 
 当成功把 Helm Chart 推送到 GitHub Package 之后，就可以直接使用远端仓库来安装 Helm Chart 了。和一般的安装步骤不同的是，由于 GitHub Package 仓库使用的是 OCI 标准的存储方式，所以无需执行 helm repo add 命令添加仓库，可以直接使用 helm install 命令来安装。
 
@@ -2143,7 +2141,7 @@ TEST SUITE: None
 
 
 
-### 调试 Helm Chart
+调试 Helm Chart
 
 在编写 Helm Chart 的过程中，为了方便验证，会经常渲染完整的 Helm 模板而又不安装它，这时候就可以使用 helm template 命令来调试 Helm Chart。
 
@@ -2159,8 +2157,6 @@ helm install my-kubernetes-example oci://ghcr.io/cloudzun/helm/kubernetes-exampl
 
 
 
-### 查看已安装的 Helm Release
-
 要查看已安装的 Helm Release，可以使用 helm list 命令。
 
 ```bash
@@ -2168,8 +2164,6 @@ helm list -A
 ```
 
 
-
-### 更新 Helm Release
 
 要更新 Helm Release，可以使用 helm upgrade 命令，Helm 会自动对比新老版本之间的 Manifest 差异，并执行升级。
 
@@ -2179,8 +2173,6 @@ helm upgrade my-kubernetes-example ./helm -n example
 
 
 
-### 查看 Helm Release 历史版本
-
 要查看 Helm Release 的历史版本，可以使用 helm history 命令。
 
 ```bash
@@ -2188,8 +2180,6 @@ helm history my-kuebrnetes-example -n example
 ```
 
 
-
-### 回滚 Helm Release
 
 当 Helm Release 有多个版本时，可以通过 helm rollback 命令回滚到指定的版本。
 
@@ -2199,17 +2189,13 @@ helm rollback my-kubernetes-example 1 -n example
 
 
 
-### 卸载 Helm Release
+### 
 
 要卸载 Helm Release，可以使用 helm uninstall
 
 ```bash
 helm uninstall my-kubernetes-example -n example
 ```
-
-
-
-
 
 
 
@@ -2432,7 +2418,7 @@ argocd app create example --sync-policy automated --repo https://github.com/clou
 
 
 
-### 安装和配置 ArgoCD Image Updater
+1.  **安装和配置 ArgoCD Image Updater**  
 
 安装  Argo CD Image Updater
 ```bash
@@ -2478,7 +2464,7 @@ kubectl create -n argocd secret docker-registry dockerhub-secret \
 
 综上所述，这个命令在名为 `argocd` 的命名空间里创建了一个名为 `dockerhub-secret` 的 secret，用来存储 Docker Hub 的访问凭据。在之后的 Kubernetes 部署中，可以使用这个 secret 来访问私有 Docker 仓库中的镜像。
 
-### 创建 Helm Chart 仓库
+**2. 创建 Helm Chart 仓库**
 
 创建一个新的 Git 仓库，将现有仓库的helm目录复制到新仓库，并推送到自己的github中，（后续演示将使用 https://github.com/cloudzun/kubernetes-example-helm 作为helm chat repo）
 
@@ -2543,7 +2529,7 @@ repo-1585050378               Opaque                           4      75m
 
 
 
-### 创建 ArgoCD 应用
+**3. 创建 ArgoCD 应用**
 
 (可选)删除旧应用
 
@@ -2649,7 +2635,7 @@ argocd/example  https://kubernetes.default.svc  gitops-example-updater  default 
 
 
 
-### 触发 GitOps 工作流
+**4. 触发 GitOps 工作流**
 
 接下来，可以尝试修改 frontend/src/App.js 文件，例如修改文件第 49 行的“Hi! I am abraham”内容。修改完成后，将代码推送到 GitHub 的 main 分支。此时会触发两个 GitHub Action 工作流。其中，当 build-every-branch 工作流被触发时，它将构建 Tag 为 main 开头的镜像版本，并将其推送到镜像仓库中，
 
@@ -2747,17 +2733,11 @@ spec:
 
 
 
-# 实现高级发布策略
+# 蓝绿发布
 
 
 
-
-
-## 蓝绿发布
-
-
-
-### 手动蓝绿发布
+## 手动蓝绿发布
 
 1. 创建蓝色环境的 Deployment 和 Service
 
@@ -2968,7 +2948,7 @@ kubectl apply -f green_ingress.yaml
 
 
 
-### 蓝绿发布自动化
+## 蓝绿发布自动化
 
 到这里，都是通过创建 Kubernetes 原生对象并修改 Ingress 策略的方式来完成蓝绿发布的。这存在一些缺点，首先，在更新过程中，一般只关注镜像版本的变化，而不会去操作 Ingress 策略；其次，这种方式不利于将蓝绿发布和 GitOps 流水线进行整合
 
@@ -3482,11 +3462,11 @@ kubectl argo rollouts dashboard
 
 
 
-## 金丝雀发布
+# 金丝雀发布
 
 
 
-### 手动金丝雀发布
+## 手动金丝雀发布
 
 1. 创建生产环境的 Deployment 和 Service
 
@@ -3706,7 +3686,7 @@ kubectl apply -f canary_ingress.yaml
 
 现在，只需要调整金丝雀环境的 Ingress 策略，分次提升 canary-weight 的值直到 100%，也就实现了一次完整的金丝雀发布过程。
 
-### 自动金丝雀发布
+## 自动金丝雀发布
 
 上面提到手动金丝雀发布过程比较麻烦，除了需要手动创建生产和金丝雀两个环境以外，还需要手动配置 Ingress 策略，如果想要调整金丝雀环境的流量比例，那么就需要多次修改 Ingress 策略。这种发布方式效率很低，并且最后将金丝雀环境提升为生产环境时也需要手动处理。
 
@@ -3963,11 +3943,11 @@ kubectl delete -f canary-rollout.yaml
 
 
 
-## 自动渐进交付
+# 自动渐进交付
 
 
 
-### 创建生产环境
+## 创建生产环境
 
 创建Rollout对象
 
@@ -4126,7 +4106,7 @@ kubectl apply -f canary-progressive-ingress.yaml
 
 
 
-### 创建用于自动金丝雀分析的 AnalysisTemplate 模板
+## 创建用于自动金丝雀分析的 AnalysisTemplate 模板
 
 
 ```bash
@@ -4188,7 +4168,7 @@ Demo 环境的配置
 
 
 
-### 安装 Prometheus 并配置 Ingress-Nginx
+## 安装 Prometheus 并配置 Ingress-Nginx
 
 安装 Prometheus
 
@@ -4345,7 +4325,7 @@ kubectl apply -f prometheus-ui.yaml
 
 
 
-### 自动渐进式交付成功
+## 自动渐进式交付成功
 
 使用另一种更新镜像的方法，通过 Argo Rollout kubectl 插件来更新镜像
 
@@ -4367,7 +4347,7 @@ kubectl argo rollouts set image canary-demo canary-demo=argoproj/rollouts-demo:g
 
 
 
-### 自动渐进式交付失败
+## 自动渐进式交付失败
 
 在上面的实验中，由于应用返回的 HTTP 状态码都是 200 ，所以金丝雀分析自然是会成功的。
 
@@ -4408,15 +4388,11 @@ kubectl argo rollouts set image canary-demo canary-demo=argoproj/rollouts-demo:y
 
 
 
-# 实现管理特性
-
-
-
-## 多环境部署
+# 多环境部署
 
 项目文件路径：https://github.com/cloudzun/kubernetes-example/tree/main/helm-env
 
-### 示例应用简介
+**示例应用简介**
 
 该项目的目录结构包括 `Chart.yaml`、`applicationset.yaml`、`env` 目录和 `templates` 目录。熟悉 Helm 的用户很容易就能看出，实际上它是一个 Helm Chart。不同之处在于，Helm 的配置文件 `values.yaml` 并未放置在 Chart 的根目录，而是存放在 `env` 目录下。
 
@@ -4484,8 +4460,7 @@ spec:
 
 
 
-
-### 创建 ApplicationSet
+创建 ApplicationSet
 
 `ApplicationSet` 是本节课的重点，可以自动生成多个 `Application` 对象，每个对象对应着不同的环境。
 
@@ -4562,7 +4537,7 @@ kubectl apply -f applicationset.yaml
 
 
 
-### 验证多环境部署
+**验证多环境部署**
 
 从ArgoCD 界面中进行查看
 
@@ -4583,11 +4558,11 @@ kubectl apply -f applicationset.yaml
 
 
 
-## 密钥管理
+# 密钥管理
 
 > Sealed Secrets是一种非常有用的工具，可以帮助管理Kubernetes集群中的Secrets，并提供了一种安全的方式来存储Secrets。它使用非对称加密来保护Secrets，同时也可以方便地与Git集成。
 
-### 安装 sealed-secrets
+**安装 sealed-secrets**
 
 安装CLI
 
@@ -4613,7 +4588,7 @@ kubectl wait deployment -n kube-system sealed-secrets-controller --for condition
 
 
 
-查看secret对象
+**查看secret对象**
 
 在本地使用 kubeseal 加密 Secret 对象时，kubeseal 会从集群内下载 RSA 公钥并使用它对 Secret 对象进行加密。接着，生成加密后的 SealedSecret CRD 资源，即 SealedSecret 对象。当集群内控制器检测到新的 SealedSecret 对象被部署时，控制器将使用集群内的 RSA 私钥解密信息，并在集群内重新生成 Secret 对象，以供工作负载使用。
 
@@ -4657,8 +4632,7 @@ kubectl apply -f https://raw.githubusercontent.com/cloudzun/kubernetes-example/m
 
 
 
-
-### 分析示例应用
+**分析示例应用**
 
 https://github.com/cloudzun/kubernetes-example/blob/main/sealed-secret/manifest/deployment.yaml
 
@@ -4716,7 +4690,7 @@ spec:
 
 
 
-### 创建 ArgoCD 应用
+**创建 ArgoCD 应用**
 
 https://github.com/cloudzun/kubernetes-example/blob/main/sealed-secret/application.yaml
 
@@ -4798,7 +4772,7 @@ Error from server (BadRequest): container "sample-spring" in pod "sample-spring-
 
 
 
-### 创建加密后的对象
+**创建加密后的对象**
 
 **对于docker容器运行时**
 
@@ -4863,7 +4837,7 @@ data:      .dockerconfigjson:ewogICAgICAgICJhdXRocyI6IHsKICAgICAgICAgICAgICAgICJ
   
 ```
 
-### 创建 Image Pull Secret 对象
+**创建 Image Pull Secret 对象**
 
 ```bash
 kubeseal -f image-pull-secret.yaml -w manifest/image-pull-sealed-secret.yaml --scope cluster-wide
@@ -4897,7 +4871,7 @@ spec:
 
 
 
-### 创建 Secret 对象
+**创建 Secret 对象**
 
 ```bash
 kubeseal -f sample-secret.yaml -w manifest/sample-sealed-secret.yaml --scope cluster-wide
@@ -4938,13 +4912,13 @@ git push origin main
 
 
 
-### 验证 image pull secret
+**验证 image pull secret**
 
 进入 ArgoCD 控制台的应用详情，手动点击“SYCN”按钮同步新增的 `Secret` 对象。此时，应用状态应变为 Healthy 健康状态。同时，`Sealed-Secret` 控制器会对刚才创建的 `SealedSecret` 对象进行解密，并重新创建原始的 Kubernetes `Secret` 对象以供 Deployment 工作负载使用。
 
 ![img](README.assets/61fc598030dcbd89e83dd0bf3cb93004.png)
 
-### 验证Secret
+**验证Secret**
 
 除了镜像凭据，此前还创建了一个提供工作负载密码的 `Secret` 对象。该密码通过环境变量注入到 `Pod` 中。接下来，将验证应用是否能够获取来自 `Secret` 对象提供的密码
 
