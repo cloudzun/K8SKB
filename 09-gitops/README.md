@@ -2278,11 +2278,11 @@ metadata:
   namespace: argocd
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
-    kubernetes.io/ingress.class: nginx
     kubernetes.io/tls-acme: "true"
     nginx.ingress.kubernetes.io/ssl-passthrough: "true"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
 spec:
+  ingressClassName: nginx
   rules:
   - host: argocd.example.com
     http:
@@ -2290,7 +2290,7 @@ spec:
       - path: /
         pathType: Prefix
         backend:
-          service: 
+          service:
             name: argocd-server
             port:
               name: https
@@ -2321,7 +2321,7 @@ amsgK3UobDG6VsVd
 192.168.1.231 argocd.example.com
 ```
 
-访问 https://argocd.example.com/ 建议修改密码
+访问 https://argocd.example.com/  默认用户名admin，建议修改密码
 
 （可选）安装 cert-manager
 
@@ -2437,7 +2437,25 @@ argocd app create example --sync-policy automated --repo https://github.com/clou
 安装  Argo CD Image Updater
 ```bash
 kubectl apply -n argocd -f https://ghproxy.com/https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/stable/manifests/install.yaml
+
 ```
+
+
+
+检查Argo CD Image Updater 安装效果
+
+```bash
+ kubectl get pod -n argocd | grep argocd-image-updater
+```
+
+
+
+```bash
+root@node1:~/gitops# kubectl get pod -n argocd | grep argocd-image-updater
+argocd-image-updater-56d94c674d-9qmt2              1/1     Running   0          12m
+```
+
+
 
 设置docker 仓库 secret （注意 docker-password 的时效）
 
@@ -2449,13 +2467,26 @@ kubectl create -n argocd secret docker-registry dockerhub-secret \
   --docker-server "https://registry-1.docker.io"
 ```
 
+此命令用于在 Kubernetes 集群中通过 `kubectl` 工具创建一个类型为 `docker-registry` 的 secret。这个 secret 用于存储 Docker Hub 的访问凭据，以便 K8s 集群能够从私有仓库拉取镜像。下面是这个命令的分解说明：
+
+- `kubectl create`: kubectl 的子命令，用于在 Kubernetes 集群中创建资源。
+- `-n argocd`: 指定命名空间（namespace），在这里，要在名为 `argocd` 的命名空间中创建 secret。
+- `secret docker-registry dockerhub-secret`: 声明要创建的 secret 类型为 `docker-registry`，并设置其名称为 `dockerhub-secret`。
+- `--docker-username chengzh`: 指定 Docker Hub 的用户名为 `chengzh`。
+- `--docker-password dckr_pat_UxCRddCJXMg9_HNyHA0gsE3BsZA`: 指定 Docker Hub 的密码/访问令牌。请注意，您应该保管好您的密码/访问令牌，不要将其泄露给其他人。
+- `--docker-server "https://registry-1.docker.io/"`: 指定 Docker 仓库服务器的地址。这里使用的是 Docker Hub 的默认地址。
+
+综上所述，这个命令在名为 `argocd` 的命名空间里创建了一个名为 `dockerhub-secret` 的 secret，用来存储 Docker Hub 的访问凭据。在之后的 Kubernetes 部署中，可以使用这个 secret 来访问私有 Docker 仓库中的镜像。
+
 ### 创建 Helm Chart 仓库
 
-创建一个新的 Git 仓库，将现有仓库的helm目录复制到新仓库
+创建一个新的 Git 仓库，将现有仓库的helm目录复制到新仓库，并推送到自己的github中，（后续演示将使用 https://github.com/cloudzun/kubernetes-example-helm 作为helm chat repo）
 
 ```bash
  $ cp -r ./kubernetes-example/helm ./kubernetes-example-helm
 ```
+
+
 
 为 ArgoCD Image Updater 提供回写 kubernetes-example-helm 仓库的权限。要配置仓库访问权限，可以使用 argocd repo add 命令
 
@@ -2469,6 +2500,46 @@ argocd repo add https://github.com/cloudzun/kubernetes-example-helm.git --userna
 ```bash
 argocd repo add https://github.com/cloudzun/kubernetes-example-helm.git --username cloudzun --password $PASSWORD
 ```
+
+
+
+检查repo
+
+```bash
+argocd repo list
+```
+
+
+
+```bash
+root@node1:~/gitops# argocd repo list
+TYPE  NAME  REPO                                                     INSECURE  OCI    LFS    CREDS  STATUS      MESSAGE  PROJECT
+git         https://github.com/cloudzun/kubernetes-example-helm.git  false     false  false  true   Successful
+```
+
+
+
+检查相关secret
+
+```bash
+kubectl get secret -n argocd
+```
+
+
+
+```bash
+root@node1:~/gitops# kubectl get secret -n argocd
+NAME                          TYPE                             DATA   AGE
+argocd-image-updater-secret   Opaque                           0      14m
+argocd-initial-admin-secret   Opaque                           1      110m
+argocd-notifications-secret   Opaque                           0      111m
+argocd-secret                 Opaque                           5      111m
+argocd-secret-s2v2j           Opaque                           1      105m
+dockerhub-secret              kubernetes.io/dockerconfigjson   1      80m
+repo-1585050378               Opaque                           4      75m
+```
+
+
 
 
 
@@ -2488,7 +2559,7 @@ nano application.yaml
 ```
 
 
-```ymal
+```yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -2560,6 +2631,24 @@ kubectl apply -n argocd -f application.yaml
 
 
 
+查看application列表
+
+```bash
+argocd app list
+```
+
+
+
+```bash
+root@node1:~/gitops# argocd app list
+NAME            CLUSTER                         NAMESPACE               PROJECT  STATUS     HEALTH   SYNCPOLICY  CONDITIONS  REPO                                                     PATH  TARGET
+argocd/example  https://kubernetes.default.svc  gitops-example-updater  default  OutOfSync  Healthy  Auto        <none>      https://github.com/cloudzun/kubernetes-example-helm.git  .     main
+```
+
+
+
+
+
 ### 触发 GitOps 工作流
 
 接下来，可以尝试修改 frontend/src/App.js 文件，例如修改文件第 49 行的“Hi! I am abraham”内容。修改完成后，将代码推送到 GitHub 的 main 分支。此时会触发两个 GitHub Action 工作流。其中，当 build-every-branch 工作流被触发时，它将构建 Tag 为 main 开头的镜像版本，并将其推送到镜像仓库中，
@@ -2573,7 +2662,9 @@ kubectl apply -n argocd -f application.yaml
 注意以上日志的中的 `backend:main-2fff0b2`
 
 到docker hub上查看新上线的镜像 tag：
-![[Pasted image 20230223194606.png]]
+
+![Pasted image 20230223194606](README.assets/Pasted image 20230223194606.png)
+
 可以观察到 `main-2fff0b2`
 
 与此同时，ArgoCD Image Updater 将会每 2 分钟从镜像仓库检索 `frontend` 和 `backend` 的镜像版本，一旦发现有新的并且以 `main` 开头的镜像版本，它将自动使用新版本来更新集群内工作负载的镜像，并将镜像版本回写到 `kubernetes-example-helm` 仓库。在回写时，ArgoCD Image Updater 并不会直接修改仓库的 values.yaml 文件，而是会创建一个专门用于覆盖 Helm Chart values.yaml 的 `.argocd-source-example.yaml` 文件
@@ -2617,7 +2708,7 @@ postgres   1/1     1            1           13m   postgres         postgres     
 
 使用简化版的application manifest，只响应frontend的更新
 
-```bash
+```yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -2746,6 +2837,7 @@ kind: Ingress
 metadata:
   name: demo-ingress
 spec:
+  ingressClassName: nginx
   rules:
   - host: "bluegreen.demo"
     http:
@@ -2849,6 +2941,7 @@ kind: Ingress
 metadata:
   name: demo-ingress
 spec:
+  ingressClassName: nginx
   rules:
   - host: "bluegreen.demo"
     http:
@@ -3051,6 +3144,7 @@ kind: Ingress
 metadata:
   name: bluegreen-demo
 spec:
+  ingressClassName: nginx
   rules:
   - host: "bluegreen.auto"
     http:
@@ -3214,6 +3308,7 @@ kind: Ingress
 metadata:
   name: prod-ingress
 spec:
+  ingressClassName: nginx
   rules:
   - host: "canary.demo"
     http:
@@ -3315,6 +3410,7 @@ metadata:
     nginx.ingress.kubernetes.io/canary-weight: "20"
     nginx.ingress.kubernetes.io/canary-by-header: "X-Canary"
 spec:
+  ingressClassName: nginx
   rules:
   - host: "canary.demo"
     http:
@@ -3523,6 +3619,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: nginx
 spec:
+  ingressClassName: nginx
   rules:
     - host: canary.auto
       http:
@@ -3760,6 +3857,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: nginx
 spec:
+  ingressClassName: nginx
   rules:
     - host: progressive.auto
       http:
@@ -3952,6 +4050,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: nginx
 spec:
+  ingressClassName: nginx
   rules:
   # Use the host you used in your kubernetes Ingress Configurations
   - host: prometheus.demo
