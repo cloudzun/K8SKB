@@ -1659,7 +1659,30 @@ database:
   username: postgres
   password: postgres
   
+host: "default.example.com"
 ```
+
+这是一个Helm项目的YAML配置文件`values.yaml`，包含了该项目所需的变量和默认值设置。这里为项目设置了3个主要组件：frontend、backend和database。分别描述了前端、后端和数据库相关的配置信息。
+
+1. `frontend`:
+   - `image: chengzh/frontend`：前端容器使用的镜像名称是`chengzh/frontend`。
+   - `tag: latest`：前端容器镜像使用的版本标签是`latest`。
+   - `autoscaling`: 与前端自动缩放（Horizontal Pod Autoscaler)相关的配置。
+     - `averageUtilization: 90`：CPU平均利用率的目标百分比为90%，即HPA将尝试根据实际CPU使用情况调整Pod副本数量以达到该目标。
+   
+2. `backend`:
+   - `image: chengzh/backend`：后端容器使用的镜像名称是`chengzh/backend`。
+   - `tag: latest`：后端容器镜像使用的版本标签是`latest`。
+   - `autoscaling`: 与后端自动缩放（Horizontal Pod Autoscaler)相关的配置。
+     - `averageUtilization: 90`：CPU平均利用率的目标百分比为90%，即HPA将尝试根据实际CPU使用情况调整Pod副本数量以达到该目标。
+
+3. `database`:
+   - `enabled: true`：设置启用数据库组件。
+   - `uri: pg-service`：数据库的服务名（或URI）是`pg-service`。
+   - `username: postgres`：数据库连接的用户名是`postgres`。
+   - `password: postgres`：数据库连接的密码是`postgres`。
+
+这个`values.yaml`文件为主要的Helm项目组件提供了默认值。 通过使用Helm模板语法，这些值可以在应用的其它资源配置模板中被引用，以简化部署和更新。开发者可以在本地或通过Helm命令行工具（如helm install或helm upgrade命令）自定义这些值，以满足不同部署环境的需求。
 
 除了 `values.yaml`，还需要让 `helm/templates` 目录下的文件能够读取 `values.yaml` 的内容，这就需要使用模板变量。
 
@@ -1690,6 +1713,22 @@ spec:
           value: "{{ .Values.database.password }}"
 ```
 
+这是 Helm 项目中的 `helm/templates/backend.yaml` 文件的部分内容，根据之前提供的项目背景信息，可以解读如下：
+
+这段配置描述了一个 Kubernetes 部署（Deployment）的 spec（规格）部分。spec 部分定义了部署所需的容器。
+
+1. containers：这个字段包含一个容器列表，描述了部署中会运行的容器。
+    - `name: "flask-backend"`：这是容器的名字，这个容器负责运行 Flask 后端应用。
+    - `image: "{{ .Values.backend.image }}:{{ .Values.backend.tag }}"`：这是容器运行的镜像。Helm 的模板引擎会从 `values.yaml` 文件中读取 backend.image（镜像名称）和 backend.tag（镜像标签）的值，并在部署时将这两个占位符替换为实际值。
+2. env：这个字段包含一个环境变量列表，定义了容器运行时所需的环境变量。
+    - `name: DATABASE_URI`：这个环境变量定义了数据库的 URI，用于后端连接数据库。值 "{{ .Values.database.uri }}" 是一个占位符，会在部署时从 `values.yaml` 文件中的 database.uri 替换为实际值。
+    - `name: DATABASE_USERNAME`：这个环境变量定义了数据库的用户名，用于后端连接数据库。值 "{{ .Values.database.username }}" 是一个占位符，会在部署时从 `values.yaml` 文件中的 database.username 替换为实际值。
+    - `name: DATABASE_PASSWORD`：这个环境变量定义了数据库的密码，用于后端连接数据库。值 "{{ .Values.database.password }}" 是一个占位符，会在部署时从 `values.yaml` 文件中的 database.password 替换为实际值。
+
+总之，在这个 Helm 项目的这部分配置中，你可以看到一个名为 "flask-backend" 的容器在运行一个由 `values.yaml` 中 backend.image 和 backend.tag 定义的 Docker 镜像。同时，这个容器的环境变量从 `values.yaml` 文件中的 database 配置中获取数据库连接相关的信息。
+
+
+
 同理，修改 `helm/templates/frontend.yaml` 文件的 image 字段。
 
 ```yaml
@@ -1705,6 +1744,14 @@ spec:
       - name: react-frontend
         image: "{{ .Values.frontend.image }}:{{ .Values.frontend.tag }}" 
 ```
+
+这是 `helm/templates/frontend.yaml` 文件的一部分配置内容，它描述了一个名为 "react-frontend" 的容器。这个文件主要用于生成 Kubernetes 部署的资源配置，用于部署一个基于 React 的前端应用。
+
+- `name: react-frontend`：定义了容器的名称，值为 "react-frontend"。
+
+- `image: "{{ .Values.frontend.image }}:{{ .Values.frontend.tag }}"`：设置了该容器使用的镜像。镜像名称和镜像标签（版本）分别使用占位符 `{{ .Values.frontend.image }}` 和 `{{ .Values.frontend.tag }}` 表示。这些占位符将在部署过程中被替换成 `values.yaml` 文件中的实际值。
+
+这段配置表明，`frontend.yaml` 文件定义了一个名为 "react-frontend" 的容器，它将使用一个来自 `values.yaml` 文件的镜像进行部署。在 Helm 部署过程中，占位符会被替换成 `values.yaml` 文件中的实际值，以便创建正确的 Kubernetes 资源。
 
 此外，还需要修改 `helm/templates/hpa.yaml` 文件的 averageUtilization 字段。
 
@@ -1737,6 +1784,42 @@ spec:
         averageUtilization: {{ .Values.backend.autoscaling.averageUtilization }}
 ```
 
+这是 `helm/templates/hpa.yaml` 文件中的部分配置内容。它描述了两个Horizontal Pod Autoscaler（HPA）资源的配置，一个用于前端（"frontend"），另一个用于后端（"backend"）。
+
+**frontend 部分配置解读：**
+
+- `metadata:`：元数据部分，包括资源名称等信息。
+  - `name: frontend`：定义了这个 HPA 资源的名称，值为 "frontend"。
+
+- `spec:`：定义了 HPA 的规格配置。
+  - `metrics:`：指定度量指标。列表中定义了一个度量，用于监控。
+    - `type: Resource`：指标类型为 "Resource"，表示我们关注的是资源指标。
+    - `resource:`：关注的特定资源。
+      - `name: cpu`：资源名称，我们关注的是 CPU 的利用率。
+      - `target:`：目标配置。
+        - `type: Utilization`：类型为 "Utilization"，表示关注资源的利用率。
+        - `averageUtilization: {{ .Values.frontend.autoscaling.averageUtilization }}`：目标平均 CPU 利用率。占位符 `{{ .Values.frontend.autoscaling.averageUtilization }}` 会在部署过程中被替换成 `values.yaml` 文件中的实际值。
+
+**backend 部分配置解读：**
+
+后端部分的结构和前端类似，只是名称和实际值的占位符不同。
+
+- `metadata:`：
+  - `name: backend`：定义了这个 HPA 资源的名称，值为 "backend"。
+
+- `spec:`：
+  - `metrics:`：
+    - `type: Resource`：
+    - `resource:`：
+      - `name: cpu`：
+      - `target:`：
+        - `type: Utilization`：
+        - `averageUtilization: {{ .Values.backend.autoscaling.averageUtilization }}`：目标平均 CPU 利用率。占位符 `{{ .Values.backend.autoscaling.averageUtilization }}` 会在部署过程中被替换成 `values.yaml` 文件中的实际值。
+
+这两个 HPA 配置旨在根据前端和后端工作负载（CPU 利用率）自动调整 pod 的数量。在部署过程中，占位符将被替换为 `values.yaml` 文件中的实际值。
+
+
+
 需要注意的是，与其他模板变量不同，在这里没有在模板变量的外部使用双引号。这是因为 `averageUtilization` 字段是一个整数（integer）类型，而双引号加上模板变量表示字符串（string）类型。
 
 最后，希望使用 `values.yaml` 中的 `database.enable` 字段来控制是否向集群提交 `helm/templates/database.yaml` 文件。因此，在文件的首行和最后一行可以添加以下内容：
@@ -1747,6 +1830,54 @@ spec:
 ......
 {{- end }}
 ```
+
+
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  rules:
+  - host: "{{ .Values.host }}"
+    http:
+      paths:
+      - path: /?(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 3000
+      - path: /api/?(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: backend-service
+            port:
+              number: 5000
+  ingressClassName: nginx
+```
+
+`helm/templates/ingress.yaml` 文件定义了一个用于前端和后端服务的 Ingress 资源，将 HTTP 请求路由到对应的 Kubernetes 服务。Ingress 的规则包括：
+
+1. 前端规则：
+   - 路径：/?(.*)
+   - 路径类型：前缀
+   - 后端服务名：front-end-service
+   - 服务端口号：3000
+2. 后端规则：
+   - 路径：/api/?(.*)
+   - 路径类型：前缀
+   - 后端服务名：backend-service
+   - 服务端口号：5000
+
+此外，Ingress 资源中的主机名已被设置为 `{{ .Values.host }}`，这样在部署时，您可以根据不同的环境使用参数来自 `values.yaml` 文件的主机名，或者通过指定 `--set` 标志来覆盖默认主机名。
+
+
 
 到这里，就成功地将“静态”的 Helm Chart 改造为了“动态”的 Helm Chart。
 
@@ -1765,7 +1896,7 @@ spec:
 为 Helm Chart 创建的 values.yaml 实际上是默认值，在预发布环境，希望将前后端的 HPA CPU averageUtilization 从默认的 90 调整为 60，可以在安装时使用 --set 来调整特定的字段，不需要修改 values.yaml 文件。
 
 ```bash
-helm install my-kubernetes-example ./helm --namespace helm-staging --create-namespace --set frontend.autoscaling.averageUtilization=60 --set backend.autoscaling.averageUtilization=60
+kubernetes-example ./helm --namespace helm-staging --create-namespace --set host=staging.example.com --set frontend.autoscaling.averageUtilization=60 --set backend.autoscaling.averageUtilization=60
 ```
 
 ```bash
@@ -1857,7 +1988,7 @@ database:
 接下来，使用 helm install 命令来安装它，同时指定新的 values-prod.yaml 文件作为安装参数。
 
 ```bash
-helm install my-kubernetes-example ./helm -f ./helm/values-prod.yaml --namespace helm-prod --create-namespace
+helm install my-kubernetes-example ./helm -f ./helm/values-prod.yaml --namespace helm-prod --create-namespace --set host=production.example.com
 ```
 
 部署完成后，可以查看为生产环境配置的后端服务 HPA averageUtilization 字段值。
