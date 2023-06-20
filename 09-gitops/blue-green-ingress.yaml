@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bluegreen-demo
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: "bluegreen.auto"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: bluegreen-demo
+            port:
+              number: 80

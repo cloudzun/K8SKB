@@ -3955,6 +3955,12 @@ rollout 'canary-demo' promoted
 
 ![Pasted image 20230224103308](README.assets/Pasted image 20230224103308.png)
 
+清理rollout
+
+```bash
+kubectl delete -f canary-rollout.yaml
+```
+
 
 
 ## 自动渐进交付
@@ -4194,6 +4200,26 @@ helm upgrade prometheus prometheus-community/kube-prometheus-stack \
 --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false
 ```
 
+这个命令用于安装或升级 Prometheus 和相关组件（如 Grafana 和 Alertmanager）的 Helm Chart，该 Helm Chart 名为 `kube-prometheus-stack`，由 Prometheus 社区维护。接下来，我会逐行解释这个命令：
+
+1. `helm repo add prometheus-community https://prometheus-community.github.io/helm-charts`：添加 Prometheus 社区 Helm 仓库至本地 Helm 客户端，以便可以搜索、安装和更新该仓库提供的 Helm Charts。
+
+2. `helm upgrade prometheus prometheus-community/kube-prometheus-stack \`：使用 `helm upgrade` 命令尝试升级（如果已安装）或安装（如果尚未安装）名为 `prometheus` 的 Prometheus 实例。其中，`prometheus-community/kube-prometheus-stack` 为 Helm Chart 的名称。
+
+3. `--namespace prometheus`：指定要在 `prometheus` 命名空间中安装或升级该 Helm Chart。 
+
+4. `--create-namespace`：如果目标命名空间尚未存在，则创建该命名空间。
+
+5. `--install`：如果找不到现有的 Prometheus 实例，则执行新安装。
+
+6. `--set prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues=false`：使用 `--set` 参数覆盖配置文件中的值。此行表示对 `prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues` 设置为 `false`。该选项将禁用 Prometheus 自动发现 PodMonitors 的默认行为，并允许自定义选择规则。
+
+7. `--set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false`：类似于上面一行，这行将 `prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues` 设置为 `false`。这将禁用 Prometheus 自动发现 ServiceMonitors 的默认行为，并允许自定义选择规则。
+
+通过运行此命令，您将部署或升级一个名为 `prometheus` 的 Prometheus 实例，并自定义 PodMonitor 和 ServiceMonitor 选择器以根据需求进行设置。
+
+
+
 在上面的安装命令中，我使用 --set 对安装参数进行了配置，这是为了让它后续能够顺利获取到 Ingress-Nginx 的监控指标。
 
 ```bash
@@ -4388,7 +4414,7 @@ kubectl argo rollouts set image canary-demo canary-demo=argoproj/rollouts-demo:y
 
 ## 多环境部署
 
-
+项目文件路径：https://github.com/cloudzun/kubernetes-example/tree/main/helm-env
 
 ### 示例应用简介
 
@@ -4559,6 +4585,8 @@ kubectl apply -f applicationset.yaml
 
 ## 密钥管理
 
+> Sealed Secrets是一种非常有用的工具，可以帮助管理Kubernetes集群中的Secrets，并提供了一种安全的方式来存储Secrets。它使用非对称加密来保护Secrets，同时也可以方便地与Git集成。
+
 ### 安装 sealed-secrets
 
 安装CLI
@@ -4622,6 +4650,10 @@ metadata:
   uid: b5566b9f-ad31-4e1e-b44f-14d9e23839ae
 type: kubernetes.io/tls
 ```
+
+````bash
+kubectl apply -f https://raw.githubusercontent.com/cloudzun/kubernetes-example/main/sealed-secret/manifest/deployment.yaml
+````
 
 
 
@@ -4736,12 +4768,10 @@ spec:
 
 
 ```bash
-kubectl apply -f application.yaml
+apply -f https://raw.githubusercontent.com/cloudzun/kubernetes-example/main/sealed-secret/application.yaml
 ```
 
-```bash
-root@node1:~/kubernetes-example/sealed-secret# kubectl apply -f application.yaml
-```
+
 
 从Argo CD界面上观察有一颗破碎的红心
 
@@ -4770,6 +4800,8 @@ Error from server (BadRequest): container "sample-spring" in pod "sample-spring-
 
 ### 创建加密后的对象
 
+**对于docker容器运行时**
+
 尝试使用 Github PAT 登陆
 
 ```bash
@@ -4796,7 +4828,25 @@ nano /root/.docker/config.json
 }
 ```
 
-对整个文件进行base64编码，https://base64.us/
+
+
+**对于containerd运行时**
+
+```json
+{
+    "auths": {
+        "ghcr.io": {
+            "username": "cloudzun",
+            "password": "Your PAT"
+        }
+    }
+}
+
+```
+
+
+
+对上述文件进行base64编码，https://base64.us/
 
 ```bash
 ewogICAgICAgICJhdXRocyI6IHsKICAgICAgICAgICAgICAgICJnaGNyLmlvIjogewogICAgICAgICAgICAgICAgICAgICAgICAiYXV0aCI6ICJZMnh2ZFdSNmRXNDZaMmh3WDNKRWRHSnRjSEZtVGxodk1UUmhlVzFRYkhnM2NUUmxhblpsVld3MFpESmpTazVTU2c9PSIKICAgICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgICAiaHR0cHM6Ly9pbmRleC5kb2NrZXIuaW8vdjEvIjogewogICAgICAgICAgICAgICAgICAgICAgICAiYXV0aCI6ICJZMmhsYm1kNmFEb3lkM040STBWRVF5UlNSbFk9IgogICAgICAgICAgICAgICAgfQogICAgICAgIH0KfQo=
@@ -4822,7 +4872,7 @@ kubeseal -f image-pull-secret.yaml -w manifest/image-pull-sealed-secret.yaml --s
 简单解释一下这个命令。首先，-f 参数指定了原始 Sceret 对象文件，也就是 image-pull-secret.yaml。-w 参数表示将加密后的 Secret 对象写入 manifest 目录的 image-pull-sealed-secret.yaml 文件内，这样 ArgoCD 就可以将它一并部署到集群内。–scope 参数表示加密后的 Secret 对象可以在集群的任何命名空间下使用。然后，可以查看 manifest/image-pull-sealed-secret.yaml 文件，加密后的 Secret 对象如下。
 
 ```bash
-root@node1:~/kubernetes-example/sealed-secret/manifest# nano image-pull-sealed-secret.yaml
+cat manifest/image-pull-sealed-secret.yaml
 ```
 
 ```yaml
@@ -4854,6 +4904,10 @@ kubeseal -f sample-secret.yaml -w manifest/sample-sealed-secret.yaml --scope clu
 ```
 
 运行命令后，在 manifest 目录下生成 sample-sealed-secret.yaml 文件，它包含加密后的 Secret 内容。
+
+```bash
+cat manifest/sample-sealed-secret.yaml
+```
 
 ```yaml
 apiVersion: bitnami.com/v1alpha1
