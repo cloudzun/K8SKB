@@ -1187,7 +1187,39 @@ spec:
 
 
 
+以下是使用 Mermaid 语法描述的 Jenkins 流水线构建过程图：
 
+```mermaid
+graph TD
+A(开始) --> B{拉取代码}
+B -->|通过 Jenkins| C[拉取代码通过 Jenkins]
+B -->|通过触发器| D[拉取代码通过触发器]
+C --> E[生成 COMMIT_ID 和 TAG]
+D --> E
+E --> F[构建]
+F --> G[Docker 构建镜像]
+G --> H[登录 Harbor 并推送镜像]
+H --> I[部署到 Kubernetes 集群]
+I --> J(结束)
+```
+
+请将此 Mermaid 代码放入支持 Mermaid 的 Markdown 编辑器或使用 Mermaid live editor （https://mermaid-js.github.io/mermaid-live-editor/）在线查看流程图。这将显示 Jenkins 流水线构建过程的可视化表示。
+
+这是一个Jenkinsfile的片段，用于定义一个名为"Pulling Code"的阶段。这个阶段分为两个并行的子阶段。其中一个子阶段名为"Pulling Code by Jenkins"。这是一个代码拉取过程。
+
+在"Pulling Code by Jenkins"子阶段中，首先有一个条件表达式，用来检查环境变量`env.gitlabBranch`是否为空。如果为空，那么该子阶段的步骤才会执行。
+
+这个子阶段主要执行了以下步骤:
+
+1. 使用`git`命令从Git仓库拉取代码。这里，URL指向内部 IP 地址上的`spring-boot-project.git`项目。拉取代码时，会使用提供的环境变量`${BRANCH}`作为分支名称。同时，还需要指定`credentialsId`为'gitlab'，以供Git操作使用。
+
+2. 在`script`块中，获取最新一次提交的短格式哈希值，并保存在`COMMIT_ID`变量中。
+
+3. 定义`TAG`变量，用于标记当前构建。它由`BUILD_TAG`、一个短横线和`COMMIT_ID`组成。例如，如果`BUILD_TAG`是"build-23"，而`COMMIT_ID`是"abc123"，`TAG`将是"build-23-abc123"。
+
+4. 打印当前分支、提交ID和构建的镜像TAG。
+
+总的来说，这个配置描述了一个并行的代码拉取阶段，在满足条件时拉取代码并获取相关的代码提交信息。这些信息将用于后续的构建和部署过程。
 
 ## 配置 K8S
 

@@ -220,6 +220,12 @@ local-path-storage   local-path-provisioner-684f458cdd-2jfl4      1/1     Runnin
 kubectl create -f https://ghproxy.com/https://raw.githubusercontent.com/cloudzun/resource/main/ingress-nginx/ingress-nginx.yaml
 ```
 
+（可选）如果使用非kind环境，比如sandbox上，则需要为某个节点打标签 `ingress-ready: "true"`
+
+```bash
+kubectl label node node01 ingress-ready=true
+```
+
 安装metrics
 
 ```bash
@@ -231,6 +237,18 @@ kubectl apply -f https://ghproxy.com/https://raw.githubusercontent.com/cloudzun/
 ```bash
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 ```
+
+
+
+（可选）国内安装helm v3.12.1
+
+```bash
+wget https://chengzhstor.blob.core.windows.net/k8slab/helm-v3.12.1-linux-amd64.tar.gz
+tar xf helm-v3.12.1-linux-amd64.tar.gz
+mv linux-amd64/helm /usr/bin/
+```
+
+
 
 (可选)打印kubeconfig文件
 
@@ -367,17 +385,6 @@ kubectl create service clusterip hello-world-flask --tcp=5000:5000
 创建 ingress
 ```bash
 kubectl create ingress hello-world-flask --rule="/=hello-world-flask:5000"
-```
-
-
-部署 ingress-nginx
-```bash
-kubectl create -f https://ghproxy.com/https://raw.githubusercontent.com/cloudzun/resource/main/ingress-nginx/ingress-nginx.yaml
-```
-
-（可选）如果使用非kind环境，比如sandbox上，则需要为某个节点打标签 `ingress-ready: "true"`
-```bash
-kubectl label node node01 ingress-ready=true
 ```
 
 
@@ -2209,8 +2216,18 @@ helm uninstall my-kubernetes-example -n example
 
 ## 部署 ArgoCD
 
+Clone 项目 Repo
+
+```bash
+git clone https://github.com/cloudzun/K8SKB/
+
+cd K8SKB/09-gitops/
+```
+
+
 
 创建命名空间
+
 ```bash
 kubectl create namespace argocd
 ```
@@ -2220,7 +2237,16 @@ kubectl create namespace argocd
 kubectl apply -n argocd -f https://ghproxy.com/https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 ```
 
+（可选）国内安装情况
+
+```bash
+kubectl apply -f install.yaml
+```
+
+
+
 检查安装情况
+
 ```bash
 kubectl wait --for=condition=Ready pods --all -n argocd --timeout 300s
 ```
@@ -2289,6 +2315,18 @@ spec:
 ```bash
 kubectl apply -f argocd-ingress.yaml
 ```
+
+（可选）对于云主机，因为不方便走ingress，所以建议采用nodport方式发布服务
+
+```bash
+kubectl patch svc argocd-server -n argocd --type='json' -p='[{"op": "replace", "path": "/spec/type", "value": "NodePort"}]'
+
+kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.ports[?(@.name=="http")].nodePort}'
+```
+
+​	获取此处输出的nodeport端口号，后续用http://node1:nodeport方式访问ArgoCD Web
+
+
 
 获取 ArgoCD Admin 初始密码
 
@@ -2385,12 +2423,14 @@ Password:
 Context 'localhost:8080' updated
 ```
 
-可选此处的$PASSWORD 为此前定义的 github tocken
+（可选），增加Github Repo，此处的$PASSWORD 为此前定义的 github tocken，
 
 ```
 argocd repo add https://github.com/chengzh/kubernetes-example.git --username cloudzun --password $PASSWORD
 
 ```
+
+增加App
 
 ```bash
 argocd app create example --sync-policy automated --repo https://github.com/cloudzun/kubernetes-example.git --revision main --path helm --dest-namespace gitops-example --dest-server https://kubernetes.default.svc --sync-option CreateNamespace=true
@@ -2409,6 +2449,18 @@ argocd app create example --sync-policy automated --repo https://github.com/clou
 9. `--sync-option CreateNamespace=true`: 设置同步选项，以在应用同步时自动创建目标命名空间（如果它不存在的话）。
 
 总之，这条命令使用Argo CD在指定的Kubernetes命名空间中创建一个名为`example`的应用，该应用从指定的Git仓库和分支中获取Kubernetes资源。同步策略设置为自动化，以便在Git仓库中的配置发生变化时自动应用这些更改。
+
+检查增加的Application
+
+```bash
+argocd app list
+```
+
+```bash
+root@node1:~# argocd app list
+NAME            CLUSTER                         NAMESPACE       PROJECT  STATUS     HEALTH       SYNCPOLICY  CONDITIONS  REPO                                                PATH  TARGET
+argocd/example  https://kubernetes.default.svc  gitops-example  default  OutOfSync  Progressing  Auto        <none>      https://github.com/cloudzun/kubernetes-example.git  helm  main
+```
 
 
 
