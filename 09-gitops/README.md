@@ -103,7 +103,7 @@ sudo mv ./kind /usr/local/bin/kind
 ```
 
 
-加速方式
+（可选）国内方式
 
 ```bash
 curl -Lo ./kind https://chengzhstor.blob.core.windows.net/k8slab/kind-linux-amd64
@@ -144,6 +144,53 @@ nodes:
     hostPort: 443
     protocol: TCP
 ```
+
+
+
+（可选）国内安装方式
+
+下载映像
+
+```bash
+docker pull registry.cn-hangzhou.aliyuncs.com/chengzh/node:v1.25.3 
+
+docker tag registry.cn-hangzhou.aliyuncs.com/chengzh/node:v1.25.3  kindest/node:v1.25.3
+```
+
+
+
+创建群集配置文件
+
+```bash
+nano  config.yaml
+```
+
+```yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  apiServerAddress: "192.168.1.231" # 使用虚机的IP，其他场景则设置为 127.0.0.1
+  apiServerPort: 6443
+nodes:
+- role: control-plane
+  image: kindest/node:v1.25.3
+  kubeadmConfigPatches:
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "ingress-ready=true"
+  extraPortMappings:
+  - containerPort: 80
+    hostPort: 80
+    protocol: TCP
+  - containerPort: 443
+    hostPort: 443
+    protocol: TCP
+```
+
+
+
 
 
 创建群集
@@ -2240,7 +2287,7 @@ kubectl apply -n argocd -f https://ghproxy.com/https://raw.githubusercontent.com
 （可选）国内安装情况
 
 ```bash
-kubectl apply -f install.yaml
+kubectl apply -n argocd -f https://ghproxy.com/https://raw.githubusercontent.com/cloudzun/K8SKB/main/09-gitops/install.yaml
 ```
 
 
