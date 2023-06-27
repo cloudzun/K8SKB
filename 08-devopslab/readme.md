@@ -1,4 +1,4 @@
-[TOC]
+
 
 环境介绍：
 
@@ -111,6 +111,28 @@ volumes:
   jenkins_data:
     driver: local
 ```
+
+这是一个使用 Docker Compose 编写的配置文件，用于部署一个 Jenkins 服务。以下是对配置文件中各部分的解释：
+
+1. `version: '2'`：指定了 Docker Compose 文件的版本。这里使用的是版本 2。
+
+2. `services`：定义了在这个配置文件中部署的各种服务。在本例中，仅包含一个名为 `jenkins` 的服务。
+
+3. `jenkins`：这是名为 `jenkins` 的服务定义。
+
+   - `image: docker.io/bitnami/jenkins:2.319.1-debian-10-r11`：指定服务使用的 Docker 镜像，这里使用的是 Bitnami 镜像库中的 Jenkins 镜像（版本 2.319.1，基于 Debian 10 的 r11 版本）。
+   
+   - `restart: always`：指定服务容器的重启策略。这里设置为 always，意味着容器将在退出或崩溃时始终重启。
+   
+   - `ports`：定义了服务容器映射到主机的端口号。这里将 Jenkins 服务的 8080 端口映射到主机的 8080 端口，以及将 Jenkins 内部通信的 50000 端口映射到主机的 50000 端口。
+   
+   - `environment`：设置服务容器运行时的环境变量。这里设置了 Jenkins 用户名和密码，分别为 `admin` 和 `password`。
+   
+   - `volumes`：定义服务容器挂载的卷。这里将名为 '`jenkins_data`' 的卷挂载到容器的 '`/bitnami/jenkins`' 目录（即 Jenkins 配置和数据的存储目录）。
+
+4. `volumes`：定义了这个配置文件中使用的 Docker 卷。这里定义了一个卷 `jenkins_data`，使用本地驱动器。这个卷将存储 Jenkins 服务的数据，便于持久化和跨容器访问。
+
+
 
 备注： 如果已经已经下载了项目文件可以直接使用
 
@@ -268,6 +290,33 @@ services:
       - '/gitlab-data/logs:/var/log/gitlab'
       - '/gitlab-data/data:/var/opt/gitlab'
 ```
+
+这是一个使用 Docker Compose 编写的配置文件，用于部署一个 GitLab 服务。以下是对配置文件中各部分的解释：
+
+1. `version: '3.6'`：指定了 Docker Compose 文件的版本。这里使用的是版本 3.6。
+
+2. `services`：定义了在这个配置文件中部署的各种服务。在本例中，仅包含一个名为 `Gitlab` 的服务。
+
+3. `Gitlab`：这是名为 `Gitlab` 的服务定义。
+
+   - `image: 'gitlab/gitlab-ce:latest'`：指定服务使用的 Docker 镜像，这里使用的是 GitLab 社区版（CE）的最新镜像。
+   
+   - `restart: always`：指定服务容器的重启策略。这里设置为 always，意味着容器将在退出或崩溃时始终重启。
+   
+   - `hostname: 'gitlab.admin.com'`：指定服务容器的主机名。
+   
+   - `environment`：设置服务容器运行时的环境变量。这里设置了时区（TZ）为 'Asia/Shanghai'，同时通过 GITLAB_OMNIBUS_CONFIG 环境变量设置了 GitLab 的一些配置参数：
+
+        - `external_url`：设置 GitLab 的外部访问 URL。
+        - `gitlab_rails['gitlab_ssh_host']`：设置 GitLab 服务的 SSH 主机地址。
+        - `gitlab_rails['gitlab_shell_ssh_port']`：设置 GitLab 服务的 SSH 端口号。
+        - `prometheus_monitoring['enable']`：设置是否启用 Prometheus 监控功能。这里禁用了该功能。
+
+   - `ports`：定义了服务容器映射到主机的端口号。这里将 GitLab 服务的 80、443 和 22 端口分别映射到主机的 80、10443 和 10022 端口。
+
+   - `volumes`：定义服务容器挂载的卷。这里将本地的 '/gitlab-data/config'、'/gitlab-data/logs' 和 '/gitlab-data/data' 目录分别挂载到容器的 '/etc/gitlab'、'/var/log/gitlab' 和 '/var/opt/gitlab' 目录，用于存储 GitLab 的配置、日志和数据。
+
+通过这个配置文件，你可以使用 Docker Compose 来部署一个 GitLab 服务。让 GitLab 服务在启动后始终可用，并根据需要配置相关的参数以满足你的实际需求。
 
 
 
